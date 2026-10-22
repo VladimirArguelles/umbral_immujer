@@ -61,7 +61,7 @@ class HeroBanner extends StatelessWidget {
                 children: [
                   // Lado Izquierdo: Textos y Título
                   Expanded(
-                    flex: 5,
+                    flex: 4,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
@@ -120,9 +120,9 @@ class HeroBanner extends StatelessWidget {
 
                   // Lado Derecho: Ilustración gráfica del banner ampliada
                   Expanded(
-                    flex: 5,
+                    flex: 6,
                     child: SizedBox(
-                      height: 155, // Tamaño incrementado para mayor presencia e impacto visual
+                      height: 220,
                       child: Image.asset(
                         imagePath,
                         fit: BoxFit.contain,
