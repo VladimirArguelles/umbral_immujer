@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:umbral_immujer/features/home/presentation/theme/home_theme_colors.dart';
 
+/// Banner Hero destacado de "FORMACIONES IMMUJER" con ilustración redimensionada
 class HeroBanner extends StatelessWidget {
   final String imagePath;
   final VoidCallback? onTap;
@@ -44,8 +45,8 @@ class HeroBanner extends StatelessWidget {
               top: -30,
               right: -30,
               child: Container(
-                width: 140,
-                height: 140,
+                width: 150,
+                height: 150,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: HomeThemeColors.accentPink.withValues(alpha: 0.15),
@@ -54,13 +55,13 @@ class HeroBanner extends StatelessWidget {
             ),
 
             Padding(
-              padding: const EdgeInsets.all(20.0),
+              padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 16.0),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   // Lado Izquierdo: Textos y Título
                   Expanded(
-                    flex: 6,
+                    flex: 5,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
@@ -115,18 +116,18 @@ class HeroBanner extends StatelessWidget {
                     ),
                   ),
 
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
 
-                  // Lado Derecho: Ilustración gráfica del banner
+                  // Lado Derecho: Ilustración gráfica del banner ampliada
                   Expanded(
-                    flex: 4,
+                    flex: 5,
                     child: SizedBox(
-                      height: 120,
+                      height: 155, // Tamaño incrementado para mayor presencia e impacto visual
                       child: Image.asset(
                         imagePath,
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) {
-                          // Fallback con ícono temático institucional estilizado
+                          // Fallback con ícono temático institucional
                           return Container(
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,

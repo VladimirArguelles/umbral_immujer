@@ -3,15 +3,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:umbral_immujer/features/home/presentation/theme/home_theme_colors.dart';
 import 'package:umbral_immujer/src/features/auth/presentation/login_screen.dart';
 
+/// Barra superior limpia con el Logotipo Oficial de UMBRAL y botón de acceso 'Entrar'
 class CustomTopBar extends StatelessWidget {
-  final VoidCallback? onMenuPressed;
-  final VoidCallback? onSearchPressed;
   final VoidCallback? onLoginPressed;
 
   const CustomTopBar({
     super.key,
-    this.onMenuPressed,
-    this.onSearchPressed,
     this.onLoginPressed,
   });
 
@@ -22,66 +19,29 @@ class CustomTopBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Lado Izquierdo: Botones de Menú y Búsqueda
-          Row(
-            children: [
-              _buildIconButton(
-                icon: Icons.menu,
-                tooltip: 'Menú principal',
-                onTap: onMenuPressed ??
-                    () {
-                      Scaffold.maybeOf(context)?.openDrawer();
-                    },
-              ),
-              const SizedBox(width: 8),
-              _buildIconButton(
-                icon: Icons.search,
-                tooltip: 'Buscar cursos',
-                onTap: onSearchPressed ??
-                    () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Buscador de cursos en UMBRAL'),
-                          duration: Duration(seconds: 1),
-                        ),
-                      );
-                    },
-              ),
-            ],
-          ),
-
-          // Centro: Logo / Texto tipográfico "UMBRAL" estilizado
+          // Logotipo Oficial UMBRAL
           Hero(
-            tag: 'app_title_umbral',
-            child: Material(
-              color: Colors.transparent,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'UMBRAL',
-                    style: GoogleFonts.montserrat(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 3.5,
-                      color: Colors.white,
-                    ),
+            tag: 'app_logo_umbral',
+            child: Image.asset(
+              'assets/images/Logo Umbral.png',
+              height: 36,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                // Fallback tipográfico si la imagen no se carga
+                return Text(
+                  'UMBRAL',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2.0,
+                    color: Colors.white,
                   ),
-                  Container(
-                    margin: const EdgeInsets.only(left: 3, top: 4),
-                    width: 6,
-                    height: 6,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: HomeThemeColors.accentPink,
-                    ),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
           ),
 
-          // Lado Derecho: Botón píldora "Entrar"
+          // Lado Derecho: Botón estilo píldora "Entrar"
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
               backgroundColor: HomeThemeColors.accentPink,
@@ -110,30 +70,6 @@ class CustomTopBar extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildIconButton({
-    required IconData icon,
-    required String tooltip,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: const Color(0x1FFFFFFF), // Fondo traslúcido
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white12, width: 1),
-        ),
-        child: Icon(
-          icon,
-          size: 20,
-          color: Colors.white,
-        ),
       ),
     );
   }
