@@ -11,19 +11,21 @@ import 'package:umbral_immujer/src/features/auth/presentation/login_screen.dart'
 
 class AlumnoHomeScreen extends StatefulWidget {
   final UserProfile profile;
-  const AlumnoHomeScreen({super.key, required this.profile});
+  final int initialIndex;
+  const AlumnoHomeScreen({super.key, required this.profile, this.initialIndex = 0});
 
   @override
   State<AlumnoHomeScreen> createState() => _AlumnoHomeScreenState();
 }
 
 class _AlumnoHomeScreenState extends State<AlumnoHomeScreen> {
-  int _currentIndex = 0;
+  late int _currentIndex;
   late final AlumnosRepository _alumnosRepo;
 
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialIndex;
     _alumnosRepo = AlumnosRepository(SupabaseConfig.client);
   }
 

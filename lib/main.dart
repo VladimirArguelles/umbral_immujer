@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'src/core/config/supabase_config.dart';
 import 'src/core/theme/app_theme.dart';
+import 'features/home/presentation/pages/home_page.dart';
 import 'src/features/auth/presentation/login_screen.dart';
 
 Future<void> main() async {
@@ -21,7 +22,10 @@ class UmbralApp extends StatelessWidget {
       title: 'UMBRAL - IMMUJER',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const LoginScreen(),
+      home: const HomePage(),
+      routes: {
+        '/login': (_) => const LoginScreen(),
+      },
     );
   }
 }
