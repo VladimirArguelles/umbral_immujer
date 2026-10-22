@@ -9,7 +9,7 @@ import 'src/features/auth/presentation/register_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicialización de Supabase cargando las credenciales seguras desde .env
+  // Inicializa Supabase con valores de compilación recibidos mediante --dart-define.
   await SupabaseConfig.initialize();
 
   runApp(const UmbralApp());
