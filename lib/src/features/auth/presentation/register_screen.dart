@@ -341,11 +341,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 items: const [
                                   DropdownMenuItem(
                                     value: 'V',
-                                    child: Text('V - Cédula'),
+                                    child: Text('V'),
                                   ),
                                   DropdownMenuItem(
                                     value: 'P',
-                                    child: Text('P - Pasaporte'),
+                                    child: Text('P'),
                                   ),
                                 ],
                                 onChanged: (value) {
