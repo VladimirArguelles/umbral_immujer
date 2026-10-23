@@ -12,17 +12,27 @@ A few resources to get you started if this is your first Flutter project:
 - [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
 - [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
 
-## Supabase configuration
+## Configuración de Supabase
 
-The `.env` file is required as a Flutter asset but is intentionally excluded from Git.
-Create it from the template before running or building the app:
+La aplicación recibe la URL de Supabase y la clave publicable al compilar; no carga
+credenciales desde `.env`. En PowerShell, define las variables en la sesión actual:
 
 ```powershell
-Copy-Item .env.example .env
+$env:SUPABASE_URL = "https://tu-proyecto.supabase.co"
+$env:SUPABASE_PUBLISHABLE_KEY = "tu-clave-publicable"
 ```
 
-Replace the placeholder values in `.env` with your Supabase project URL and anon key.
-Keep `.env` local and do not commit it.
+Después, pásalas a Flutter con `--dart-define` al ejecutar o compilar, por ejemplo:
+
+```powershell
+flutter build web `
+  --base-href /umbral_immujer/ `
+  --dart-define=SUPABASE_URL=$env:SUPABASE_URL `
+  --dart-define=SUPABASE_PUBLISHABLE_KEY=$env:SUPABASE_PUBLISHABLE_KEY
+```
+
+La clave publicable se incluye en la aplicación web y no es un secreto. Nunca uses
+una clave `service_role` en una aplicación cliente.
 
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,

@@ -7,6 +7,7 @@ import 'package:umbral_immujer/src/features/alumnos/presentation/alumno_home_scr
 import 'package:umbral_immujer/src/features/profesores/presentation/profesor_home_screen.dart';
 import 'package:umbral_immujer/src/features/coordinadores/presentation/coordinador_home_screen.dart';
 import 'package:umbral_immujer/src/features/auth/presentation/register_screen.dart';
+import 'auth_form_styles.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -95,138 +96,171 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0D0714),
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 20),
-                  // Logo / Encabezado Institucional
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Color(0x1A6A1B9A),
-                    ),
-                    child: const Icon(
-                      Icons.auto_stories,
-                      size: 64,
-                      color: AppTheme.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'UMBRAL',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2.0,
-                      color: AppTheme.primaryDark,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Instituto Municipal de la Mujer (IMMUJER)',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black54,
-                    ),
-                  ),
-                  const SizedBox(height: 36),
-
-                  // Campo Correo
-                  TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'Correo Electrónico',
-                      prefixIcon: Icon(Icons.email_outlined),
-                    ),
-                    validator: (val) {
-                      if (val == null || val.trim().isEmpty) {
-                        return 'Ingresa tu correo electrónico';
-                      }
-                      if (!val.contains('@')) {
-                        return 'Ingresa un correo válido';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Campo Contraseña
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    decoration: InputDecoration(
-                      labelText: 'Contraseña',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: AuthFormStyles.background,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Iniciar Sesión',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Ingresa con el correo de tu cuenta',
+                                style: TextStyle(
+                                  color: AuthFormStyles.softAccent,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                          IconButton(
+                            tooltip: 'Volver',
+                            icon: const Icon(
+                              Icons.close,
+                              color: AuthFormStyles.softAccent,
+                            ),
+                            onPressed: () => Navigator.of(context).maybePop(),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Text('Correo electrónico', style: AuthFormStyles.labelStyle),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: AuthFormStyles.inputDecoration(
+                          hintText: 'correo@ejemplo.com',
+                          prefixIcon: Icons.mail_outline,
                         ),
-                        onPressed: () {
-                          setState(() => _obscurePassword = !_obscurePassword);
+                        validator: (val) {
+                          if (val == null || val.trim().isEmpty) {
+                            return 'Ingresa tu correo electrónico';
+                          }
+                          if (!val.contains('@')) {
+                            return 'Ingresa un correo válido';
+                          }
+                          return null;
                         },
                       ),
-                    ),
-                    validator: (val) {
-                      if (val == null || val.trim().length < 6) {
-                        return 'La contraseña debe tener al menos 6 caracteres';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Botón Iniciar Sesión
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _handleLogin,
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
+                      const SizedBox(height: 14),
+                      Text('Contraseña', style: AuthFormStyles.labelStyle),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: AuthFormStyles.inputDecoration(
+                          hintText: '••••••••',
+                          prefixIcon: Icons.lock_outline,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: AuthFormStyles.softAccent,
                             ),
-                          )
-                        : const Text('Iniciar Sesión'),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Enlace a Registro
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('¿Primera vez en la plataforma? '),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const RegisterScreen(),
-                            ),
-                          );
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
+                        ),
+                        validator: (val) {
+                          if (val == null || val.trim().length < 6) {
+                            return 'La contraseña debe tener al menos 6 caracteres';
+                          }
+                          return null;
                         },
-                        child: const Text(
-                          'Regístrate aquí',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.primary,
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        style: AuthFormStyles.actionButtonStyle,
+                        onPressed: _isLoading ? null : _handleLogin,
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'ENTRAR',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Icon(Icons.arrow_forward, size: 18),
+                                ],
+                              ),
+                      ),
+                      const SizedBox(height: 20),
+                      Center(
+                        child: TextButton(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const RegisterScreen(),
+                              ),
+                            );
+                          },
+                          child: RichText(
+                            text: const TextSpan(
+                              text: '¿Primera vez en la plataforma? ',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 14,
+                              ),
+                              children: [
+                                TextSpan(
+                                  text: 'Regístrate aquí',
+                                  style: TextStyle(
+                                    color: AuthFormStyles.softAccent,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
