@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:umbral_immujer/features/landing/presentation/widgets/landing_top_bar.dart';
 import 'package:umbral_immujer/features/landing/presentation/widgets/module_card.dart';
 import 'package:umbral_immujer/features/landing/presentation/widgets/particles_background.dart';
+import 'package:umbral_immujer/src/features/auth/presentation/auth_form_styles.dart';
 
 /// Pantalla de bienvenida para elegir un módulo e iniciar la autenticación.
 class LandingPage extends StatelessWidget {
@@ -133,6 +134,9 @@ class LandingPage extends StatelessWidget {
           style: GoogleFonts.montserrat(color: Colors.white70, fontSize: 12),
         ),
         TextButton(
+          style: TextButton.styleFrom(
+            foregroundColor: AuthFormStyles.softAccent,
+          ),
           onPressed: () => Navigator.of(context).pushNamed('/register'),
           child: const Text('Regístrate'),
         ),
@@ -141,6 +145,9 @@ class LandingPage extends StatelessWidget {
           style: GoogleFonts.montserrat(color: Colors.white70, fontSize: 12),
         ),
         TextButton(
+          style: TextButton.styleFrom(
+            foregroundColor: AuthFormStyles.softAccent,
+          ),
           onPressed: () => _openAuth(context),
           child: const Text('inicia sesión'),
         ),
