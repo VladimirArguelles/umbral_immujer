@@ -1,4 +1,4 @@
-class DashboardCurso {
+class CourseDashboardItem {
   final String id;
   final String nombre;
   final String? horario;
@@ -7,7 +7,7 @@ class DashboardCurso {
   final int alumnosInscritos;
   final int ausenciasHoy;
 
-  DashboardCurso({
+  CourseDashboardItem({
     required this.id,
     required this.nombre,
     this.horario,
@@ -18,7 +18,7 @@ class DashboardCurso {
   });
 }
 
-class AusenciaTiempoReal {
+class LiveAbsence {
   final String asistenciaId;
   final String cursoNombre;
   final String alumnoNombre;
@@ -26,7 +26,7 @@ class AusenciaTiempoReal {
   final String fecha;
   final DateTime? horaMarcada;
 
-  AusenciaTiempoReal({
+  LiveAbsence({
     required this.asistenciaId,
     required this.cursoNombre,
     required this.alumnoNombre,
@@ -36,7 +36,7 @@ class AusenciaTiempoReal {
   });
 }
 
-class ProfesorDisponible {
+class AvailableTeacher {
   final String id;
   final String nombreCompleto;
   final String cedula;
@@ -44,7 +44,7 @@ class ProfesorDisponible {
   final String? correo;
   final String? cursoActual;
 
-  ProfesorDisponible({
+  AvailableTeacher({
     required this.id,
     required this.nombreCompleto,
     required this.cedula,
@@ -54,7 +54,7 @@ class ProfesorDisponible {
   });
 }
 
-class AuditoriaEncuesta {
+class SurveyAudit {
   final String id;
   final String cursoNombre;
   final String fechaClase;
@@ -63,7 +63,7 @@ class AuditoriaEncuesta {
   final double montoIndividual;
   final String estado;
 
-  AuditoriaEncuesta({
+  SurveyAudit({
     required this.id,
     required this.cursoNombre,
     required this.fechaClase,

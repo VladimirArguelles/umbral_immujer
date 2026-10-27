@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:umbral_immujer/features/home/presentation/theme/home_theme_colors.dart';
-import 'package:umbral_immujer/src/features/auth/presentation/login_screen.dart';
 
 /// Barra superior limpia con el Logotipo Oficial de UMBRAL y botón de acceso 'Entrar'
 class CustomTopBar extends StatelessWidget {
   final VoidCallback? onLoginPressed;
 
-  const CustomTopBar({
-    super.key,
-    this.onLoginPressed,
-  });
+  const CustomTopBar({super.key, this.onLoginPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -60,14 +57,7 @@ class CustomTopBar extends StatelessWidget {
                         vertical: 10,
                       ),
                     ),
-                    onPressed: onLoginPressed ??
-                        () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const LoginScreen(),
-                            ),
-                          );
-                        },
+                    onPressed: onLoginPressed ?? () => context.go('/login'),
                     icon: const Icon(Icons.login, size: 16),
                     label: Text(
                       'Entrar',

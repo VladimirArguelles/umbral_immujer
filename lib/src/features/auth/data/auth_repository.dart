@@ -1,6 +1,22 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../domain/user_profile.dart';
 
+class AlumnoValidationResult {
+  final bool foundInAlumnos;
+  final bool hasActiveInscripcion;
+  final Map<String, dynamic>? data;
+  final String? errorMessage;
+
+  const AlumnoValidationResult({
+    required this.foundInAlumnos,
+    required this.hasActiveInscripcion,
+    this.data,
+    this.errorMessage,
+  });
+
+  bool get isValid => foundInAlumnos && hasActiveInscripcion;
+}
+
 class AuthRepository {
   final SupabaseClient _supabase;
 
@@ -8,42 +24,79 @@ class AuthRepository {
 
   User? get currentUser => _supabase.auth.currentUser;
 
-  /// Valida si la cédula o correo existe en el padrón de Alumnos autorizados de IMMUJER
-  Future<Map<String, dynamic>?> checkAlumnoPreRegistered({
+  /// Valida si el alumno existe en la tabla Alumnos Y si posee inscripción activa
+  Future<AlumnoValidationResult> validateAlumnoEligibility({
     required String cedula,
     String? email,
   }) async {
     final cleanCedula = cedula.trim().replaceAll(RegExp(r'[^0-9a-zA-Z]'), '');
-    
-    // Buscar por cédula
-    final resCedula = await _supabase
+
+    // 1. Buscar en alumnos por cédula
+    Map<String, dynamic>? alumnoData = await _supabase
         .from('alumnos')
         .select()
         .eq('cedula', cleanCedula)
         .maybeSingle();
 
-    if (resCedula != null) return resCedula;
-
-    // Si no encontró por cédula pura, intentar búsqueda por texto flexible
-    final resLike = await _supabase
+    alumnoData ??= await _supabase
         .from('alumnos')
         .select()
         .ilike('cedula', '%$cleanCedula%')
         .maybeSingle();
 
-    if (resLike != null) return resLike;
-
-    // Si proporcionó correo, buscar por correo
-    if (email != null && email.isNotEmpty) {
-      final resEmail = await _supabase
+    if (alumnoData == null && email != null && email.trim().isNotEmpty) {
+      alumnoData = await _supabase
           .from('alumnos')
           .select()
           .ilike('correo', email.trim())
           .maybeSingle();
-      if (resEmail != null) return resEmail;
     }
 
-    return null;
+    if (alumnoData == null) {
+      return AlumnoValidationResult(
+        foundInAlumnos: false,
+        hasActiveInscripcion: false,
+        errorMessage:
+            'Acceso denegado: El documento $cedula no se encuentra registrado en el padrón de alumnos de IMMUJER.',
+      );
+    }
+
+    final alumnoId = alumnoData['id'] as String;
+
+    // 2. Validar si está inscrito en al menos un curso
+    final List<dynamic> inscripciones = await _supabase
+        .from('inscripciones')
+        .select('id, curso_id, estado')
+        .eq('alumno_id', alumnoId)
+        .filter('deleted_at', 'is', null);
+
+    if (inscripciones.isEmpty) {
+      return AlumnoValidationResult(
+        foundInAlumnos: true,
+        hasActiveInscripcion: false,
+        data: alumnoData,
+        errorMessage:
+            'Acceso denegado: El alumno figura en el padrón, pero no cuenta con una inscripción activa en ningún curso. Debe formalizar su inscripción primero.',
+      );
+    }
+
+    return AlumnoValidationResult(
+      foundInAlumnos: true,
+      hasActiveInscripcion: true,
+      data: alumnoData,
+    );
+  }
+
+  /// Método compatible con código anterior: retorna los datos si es elegible
+  Future<Map<String, dynamic>?> checkAlumnoPreRegistered({
+    required String cedula,
+    String? email,
+  }) async {
+    final result = await validateAlumnoEligibility(cedula: cedula, email: email);
+    if (!result.isValid) {
+      return null;
+    }
+    return result.data;
   }
 
   /// Valida si la cédula o correo existe en el padrón de Profesores autorizados
@@ -52,7 +105,7 @@ class AuthRepository {
     String? email,
   }) async {
     final cleanCedula = cedula.trim().replaceAll(RegExp(r'[^0-9a-zA-Z]'), '');
-    
+
     final res = await _supabase
         .from('profesores')
         .select()
@@ -85,13 +138,14 @@ class AuthRepository {
     final cleanCedula = cedula.trim().replaceAll(RegExp(r'[^0-9a-zA-Z]'), '');
 
     if (role == UserRole.alumno) {
-      final alumnoData = await checkAlumnoPreRegistered(
+      final alumnoCheck = await validateAlumnoEligibility(
         cedula: cleanCedula,
         email: email,
       );
-      if (alumnoData == null) {
+      if (!alumnoCheck.isValid) {
         throw Exception(
-          'Acceso denegado: La cédula $cedula no se encuentra registrada en el padrón de alumnos de IMMUJER. Solo alumnos inscritos pueden acceder.',
+          alumnoCheck.errorMessage ??
+              'Acceso denegado: Solo alumnos registrados e inscritos en IMMUJER pueden registrarse.',
         );
       }
     } else if (role == UserRole.profesor) {
@@ -191,12 +245,12 @@ class AuthRepository {
         .maybeSingle();
 
     if (data == null) {
-      // Fallback con metadata de auth
       final meta = user.userMetadata ?? {};
       return UserProfile(
         id: user.id,
         email: user.email ?? '',
-        fullName: (meta['nombre_completo'] ?? user.email ?? 'Usuario') as String,
+        fullName:
+            (meta['nombre_completo'] ?? user.email ?? 'Usuario') as String,
         cedula: meta['cedula'] as String?,
         telefono: meta['telefono'] as String?,
         role: UserRole.fromString(meta['rol'] as String?),

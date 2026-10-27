@@ -1,11 +1,13 @@
 import 'dart:io';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../domain/alumno_models.dart';
 
-class AlumnosRepository {
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../domain/student_models.dart';
+
+class StudentRepository {
   final SupabaseClient _supabase;
 
-  AlumnosRepository(this._supabase);
+  StudentRepository(this._supabase);
 
   String? get currentUserId => _supabase.auth.currentUser?.id;
 
@@ -32,7 +34,10 @@ class AlumnosRepository {
           .maybeSingle();
       if (byEmail != null) {
         // Enlazar
-        await _supabase.from('alumnos').update({'user_id': uid}).eq('id', byEmail['id']);
+        await _supabase
+            .from('alumnos')
+            .update({'user_id': uid})
+            .eq('id', byEmail['id']);
         return byEmail;
       }
     }
@@ -40,7 +45,7 @@ class AlumnosRepository {
   }
 
   /// Obtiene los cursos activos e historial del alumno
-  Future<List<CursoAlumno>> getMisCursos({String? estadoFiltro}) async {
+  Future<List<StudentCourse>> getMyCourses({String? statusFilter}) async {
     final alumno = await getAlumnoRecord();
     if (alumno == null) return [];
 
@@ -63,33 +68,44 @@ class AlumnosRepository {
         .eq('alumno_id', alumno['id'])
         .isFilter('deleted_at', null);
 
-    if (estadoFiltro != null) {
-      query = query.eq('estado', estadoFiltro);
+    if (statusFilter != null) {
+      query = query.eq('estado', statusFilter);
     }
 
     final data = await query;
-    return (data as List).map((item) => CursoAlumno.fromJson(item)).toList();
+    return (data as List).map((item) => StudentCourse.fromJson(item)).toList();
   }
 
   /// Consulta de asistencias por curso y cálculo de métricas
-  Future<ResumenAsistencia> getAsistenciasPorCurso(String cursoId) async {
+  Future<AttendanceSummary> getAttendanceByCourse(String courseId) async {
     final alumno = await getAlumnoRecord();
     if (alumno == null) {
-      return ResumenAsistencia(totalClases: 0, presentes: 0, inasistencias: 0, historial: []);
+      return AttendanceSummary(
+        totalClases: 0,
+        presentes: 0,
+        inasistencias: 0,
+        historial: [],
+      );
     }
 
     final data = await _supabase
         .from('asistencias')
         .select()
-        .eq('curso_id', cursoId)
+        .eq('curso_id', courseId)
         .eq('alumno_id', alumno['id'])
         .order('fecha', ascending: false);
 
-    final lista = (data as List).map((e) => AsistenciaRegistro.fromJson(e)).toList();
-    final presentes = lista.where((a) => a.estado.toLowerCase() == 'presente').length;
-    final inasistencias = lista.where((a) => a.estado.toLowerCase() == 'ausente').length;
+    final lista = (data as List)
+        .map((e) => AttendanceRecord.fromJson(e))
+        .toList();
+    final presentes = lista
+        .where((a) => a.estado.toLowerCase() == 'presente')
+        .length;
+    final inasistencias = lista
+        .where((a) => a.estado.toLowerCase() == 'ausente')
+        .length;
 
-    return ResumenAsistencia(
+    return AttendanceSummary(
       totalClases: lista.length,
       presentes: presentes,
       inasistencias: inasistencias,
@@ -106,7 +122,7 @@ class AlumnosRepository {
   }
 
   /// Obtiene las encuestas activas de los cursos donde el alumno está inscrito
-  Future<List<EncuestaAlumno>> getEncuestasActivas() async {
+  Future<List<StudentSurvey>> getActiveSurveys() async {
     final alumno = await getAlumnoRecord();
     if (alumno == null) return [];
 
@@ -117,7 +133,9 @@ class AlumnosRepository {
         .eq('alumno_id', alumno['id'])
         .isFilter('deleted_at', null);
 
-    final cursoIds = (inscripciones as List).map((i) => i['curso_id'] as String).toList();
+    final cursoIds = (inscripciones as List)
+        .map((i) => i['curso_id'] as String)
+        .toList();
     if (cursoIds.isEmpty) return [];
 
     final encuestasData = await _supabase
@@ -139,11 +157,11 @@ class AlumnosRepository {
         .eq('estado', 'activa')
         .order('fecha_limite', ascending: true);
 
-    final List<EncuestaAlumno> resultado = [];
+    final List<StudentSurvey> resultado = [];
 
     for (final enc in (encuestasData as List)) {
       final encuestaId = enc['id'] as String;
-      
+
       // Buscar respuesta del alumno
       final respData = await _supabase
           .from('respuestas_encuesta')
@@ -154,82 +172,107 @@ class AlumnosRepository {
 
       final cursoMap = enc['cursos'] as Map<String, dynamic>?;
 
-      resultado.add(EncuestaAlumno(
-        id: encuestaId,
-        cursoId: enc['curso_id'] as String,
-        cursoNombre: cursoMap?['nombre'] ?? 'Curso',
-        fechaClase: enc['fecha_clase']?.toString() ?? '',
-        costoTotalInsumos: (enc['costo_total_insumos'] as num?)?.toDouble() ?? 0.0,
-        fechaLimite: DateTime.tryParse(enc['fecha_limite'] as String? ?? '') ?? DateTime.now(),
-        montoIndividual: (enc['monto_individual_calculado'] as num?)?.toDouble() ?? 0.0,
-        totalConfirmados: (enc['total_confirmados'] as num?)?.toInt() ?? 0,
-        estadoEncuesta: enc['estado'] as String? ?? 'activa',
-        respondio: respData != null,
-        asistira: respData?['asistira'] as bool?,
-        comprobanteUrl: respData?['comprobante_url'] as String?,
-        estadoPago: respData?['estado_pago'] as String?,
-      ));
+      resultado.add(
+        StudentSurvey(
+          id: encuestaId,
+          cursoId: enc['curso_id'] as String,
+          cursoNombre: cursoMap?['nombre'] ?? 'Curso',
+          fechaClase: enc['fecha_clase']?.toString() ?? '',
+          costoTotalInsumos:
+              (enc['costo_total_insumos'] as num?)?.toDouble() ?? 0.0,
+          fechaLimite:
+              DateTime.tryParse(enc['fecha_limite'] as String? ?? '') ??
+              DateTime.now(),
+          montoIndividual:
+              (enc['monto_individual_calculado'] as num?)?.toDouble() ?? 0.0,
+          totalConfirmados: (enc['total_confirmados'] as num?)?.toInt() ?? 0,
+          estadoEncuesta: enc['estado'] as String? ?? 'activa',
+          respondio: respData != null,
+          asistira: respData?['asistira'] as bool?,
+          comprobanteUrl: respData?['comprobante_url'] as String?,
+          estadoPago: respData?['estado_pago'] as String?,
+        ),
+      );
     }
 
     return resultado;
   }
 
   /// Responder a la encuesta (¿Asistirás a la próxima clase?)
-  Future<void> responderEncuesta({
-    required String encuestaId,
-    required bool asistira,
+  Future<void> respondToSurvey({
+    required String surveyId,
+    required bool willAttend,
   }) async {
     final alumno = await getAlumnoRecord();
-    if (alumno == null) throw Exception('No se encontró el registro del alumno.');
+    if (alumno == null) {
+      throw Exception('No se encontró el registro del alumno.');
+    }
 
     // Verificar si la encuesta no ha vencido
-    final enc = await _supabase.from('encuestas').select('fecha_limite').eq('id', encuestaId).single();
+    final enc = await _supabase
+        .from('encuestas')
+        .select('fecha_limite')
+        .eq('id', surveyId)
+        .single();
     final limite = DateTime.parse(enc['fecha_limite'] as String);
     if (DateTime.now().isAfter(limite)) {
-      throw Exception('El plazo límite para responder a esta encuesta ha expirado.');
+      throw Exception(
+        'El plazo límite para responder a esta encuesta ha expirado.',
+      );
     }
 
     await _supabase.from('respuestas_encuesta').upsert({
-      'encuesta_id': encuestaId,
+      'encuesta_id': surveyId,
       'alumno_id': alumno['id'],
-      'asistira': asistira,
+      'asistira': willAttend,
       'estado_pago': 'pendiente',
     }, onConflict: 'encuesta_id, alumno_id');
   }
 
   /// Subir imagen de comprobante a Supabase Storage y registrar URL
-  Future<String> subirComprobante({
-    required String encuestaId,
+  Future<String> uploadPaymentProof({
+    required String surveyId,
     required File imageFile,
   }) async {
     final alumno = await getAlumnoRecord();
     if (alumno == null) throw Exception('Alumno no identificado.');
 
     final fileExt = imageFile.path.split('.').last;
-    final fileName = '${encuestaId}_${alumno['id']}_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+    final fileName =
+        '${surveyId}_${alumno['id']}_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
     final filePath = 'comprobantes/$fileName';
 
     // Subir a Storage
-    await _supabase.storage.from('comprobantes').upload(
-      filePath,
-      imageFile,
-      fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
-    );
+    await _supabase.storage
+        .from('comprobantes')
+        .upload(
+          filePath,
+          imageFile,
+          fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+        );
 
-    final publicUrl = _supabase.storage.from('comprobantes').getPublicUrl(filePath);
+    final publicUrl = _supabase.storage
+        .from('comprobantes')
+        .getPublicUrl(filePath);
 
     // Actualizar registro en respuestas_encuesta
-    await _supabase.from('respuestas_encuesta').update({
-      'comprobante_url': publicUrl,
-      'comprobante_subido_at': DateTime.now().toIso8601String(),
-      'estado_pago': 'pendiente',
-    }).eq('encuesta_id', encuestaId).eq('alumno_id', alumno['id']);
+    await _supabase
+        .from('respuestas_encuesta')
+        .update({
+          'comprobante_url': publicUrl,
+          'comprobante_subido_at': DateTime.now().toIso8601String(),
+          'estado_pago': 'pendiente',
+        })
+        .eq('encuesta_id', surveyId)
+        .eq('alumno_id', alumno['id']);
 
     return publicUrl;
   }
 
   /// Stream en tiempo real de alumnos pendientes de capture en una encuesta
-  Stream<List<Map<String, dynamic>>> streamPendientesCapture(String encuestaId) {
+  Stream<List<Map<String, dynamic>>> streamPendientesCapture(
+    String encuestaId,
+  ) {
     return _supabase
         .from('respuestas_encuesta')
         .stream(primaryKey: ['id'])

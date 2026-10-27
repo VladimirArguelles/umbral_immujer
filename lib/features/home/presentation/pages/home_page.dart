@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:umbral_immujer/features/home/presentation/theme/home_theme_colors.dart';
 import 'package:umbral_immujer/features/home/presentation/widgets/custom_top_bar.dart';
@@ -7,8 +8,6 @@ import 'package:umbral_immujer/features/home/presentation/widgets/menu_option_ca
 import 'package:umbral_immujer/features/home/presentation/widgets/floating_bottom_bar.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/features/auth/data/auth_repository.dart';
-import 'package:umbral_immujer/src/features/auth/presentation/login_screen.dart';
-import 'package:umbral_immujer/src/features/alumnos/presentation/alumno_home_screen.dart';
 
 /// Pantalla Principal (Home Dashboard) para Alumnos UMBRAL - IMMUJER
 class HomePage extends StatefulWidget {
@@ -35,14 +34,7 @@ class _HomePageState extends State<HomePage> {
     if (!mounted) return;
 
     if (profile != null) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => AlumnoHomeScreen(
-            profile: profile,
-            initialIndex: tabIndex,
-          ),
-        ),
-      );
+      context.go('/student?tab=$tabIndex');
     } else {
       // Si aún no ha iniciado sesión, ofrece ir a identificarse o registrarse
       showModalBottomSheet(
@@ -83,9 +75,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 onPressed: () {
                   Navigator.of(ctx).pop();
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const LoginScreen()),
-                  );
+                  context.go('/login');
                 },
                 child: Text(
                   'Iniciar Sesión',
@@ -129,13 +119,7 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           children: [
             // A. Barra Superior Personalizada (Header)
-            CustomTopBar(
-              onLoginPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                );
-              },
-            ),
+            CustomTopBar(onLoginPressed: () => context.go('/login')),
 
             // Contenido desplazable con SingleChildScrollView (previene overflows)
             Expanded(
@@ -208,7 +192,8 @@ class _HomePageState extends State<HomePage> {
                       buttonText: 'IR A ENCUESTAS',
                       icon: Icons.poll_rounded,
                       badgeText: 'Insumos y Aportes',
-                      onPressed: () => _navegarASeccion(2, 'Encuestas y Aportes'),
+                      onPressed: () =>
+                          _navegarASeccion(2, 'Encuestas y Aportes'),
                     ),
 
                     const SizedBox(height: 16),

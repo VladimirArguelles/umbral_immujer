@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/features/auth/data/auth_repository.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
-import 'package:umbral_immujer/src/features/alumnos/presentation/alumno_home_screen.dart';
-import 'package:umbral_immujer/src/features/profesores/presentation/profesor_home_screen.dart';
-import 'package:umbral_immujer/src/features/coordinadores/presentation/coordinador_home_screen.dart';
+
 import 'auth_form_styles.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+  final UserRole? initialRole;
+
+  const RegisterScreen({super.key, this.initialRole});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -23,7 +24,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  UserRole _selectedRole = UserRole.alumno;
+  late UserRole _selectedRole;
   String _documentType = 'V';
   bool _isLoading = false;
   bool _isValidatingCedula = false;
@@ -37,6 +38,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void initState() {
     super.initState();
     _authRepo = AuthRepository(SupabaseConfig.client);
+    _selectedRole = widget.initialRole ?? UserRole.alumno;
+    if (_selectedRole == UserRole.coordinador) {
+      _cedulaValidated = true;
+      _validationMessage = 'Registro de rol administrativo/coordinador.';
+    }
   }
 
   /// Valida en tiempo real si la persona está en el padrón oficial antes de registrarse
@@ -44,9 +50,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final documentNumber = _cedulaController.text.trim();
     final documentError = _validateDocument(documentNumber);
     if (documentError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(documentError)),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(documentError)));
       return;
     }
     final document = '$_documentType$documentNumber';
@@ -58,36 +63,47 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       if (_selectedRole == UserRole.alumno) {
-        final data = await _authRepo.checkAlumnoPreRegistered(
+        final result = await _authRepo.validateAlumnoEligibility(
           cedula: document,
+          email: _emailController.text.trim().isNotEmpty
+              ? _emailController.text.trim()
+              : null,
         );
-        if (data != null) {
+
+        if (result.isValid) {
+          final data = result.data!;
           setState(() {
             _cedulaValidated = true;
             _nombreController.text = data['nombre_completo'] ?? '';
             _telefonoController.text = data['telefono'] ?? '';
-            if (data['correo'] != null && data['correo'].toString().isNotEmpty) {
+            if (data['correo'] != null &&
+                data['correo'].toString().isNotEmpty) {
               _emailController.text = data['correo'];
             }
-            _validationMessage = '¡Identidad verificada en el padrón de alumnos de IMMUJER!';
+            _validationMessage =
+                '¡Identidad e inscripción activa verificadas en IMMUJER!';
           });
         } else {
           setState(() {
             _cedulaValidated = false;
-            _validationMessage =
-                'Acceso denegado: El documento $document no se encuentra registrado en el padrón de alumnos.';
+            _validationMessage = result.errorMessage ??
+                'Acceso denegado: El documento $document no cumple los requisitos de registro de alumno.';
           });
         }
       } else if (_selectedRole == UserRole.profesor) {
         final data = await _authRepo.checkProfesorPreRegistered(
           cedula: document,
+          email: _emailController.text.trim().isNotEmpty
+              ? _emailController.text.trim()
+              : null,
         );
         if (data != null) {
           setState(() {
             _cedulaValidated = true;
             _nombreController.text = data['nombre_completo'] ?? '';
             _telefonoController.text = data['telefono'] ?? '';
-            if (data['correo'] != null && data['correo'].toString().isNotEmpty) {
+            if (data['correo'] != null &&
+                data['correo'].toString().isNotEmpty) {
               _emailController.text = data['correo'];
             }
             _validationMessage = '¡Identidad docente verificada!';
@@ -140,7 +156,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_selectedRole != UserRole.coordinador && !_cedulaValidated) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Debes verificar tu cédula en el padrón antes de registrarte.'),
+          content: Text(
+            'Debes verificar tu cédula en el padrón institucional antes de registrarte.',
+          ),
           backgroundColor: AppTheme.errorRed,
         ),
       );
@@ -160,23 +178,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       if (mounted) {
-        Widget destination;
-        switch (profile.role) {
-          case UserRole.alumno:
-            destination = AlumnoHomeScreen(profile: profile);
-            break;
-          case UserRole.profesor:
-            destination = ProfesorHomeScreen(profile: profile);
-            break;
-          case UserRole.coordinador:
-            destination = CoordinadorHomeScreen(profile: profile);
-            break;
-        }
-
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => destination),
-          (route) => false,
-        );
+        final path = switch (profile.role) {
+          UserRole.superAdmin => '/coordinator',
+          UserRole.alumno => '/student',
+          UserRole.profesor => '/teacher',
+          UserRole.coordinador => '/coordinator',
+        };
+        context.go(path);
       }
     } catch (e) {
       if (mounted) {
@@ -204,6 +212,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final title = switch (_selectedRole) {
+      UserRole.alumno => 'Registro de Alumnos',
+      UserRole.profesor => 'Registro de Profesores',
+      UserRole.coordinador => 'Registro de Coordinadores',
+      UserRole.superAdmin => 'Registro Administrativo',
+    };
+
     return Scaffold(
       backgroundColor: const Color(0xFF0D0714),
       body: SafeArea(
@@ -226,20 +241,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Column(
+                          Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Registrarse',
-                                style: TextStyle(
+                                title,
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              SizedBox(height: 4),
-                              Text(
-                                'Crea tu cuenta en la plataforma',
+                              const SizedBox(height: 4),
+                              const Text(
+                                'Crea tu cuenta institucional en la plataforma',
                                 style: TextStyle(
                                   color: AuthFormStyles.softAccent,
                                   fontSize: 13,
@@ -253,7 +268,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               Icons.close,
                               color: AuthFormStyles.softAccent,
                             ),
-                            onPressed: () => Navigator.of(context).maybePop(),
+                            onPressed: () => context.go('/'),
                           ),
                         ],
                       ),
@@ -267,9 +282,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      const Text(
-                        'Solo personas previamente autorizadas por IMMUJER pueden registrarse en la plataforma.',
-                        style: TextStyle(fontSize: 13, color: Colors.white70),
+                      Text(
+                        _selectedRole == UserRole.alumno
+                            ? 'Solo alumnos que estén formalmente inscritos en la Tabla de Alumnos pueden registrarse.'
+                            : _selectedRole == UserRole.profesor
+                                ? 'Solo profesores previamente incorporados en el registro docente pueden registrarse.'
+                                : 'Acceso para el equipo de coordinación y supervisión de IMMUJER.',
+                        style: const TextStyle(fontSize: 13, color: Colors.white70),
                       ),
                       const SizedBox(height: 20),
                       Text('Tipo de cuenta', style: AuthFormStyles.labelStyle),
@@ -303,8 +322,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         onSelectionChanged: (val) {
                           setState(() {
                             _selectedRole = val.first;
-                            _cedulaValidated = false;
-                            _validationMessage = null;
+                            _cedulaValidated = _selectedRole == UserRole.coordinador;
+                            _validationMessage = _selectedRole == UserRole.coordinador
+                                ? 'Registro de rol administrativo/coordinador.'
+                                : null;
                           });
                         },
                       ),
@@ -467,8 +488,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           hintText: 'Tu nombre completo',
                           prefixIcon: Icons.person_outline,
                         ),
-                        validator: (val) =>
-                            (val == null || val.trim().isEmpty)
+                        validator: (val) => (val == null || val.trim().isEmpty)
                             ? 'Ingresa tu nombre'
                             : null,
                       ),
@@ -483,13 +503,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           hintText: 'Número de teléfono',
                           prefixIcon: Icons.phone_outlined,
                         ),
-                        validator: (val) =>
-                            (val == null || val.trim().isEmpty)
+                        validator: (val) => (val == null || val.trim().isEmpty)
                             ? 'Ingresa tu teléfono'
                             : null,
                       ),
                       const SizedBox(height: 14),
-                      Text('Correo Electrónico', style: AuthFormStyles.labelStyle),
+                      Text(
+                        'Correo Electrónico',
+                        style: AuthFormStyles.labelStyle,
+                      ),
                       const SizedBox(height: 6),
                       TextFormField(
                         controller: _emailController,
@@ -569,9 +591,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       const SizedBox(height: 16),
                       Center(
                         child: TextButton(
-                          onPressed: () => Navigator.of(
-                            context,
-                          ).pushReplacementNamed('/login'),
+                          onPressed: () => context.go('/login'),
                           child: RichText(
                             text: const TextSpan(
                               text: '¿Ya tienes cuenta? ',

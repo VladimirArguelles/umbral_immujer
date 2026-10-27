@@ -1,47 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/core/utils/formatters.dart';
-import 'package:umbral_immujer/src/features/profesores/data/profesores_repository.dart';
-import 'package:umbral_immujer/src/features/profesores/domain/profesor_models.dart';
+import 'package:umbral_immujer/features/teacher/data/teacher_repository.dart';
+import 'package:umbral_immujer/features/teacher/domain/teacher_models.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
-import 'package:umbral_immujer/src/features/auth/presentation/login_screen.dart';
 
-class ProfesorHomeScreen extends StatefulWidget {
+class TeacherDashboardPage extends StatefulWidget {
   final UserProfile profile;
-  const ProfesorHomeScreen({super.key, required this.profile});
+  const TeacherDashboardPage({super.key, required this.profile});
 
   @override
-  State<ProfesorHomeScreen> createState() => _ProfesorHomeScreenState();
+  State<TeacherDashboardPage> createState() => _TeacherDashboardPageState();
 }
 
-class _ProfesorHomeScreenState extends State<ProfesorHomeScreen> {
+class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   int _currentIndex = 0;
-  late final ProfesoresRepository _profRepo;
+  late final TeacherRepository _teacherRepository;
 
   @override
   void initState() {
     super.initState();
-    _profRepo = ProfesoresRepository(SupabaseConfig.client);
+    _teacherRepository = TeacherRepository(SupabaseConfig.client);
   }
 
   void _handleSignOut() async {
     await SupabaseConfig.client.auth.signOut();
     if (mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false,
-      );
+      context.go('/login');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final tabs = [
-      _PaseListaTab(profRepo: _profRepo),
-      _CrearEncuestaTab(profRepo: _profRepo),
-      _AuditoriaRecaudacionTab(profRepo: _profRepo),
-      _GestionAlumnosTab(profRepo: _profRepo),
+      _PaseListaTab(teacherRepository: _teacherRepository),
+      _CrearEncuestaTab(teacherRepository: _teacherRepository),
+      _AuditoriaRecaudacionTab(teacherRepository: _teacherRepository),
+      _GestionAlumnosTab(teacherRepository: _teacherRepository),
     ];
 
     return Scaffold(
@@ -51,7 +48,10 @@ class _ProfesorHomeScreenState extends State<ProfesorHomeScreen> {
             const Text('UMBRAL • Docente', style: TextStyle(fontSize: 16)),
             Text(
               widget.profile.fullName,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.normal,
+              ),
             ),
           ],
         ),
@@ -98,18 +98,18 @@ class _ProfesorHomeScreenState extends State<ProfesorHomeScreen> {
 /// TAB 1: PASE DE ASISTENCIA (Individual + Lote 'Todos Presentes')
 /// -------------------------------------------------------------
 class _PaseListaTab extends StatefulWidget {
-  final ProfesoresRepository profRepo;
-  const _PaseListaTab({required this.profRepo});
+  final TeacherRepository teacherRepository;
+  const _PaseListaTab({required this.teacherRepository});
 
   @override
   State<_PaseListaTab> createState() => _PaseListaTabState();
 }
 
 class _PaseListaTabState extends State<_PaseListaTab> {
-  List<CursoProfesor> _cursos = [];
-  CursoProfesor? _selectedCurso;
+  List<TeacherCourse> _cursos = [];
+  TeacherCourse? _selectedCurso;
   final String _fechaSeleccionada = Formatters.isoDate(DateTime.now());
-  List<AlumnoListaAsistencia> _alumnos = [];
+  List<StudentAttendanceItem> _alumnos = [];
   bool _isLoading = false;
   bool _isSaving = false;
 
@@ -121,7 +121,7 @@ class _PaseListaTabState extends State<_PaseListaTab> {
 
   void _loadCursos() async {
     setState(() => _isLoading = true);
-    final cursos = await widget.profRepo.getCursosDelProfesor();
+    final cursos = await widget.teacherRepository.getMyCourses();
     if (!mounted) return;
     setState(() {
       _cursos = cursos;
@@ -137,9 +137,9 @@ class _PaseListaTabState extends State<_PaseListaTab> {
 
   void _loadAlumnosParaLista(String cursoId) async {
     setState(() => _isLoading = true);
-    final lista = await widget.profRepo.getAlumnosParaAsistencia(
-      cursoId: cursoId,
-      fecha: _fechaSeleccionada,
+    final lista = await widget.teacherRepository.getStudentsForAttendance(
+      courseId: cursoId,
+      date: _fechaSeleccionada,
     );
     if (!mounted) return;
     setState(() {
@@ -156,7 +156,7 @@ class _PaseListaTabState extends State<_PaseListaTab> {
     });
   }
 
-  void _toggleAsistencia(AlumnoListaAsistencia alumno) {
+  void _toggleAsistencia(StudentAttendanceItem alumno) {
     setState(() {
       alumno.estadoAsistencia = alumno.isPresente ? 'Ausente' : 'Presente';
     });
@@ -166,10 +166,10 @@ class _PaseListaTabState extends State<_PaseListaTab> {
     if (_selectedCurso == null) return;
     setState(() => _isSaving = true);
     try {
-      await widget.profRepo.guardarAsistencia(
-        cursoId: _selectedCurso!.id,
-        fecha: _fechaSeleccionada,
-        alumnos: _alumnos,
+      await widget.teacherRepository.saveAttendance(
+        courseId: _selectedCurso!.id,
+        date: _fechaSeleccionada,
+        students: _alumnos,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -182,7 +182,10 @@ class _PaseListaTabState extends State<_PaseListaTab> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al guardar asistencia: $e'), backgroundColor: AppTheme.errorRed),
+          SnackBar(
+            content: Text('Error al guardar asistencia: $e'),
+            backgroundColor: AppTheme.errorRed,
+          ),
         );
       }
     } finally {
@@ -200,7 +203,9 @@ class _PaseListaTabState extends State<_PaseListaTab> {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(24.0),
-          child: Text('No tienes cursos asignados actualmente. Contacta al coordinador de IMMUJER.'),
+          child: Text(
+            'No tienes cursos asignados actualmente. Contacta al coordinador de IMMUJER.',
+          ),
         ),
       );
     }
@@ -219,10 +224,23 @@ class _PaseListaTabState extends State<_PaseListaTab> {
               Row(
                 children: [
                   Expanded(
-                    child: DropdownButtonFormField<CursoProfesor>(
+                    child: DropdownButtonFormField<TeacherCourse>(
                       initialValue: _selectedCurso,
-                      decoration: const InputDecoration(labelText: 'Curso', prefixIcon: Icon(Icons.class_outlined)),
-                      items: _cursos.map((c) => DropdownMenuItem(value: c, child: Text(c.nombre, overflow: TextOverflow.ellipsis))).toList(),
+                      decoration: const InputDecoration(
+                        labelText: 'Curso',
+                        prefixIcon: Icon(Icons.class_outlined),
+                      ),
+                      items: _cursos
+                          .map(
+                            (c) => DropdownMenuItem(
+                              value: c,
+                              child: Text(
+                                c.nombre,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          )
+                          .toList(),
                       onChanged: (val) {
                         if (val != null) {
                           setState(() => _selectedCurso = val);
@@ -233,16 +251,26 @@ class _PaseListaTabState extends State<_PaseListaTab> {
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 14,
+                    ),
                     decoration: BoxDecoration(
                       border: Border.all(color: const Color(0xFFE0E0E0)),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.today, size: 18, color: AppTheme.primary),
+                        const Icon(
+                          Icons.today,
+                          size: 18,
+                          color: AppTheme.primary,
+                        ),
                         const SizedBox(width: 6),
-                        Text(_fechaSeleccionada, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        Text(
+                          _fechaSeleccionada,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ],
                     ),
                   ),
@@ -253,11 +281,22 @@ class _PaseListaTabState extends State<_PaseListaTab> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Presentes: $presentesCount | Ausentes: $ausentesCount', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  Text(
+                    'Presentes: $presentesCount | Ausentes: $ausentesCount',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
                   OutlinedButton.icon(
-                    onPressed: _alumnos.isEmpty ? null : _marcarTodosComoPresentes,
+                    onPressed: _alumnos.isEmpty
+                        ? null
+                        : _marcarTodosComoPresentes,
                     icon: const Icon(Icons.done_all, size: 16),
-                    label: const Text('Todos Presentes', style: TextStyle(fontSize: 12)),
+                    label: const Text(
+                      'Todos Presentes',
+                      style: TextStyle(fontSize: 12),
+                    ),
                   ),
                 ],
               ),
@@ -270,50 +309,60 @@ class _PaseListaTabState extends State<_PaseListaTab> {
           child: _isLoading
               ? const Center(child: CircularProgressIndicator())
               : _alumnos.isEmpty
-                  ? const Center(child: Text('No hay alumnos inscritos en este curso.'))
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _alumnos.length,
-                      itemBuilder: (context, idx) {
-                        final a = _alumnos[idx];
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: a.isPresente ? AppTheme.successGreen : AppTheme.errorRed,
-                              child: Icon(
-                                a.isPresente ? Icons.check : Icons.close,
-                                color: Colors.white,
-                              ),
-                            ),
-                            title: Text(
-                              a.nombreCompleto,
-                              style: const TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('C.I: ${a.cedula} • Tel: ${a.telefono ?? "N/A"}'),
-                                if (a.confirmoEncuesta == true) ...[
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Encuesta: Confirmó asistencia (${a.estadoPago ?? "Sin pago"})',
-                                    style: const TextStyle(fontSize: 11, color: AppTheme.secondary, fontWeight: FontWeight.bold),
-                                  ),
-                                ],
-                              ],
-                            ),
-                            trailing: Switch(
-                              value: a.isPresente,
-                              activeThumbColor: AppTheme.successGreen,
-                              inactiveThumbColor: AppTheme.errorRed,
-                              onChanged: (_) => _toggleAsistencia(a),
-                            ),
-                            onTap: () => _toggleAsistencia(a),
+              ? const Center(
+                  child: Text('No hay alumnos inscritos en este curso.'),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _alumnos.length,
+                  itemBuilder: (context, idx) {
+                    final a = _alumnos[idx];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: a.isPresente
+                              ? AppTheme.successGreen
+                              : AppTheme.errorRed,
+                          child: Icon(
+                            a.isPresente ? Icons.check : Icons.close,
+                            color: Colors.white,
                           ),
-                        );
-                      },
-                    ),
+                        ),
+                        title: Text(
+                          a.nombreCompleto,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'C.I: ${a.cedula} • Tel: ${a.telefono ?? "N/A"}',
+                            ),
+                            if (a.confirmoEncuesta == true) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                'Encuesta: Confirmó asistencia (${a.estadoPago ?? "Sin pago"})',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppTheme.secondary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        trailing: Switch(
+                          value: a.isPresente,
+                          activeThumbColor: AppTheme.successGreen,
+                          inactiveThumbColor: AppTheme.errorRed,
+                          onChanged: (_) => _toggleAsistencia(a),
+                        ),
+                        onTap: () => _toggleAsistencia(a),
+                      ),
+                    );
+                  },
+                ),
         ),
 
         // Botón Inferior para Guardar Lista
@@ -325,7 +374,14 @@ class _PaseListaTabState extends State<_PaseListaTab> {
             child: ElevatedButton.icon(
               onPressed: _isSaving ? null : _guardarAsistencia,
               icon: _isSaving
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
                   : const Icon(Icons.cloud_upload_outlined),
               label: const Text('Confirmar y Guardar Asistencia'),
             ),
@@ -340,8 +396,8 @@ class _PaseListaTabState extends State<_PaseListaTab> {
 /// TAB 2: CREACIÓN DE ENCUESTA DE INSUMOS
 /// -------------------------------------------------------------
 class _CrearEncuestaTab extends StatefulWidget {
-  final ProfesoresRepository profRepo;
-  const _CrearEncuestaTab({required this.profRepo});
+  final TeacherRepository teacherRepository;
+  const _CrearEncuestaTab({required this.teacherRepository});
 
   @override
   State<_CrearEncuestaTab> createState() => _CrearEncuestaTabState();
@@ -349,8 +405,8 @@ class _CrearEncuestaTab extends StatefulWidget {
 
 class _CrearEncuestaTabState extends State<_CrearEncuestaTab> {
   final _formKey = GlobalKey<FormState>();
-  List<CursoProfesor> _cursos = [];
-  CursoProfesor? _selectedCurso;
+  List<TeacherCourse> _cursos = [];
+  TeacherCourse? _selectedCurso;
   final _costoController = TextEditingController();
   DateTime _fechaClase = DateTime.now().add(const Duration(days: 3));
   DateTime _fechaLimite = DateTime.now().add(const Duration(days: 2));
@@ -363,7 +419,7 @@ class _CrearEncuestaTabState extends State<_CrearEncuestaTab> {
   }
 
   void _loadCursos() async {
-    final cursos = await widget.profRepo.getCursosDelProfesor();
+    final cursos = await widget.teacherRepository.getMyCourses();
     if (!mounted) return;
     setState(() {
       _cursos = cursos;
@@ -377,23 +433,28 @@ class _CrearEncuestaTabState extends State<_CrearEncuestaTab> {
     final costo = double.tryParse(_costoController.text.trim()) ?? 0.0;
     if (costo <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ingresa un monto de presupuesto válido'), backgroundColor: AppTheme.errorRed),
+        const SnackBar(
+          content: Text('Ingresa un monto de presupuesto válido'),
+          backgroundColor: AppTheme.errorRed,
+        ),
       );
       return;
     }
 
     setState(() => _isLoading = true);
     try {
-      await widget.profRepo.crearEncuesta(
-        cursoId: _selectedCurso!.id,
-        fechaClase: Formatters.isoDate(_fechaClase),
-        costoTotalInsumos: costo,
-        fechaLimite: _fechaLimite,
+      await widget.teacherRepository.createSurvey(
+        courseId: _selectedCurso!.id,
+        classDate: Formatters.isoDate(_fechaClase),
+        totalSupplyCost: costo,
+        deadline: _fechaLimite,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('¡Encuesta creada con éxito! Disponible para las alumnas del curso.'),
+            content: Text(
+              '¡Encuesta creada con éxito! Disponible para las alumnas del curso.',
+            ),
             backgroundColor: AppTheme.successGreen,
           ),
         );
@@ -402,7 +463,10 @@ class _CrearEncuestaTabState extends State<_CrearEncuestaTab> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al crear encuesta: $e'), backgroundColor: AppTheme.errorRed),
+          SnackBar(
+            content: Text('Error al crear encuesta: $e'),
+            backgroundColor: AppTheme.errorRed,
+          ),
         );
       }
     } finally {
@@ -421,7 +485,11 @@ class _CrearEncuestaTabState extends State<_CrearEncuestaTab> {
           children: [
             const Text(
               'Programar Práctica y Presupuesto de Insumos',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primaryDark),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.primaryDark,
+              ),
             ),
             const SizedBox(height: 6),
             const Text(
@@ -431,10 +499,15 @@ class _CrearEncuestaTabState extends State<_CrearEncuestaTab> {
             const SizedBox(height: 20),
 
             // Selector de Curso
-            DropdownButtonFormField<CursoProfesor>(
+            DropdownButtonFormField<TeacherCourse>(
               initialValue: _selectedCurso,
-              decoration: const InputDecoration(labelText: 'Curso / Asignatura', prefixIcon: Icon(Icons.school_outlined)),
-              items: _cursos.map((c) => DropdownMenuItem(value: c, child: Text(c.nombre))).toList(),
+              decoration: const InputDecoration(
+                labelText: 'Curso / Asignatura',
+                prefixIcon: Icon(Icons.school_outlined),
+              ),
+              items: _cursos
+                  .map((c) => DropdownMenuItem(value: c, child: Text(c.nombre)))
+                  .toList(),
               onChanged: (val) => setState(() => _selectedCurso = val),
             ),
             const SizedBox(height: 16),
@@ -442,13 +515,16 @@ class _CrearEncuestaTabState extends State<_CrearEncuestaTab> {
             // Costo Total Insumos
             TextFormField(
               controller: _costoController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(
                 labelText: 'Monto Total del Presupuesto (USD)',
                 prefixIcon: Icon(Icons.attach_money),
                 hintText: 'Ej. 50.00',
               ),
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Requerido' : null,
             ),
             const SizedBox(height: 16),
 
@@ -500,7 +576,13 @@ class _CrearEncuestaTabState extends State<_CrearEncuestaTab> {
                   );
                   if (t != null) {
                     setState(() {
-                      _fechaLimite = DateTime(d.year, d.month, d.day, t.hour, t.minute);
+                      _fechaLimite = DateTime(
+                        d.year,
+                        d.month,
+                        d.day,
+                        t.hour,
+                        t.minute,
+                      );
                     });
                   }
                 }
@@ -511,7 +593,14 @@ class _CrearEncuestaTabState extends State<_CrearEncuestaTab> {
             ElevatedButton(
               onPressed: _isLoading ? null : _crearEncuesta,
               child: _isLoading
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
                   : const Text('Publicar Encuesta a las Alumnas'),
             ),
           ],
@@ -525,17 +614,18 @@ class _CrearEncuestaTabState extends State<_CrearEncuestaTab> {
 /// TAB 3: AUDITORÍA DE RECAUDACIÓN Y CONTROL DE PAGOS
 /// -------------------------------------------------------------
 class _AuditoriaRecaudacionTab extends StatefulWidget {
-  final ProfesoresRepository profRepo;
-  const _AuditoriaRecaudacionTab({required this.profRepo});
+  final TeacherRepository teacherRepository;
+  const _AuditoriaRecaudacionTab({required this.teacherRepository});
 
   @override
-  State<_AuditoriaRecaudacionTab> createState() => _AuditoriaRecaudacionTabState();
+  State<_AuditoriaRecaudacionTab> createState() =>
+      _AuditoriaRecaudacionTabState();
 }
 
 class _AuditoriaRecaudacionTabState extends State<_AuditoriaRecaudacionTab> {
   List<Map<String, dynamic>> _encuestas = [];
   String? _selectedEncuestaId;
-  List<ItemRecaudacion> _recaudacion = [];
+  List<PaymentAuditItem> _recaudacion = [];
   bool _isLoading = false;
 
   @override
@@ -548,7 +638,9 @@ class _AuditoriaRecaudacionTabState extends State<_AuditoriaRecaudacionTab> {
     setState(() => _isLoading = true);
     final data = await SupabaseConfig.client
         .from('encuestas')
-        .select('id, fecha_clase, costo_total_insumos, monto_individual_calculado, total_confirmados, cursos(nombre)')
+        .select(
+          'id, fecha_clase, costo_total_insumos, monto_individual_calculado, total_confirmados, cursos(nombre)',
+        )
         .order('fecha_clase', ascending: false);
 
     if (!mounted) return;
@@ -567,7 +659,7 @@ class _AuditoriaRecaudacionTabState extends State<_AuditoriaRecaudacionTab> {
 
   void _loadRecaudacion(String encuestaId) async {
     setState(() => _isLoading = true);
-    final items = await widget.profRepo.getRecaudacionEncuesta(encuestaId);
+    final items = await widget.teacherRepository.getSurveyPayments(encuestaId);
     if (!mounted) return;
     setState(() {
       _recaudacion = items;
@@ -575,10 +667,13 @@ class _AuditoriaRecaudacionTabState extends State<_AuditoriaRecaudacionTab> {
     });
   }
 
-  Future<void> _cambiarEstadoPago(ItemRecaudacion item, String nuevoEstado) async {
-    await widget.profRepo.actualizarEstadoPago(
-      respuestaId: item.respuestaId,
-      estado: nuevoEstado,
+  Future<void> _cambiarEstadoPago(
+    PaymentAuditItem item,
+    String nuevoEstado,
+  ) async {
+    await widget.teacherRepository.updatePaymentStatus(
+      responseId: item.respuestaId,
+      status: nuevoEstado,
     );
     if (_selectedEncuestaId != null) {
       _loadRecaudacion(_selectedEncuestaId!);
@@ -593,10 +688,16 @@ class _AuditoriaRecaudacionTabState extends State<_AuditoriaRecaudacionTab> {
           mainAxisSize: MainAxisSize.min,
           children: [
             AppBar(
-              title: const Text('Capture de Comprobante', style: TextStyle(fontSize: 16)),
+              title: const Text(
+                'Capture de Comprobante',
+                style: TextStyle(fontSize: 16),
+              ),
               automaticallyImplyLeading: false,
               actions: [
-                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.of(ctx).pop()),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(ctx).pop(),
+                ),
               ],
             ),
             Padding(
@@ -606,7 +707,12 @@ class _AuditoriaRecaudacionTabState extends State<_AuditoriaRecaudacionTab> {
                 fit: BoxFit.contain,
                 loadingBuilder: (c, child, progress) {
                   if (progress == null) return child;
-                  return const Center(child: Padding(padding: EdgeInsets.all(20.0), child: CircularProgressIndicator()));
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(20.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
                 },
                 errorBuilder: (c, error, stack) => const Padding(
                   padding: EdgeInsets.all(20.0),
@@ -627,7 +733,9 @@ class _AuditoriaRecaudacionTabState extends State<_AuditoriaRecaudacionTab> {
     }
 
     if (_encuestas.isEmpty) {
-      return const Center(child: Text('No hay encuestas registradas para auditar.'));
+      return const Center(
+        child: Text('No hay encuestas registradas para auditar.'),
+      );
     }
 
     return Column(
@@ -637,12 +745,17 @@ class _AuditoriaRecaudacionTabState extends State<_AuditoriaRecaudacionTab> {
           color: Colors.white,
           child: DropdownButtonFormField<String>(
             initialValue: _selectedEncuestaId,
-            decoration: const InputDecoration(labelText: 'Seleccionar Encuesta', prefixIcon: Icon(Icons.receipt_long)),
+            decoration: const InputDecoration(
+              labelText: 'Seleccionar Encuesta',
+              prefixIcon: Icon(Icons.receipt_long),
+            ),
             items: _encuestas.map((e) {
               final c = e['cursos'] as Map<String, dynamic>?;
               return DropdownMenuItem<String>(
                 value: e['id'] as String,
-                child: Text('${c?['nombre'] ?? "Curso"} • Clase: ${e['fecha_clase']}'),
+                child: Text(
+                  '${c?['nombre'] ?? "Curso"} • Clase: ${e['fecha_clase']}',
+                ),
               );
             }).toList(),
             onChanged: (val) {
@@ -658,73 +771,121 @@ class _AuditoriaRecaudacionTabState extends State<_AuditoriaRecaudacionTab> {
           child: _isLoading
               ? const Center(child: CircularProgressIndicator())
               : _recaudacion.isEmpty
-                  ? const Center(child: Text('Aún no hay respuestas de alumnas confirmadas para esta práctica.'))
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _recaudacion.length,
-                      itemBuilder: (context, idx) {
-                        final item = _recaudacion[idx];
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          child: Padding(
-                            padding: const EdgeInsets.all(14.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+              ? const Center(
+                  child: Text(
+                    'Aún no hay respuestas de alumnas confirmadas para esta práctica.',
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _recaudacion.length,
+                  itemBuilder: (context, idx) {
+                    final item = _recaudacion[idx];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(14.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        item.nombreCompleto,
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                      ),
+                                Expanded(
+                                  child: Text(
+                                    item.nombreCompleto,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
                                     ),
-                                    Text(
-                                      Formatters.currency(item.monto),
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.secondary),
-                                    ),
-                                  ],
+                                  ),
                                 ),
-                                Text('C.I: ${item.cedula}', style: const TextStyle(color: Colors.black54, fontSize: 12)),
-                                const SizedBox(height: 10),
-
-                                Row(
-                                  children: [
-                                    if (item.comprobanteUrl != null && item.comprobanteUrl!.isNotEmpty)
-                                      OutlinedButton.icon(
-                                        onPressed: () => _verComprobanteDialog(item.comprobanteUrl!),
-                                        icon: const Icon(Icons.image, size: 16),
-                                        label: const Text('Ver Capture', style: TextStyle(fontSize: 12)),
-                                      )
-                                    else
-                                      const Text('Capture pendiente', style: TextStyle(fontSize: 12, color: AppTheme.warningOrange, fontWeight: FontWeight.bold)),
-                                    const Spacer(),
-
-                                    // Botones de Acción Verificación
-                                    if (item.estadoPago != 'verificado')
-                                      ElevatedButton(
-                                        style: ElevatedButton.styleFrom(backgroundColor: AppTheme.successGreen),
-                                        onPressed: () => _cambiarEstadoPago(item, 'verificado'),
-                                        child: const Text('Verificar', style: TextStyle(fontSize: 12)),
-                                      )
-                                    else
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                        decoration: const BoxDecoration(
-                                          color: Color(0x26388E3C),
-                                          borderRadius: BorderRadius.all(Radius.circular(10)),
-                                        ),
-                                        child: const Text('VERIFICADO', style: TextStyle(color: AppTheme.successGreen, fontWeight: FontWeight.bold, fontSize: 12)),
-                                      ),
-                                  ],
+                                Text(
+                                  Formatters.currency(item.monto),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: AppTheme.secondary,
+                                  ),
                                 ),
                               ],
                             ),
-                          ),
-                        );
-                      },
-                    ),
+                            Text(
+                              'C.I: ${item.cedula}',
+                              style: const TextStyle(
+                                color: Colors.black54,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+
+                            Row(
+                              children: [
+                                if (item.comprobanteUrl != null &&
+                                    item.comprobanteUrl!.isNotEmpty)
+                                  OutlinedButton.icon(
+                                    onPressed: () => _verComprobanteDialog(
+                                      item.comprobanteUrl!,
+                                    ),
+                                    icon: const Icon(Icons.image, size: 16),
+                                    label: const Text(
+                                      'Ver Capture',
+                                      style: TextStyle(fontSize: 12),
+                                    ),
+                                  )
+                                else
+                                  const Text(
+                                    'Capture pendiente',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppTheme.warningOrange,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                const Spacer(),
+
+                                // Botones de Acción Verificación
+                                if (item.estadoPago != 'verificado')
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppTheme.successGreen,
+                                    ),
+                                    onPressed: () =>
+                                        _cambiarEstadoPago(item, 'verificado'),
+                                    child: const Text(
+                                      'Verificar',
+                                      style: TextStyle(fontSize: 12),
+                                    ),
+                                  )
+                                else
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
+                                    decoration: const BoxDecoration(
+                                      color: Color(0x26388E3C),
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(10),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'VERIFICADO',
+                                      style: TextStyle(
+                                        color: AppTheme.successGreen,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
         ),
       ],
     );
@@ -735,17 +896,17 @@ class _AuditoriaRecaudacionTabState extends State<_AuditoriaRecaudacionTab> {
 /// TAB 4: GESTIÓN DE ALUMNOS Y HISTORIAL / PAPELERA
 /// -------------------------------------------------------------
 class _GestionAlumnosTab extends StatefulWidget {
-  final ProfesoresRepository profRepo;
-  const _GestionAlumnosTab({required this.profRepo});
+  final TeacherRepository teacherRepository;
+  const _GestionAlumnosTab({required this.teacherRepository});
 
   @override
   State<_GestionAlumnosTab> createState() => _GestionAlumnosTabState();
 }
 
 class _GestionAlumnosTabState extends State<_GestionAlumnosTab> {
-  List<CursoProfesor> _cursos = [];
-  CursoProfesor? _selectedCurso;
-  List<AlumnoPapelera> _historialAlumnos = [];
+  List<TeacherCourse> _cursos = [];
+  TeacherCourse? _selectedCurso;
+  List<ArchivedStudentEnrollment> _historialAlumnos = [];
   bool _isLoading = false;
 
   @override
@@ -755,7 +916,7 @@ class _GestionAlumnosTabState extends State<_GestionAlumnosTab> {
   }
 
   void _loadCursos() async {
-    final cursos = await widget.profRepo.getCursosDelProfesor();
+    final cursos = await widget.teacherRepository.getMyCourses();
     if (!mounted) return;
     setState(() {
       _cursos = cursos;
@@ -768,7 +929,9 @@ class _GestionAlumnosTabState extends State<_GestionAlumnosTab> {
 
   void _loadHistorial(String cursoId) async {
     setState(() => _isLoading = true);
-    final hist = await widget.profRepo.getHistorialAlumnosCurso(cursoId);
+    final hist = await widget.teacherRepository.getCourseStudentHistory(
+      cursoId,
+    );
     if (!mounted) return;
     setState(() {
       _historialAlumnos = hist;
@@ -776,8 +939,10 @@ class _GestionAlumnosTabState extends State<_GestionAlumnosTab> {
     });
   }
 
-  Future<void> _retirarAlumno(AlumnoPapelera a) async {
-    await widget.profRepo.retirarAlumno(inscripcionId: a.inscripcionId);
+  Future<void> _retirarAlumno(ArchivedStudentEnrollment a) async {
+    await widget.teacherRepository.withdrawStudent(
+      enrollmentId: a.inscripcionId,
+    );
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -791,11 +956,16 @@ class _GestionAlumnosTabState extends State<_GestionAlumnosTab> {
     if (_selectedCurso != null) _loadHistorial(_selectedCurso!.id);
   }
 
-  Future<void> _restaurarAlumno(AlumnoPapelera a) async {
-    await widget.profRepo.restaurarAlumno(inscripcionId: a.inscripcionId);
+  Future<void> _restaurarAlumno(ArchivedStudentEnrollment a) async {
+    await widget.teacherRepository.restoreStudent(
+      enrollmentId: a.inscripcionId,
+    );
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${a.nombreCompleto} restaurado al curso exitosamente.'), backgroundColor: AppTheme.successGreen),
+      SnackBar(
+        content: Text('${a.nombreCompleto} restaurado al curso exitosamente.'),
+        backgroundColor: AppTheme.successGreen,
+      ),
     );
     if (_selectedCurso != null) _loadHistorial(_selectedCurso!.id);
   }
@@ -807,10 +977,15 @@ class _GestionAlumnosTabState extends State<_GestionAlumnosTab> {
         Container(
           padding: const EdgeInsets.all(16),
           color: Colors.white,
-          child: DropdownButtonFormField<CursoProfesor>(
+          child: DropdownButtonFormField<TeacherCourse>(
             initialValue: _selectedCurso,
-            decoration: const InputDecoration(labelText: 'Curso', prefixIcon: Icon(Icons.school_outlined)),
-            items: _cursos.map((c) => DropdownMenuItem(value: c, child: Text(c.nombre))).toList(),
+            decoration: const InputDecoration(
+              labelText: 'Curso',
+              prefixIcon: Icon(Icons.school_outlined),
+            ),
+            items: _cursos
+                .map((c) => DropdownMenuItem(value: c, child: Text(c.nombre)))
+                .toList(),
             onChanged: (val) {
               if (val != null) {
                 setState(() => _selectedCurso = val);
@@ -835,27 +1010,44 @@ class _GestionAlumnosTabState extends State<_GestionAlumnosTab> {
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: enPapelera ? Colors.grey : AppTheme.primary,
-                          child: Icon(enPapelera ? Icons.delete_outline : Icons.person, color: Colors.white),
+                          backgroundColor: enPapelera
+                              ? Colors.grey
+                              : AppTheme.primary,
+                          child: Icon(
+                            enPapelera ? Icons.delete_outline : Icons.person,
+                            color: Colors.white,
+                          ),
                         ),
                         title: Text(
                           al.nombreCompleto,
                           style: TextStyle(
-                            decoration: enPapelera ? TextDecoration.lineThrough : null,
+                            decoration: enPapelera
+                                ? TextDecoration.lineThrough
+                                : null,
                             color: enPapelera ? Colors.black54 : Colors.black87,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        subtitle: Text('C.I: ${al.cedula} • Estado: ${enPapelera ? "En Papelera / Retirado" : "Activo"}'),
+                        subtitle: Text(
+                          'C.I: ${al.cedula} • Estado: ${enPapelera ? "En Papelera / Retirado" : "Activo"}',
+                        ),
                         trailing: enPapelera
                             ? ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.successGreen),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.successGreen,
+                                ),
                                 onPressed: () => _restaurarAlumno(al),
                                 icon: const Icon(Icons.restore, size: 16),
-                                label: const Text('Restablecer', style: TextStyle(fontSize: 12)),
+                                label: const Text(
+                                  'Restablecer',
+                                  style: TextStyle(fontSize: 12),
+                                ),
                               )
                             : IconButton(
-                                icon: const Icon(Icons.delete_outline, color: AppTheme.errorRed),
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  color: AppTheme.errorRed,
+                                ),
                                 tooltip: 'Eliminar del curso',
                                 onPressed: () => _retirarAlumno(al),
                               ),

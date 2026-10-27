@@ -1,13 +1,14 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../domain/coordinador_models.dart';
 
-class CoordinadoresRepository {
+import '../domain/coordinator_models.dart';
+
+class CoordinatorRepository {
   final SupabaseClient _supabase;
 
-  CoordinadoresRepository(this._supabase);
+  CoordinatorRepository(this._supabase);
 
   /// Dashboard global de cursos con conteo de inscritos y ausencias de la jornada actual
-  Future<List<DashboardCurso>> getCursosDashboard(String fechaHoy) async {
+  Future<List<CourseDashboardItem>> getCourseDashboard(String date) async {
     final cursosData = await _supabase
         .from('cursos')
         .select('''
@@ -30,37 +31,47 @@ class CoordinadoresRepository {
         ''')
         .eq('estado', 'activo');
 
-    final List<DashboardCurso> lista = [];
+    final List<CourseDashboardItem> lista = [];
 
     for (final c in (cursosData as List)) {
       final prof = c['profiles'] as Map<String, dynamic>?;
-      final inscripciones = (c['inscripciones'] as List? ?? []).where((i) => i['deleted_at'] == null).toList();
-      final asistencias = (c['asistencias'] as List? ?? []).where((a) => a['fecha'] == fechaHoy && (a['estado'] as String).toLowerCase() == 'ausente').toList();
+      final inscripciones = (c['inscripciones'] as List? ?? [])
+          .where((i) => i['deleted_at'] == null)
+          .toList();
+      final asistencias = (c['asistencias'] as List? ?? [])
+          .where(
+            (a) =>
+                a['fecha'] == date &&
+                (a['estado'] as String).toLowerCase() == 'ausente',
+          )
+          .toList();
 
-      lista.add(DashboardCurso(
-        id: c['id'] as String,
-        nombre: c['nombre'] as String,
-        horario: c['horario'] as String?,
-        profesorId: c['profesor_id'] as String?,
-        profesorNombre: prof?['nombre_completo'] ?? 'Sin Profesor Asignado',
-        alumnosInscritos: inscripciones.length,
-        ausenciasHoy: asistencias.length,
-      ));
+      lista.add(
+        CourseDashboardItem(
+          id: c['id'] as String,
+          nombre: c['nombre'] as String,
+          horario: c['horario'] as String?,
+          profesorId: c['profesor_id'] as String?,
+          profesorNombre: prof?['nombre_completo'] ?? 'Sin Profesor Asignado',
+          alumnosInscritos: inscripciones.length,
+          ausenciasHoy: asistencias.length,
+        ),
+      );
     }
 
     return lista;
   }
 
   /// Suscripción en Tiempo Real (Supabase Realtime) a las ausencias marcadas hoy
-  Stream<List<Map<String, dynamic>>> streamAsistenciasHoy(String fechaHoy) {
+  Stream<List<Map<String, dynamic>>> streamTodayAttendance(String date) {
     return _supabase
         .from('asistencias')
         .stream(primaryKey: ['id'])
-        .eq('fecha', fechaHoy);
+        .eq('fecha', date);
   }
 
   /// Detalle de ausencias de hoy con nombres de alumno y curso
-  Future<List<AusenciaTiempoReal>> getDetalleAusenciasHoy(String fechaHoy) async {
+  Future<List<LiveAbsence>> getTodayAbsences(String date) async {
     final data = await _supabase
         .from('asistencias')
         .select('''
@@ -75,7 +86,7 @@ class CoordinadoresRepository {
             cedula
           )
         ''')
-        .eq('fecha', fechaHoy)
+        .eq('fecha', date)
         .eq('estado', 'Ausente')
         .order('created_at', ascending: false);
 
@@ -83,25 +94,27 @@ class CoordinadoresRepository {
       final c = item['cursos'] as Map<String, dynamic>?;
       final a = item['alumnos'] as Map<String, dynamic>?;
 
-      return AusenciaTiempoReal(
+      return LiveAbsence(
         asistenciaId: item['id'] as String,
         cursoNombre: c?['nombre'] ?? 'Curso',
         alumnoNombre: a?['nombre_completo'] ?? 'Alumno',
         cedula: a?['cedula'] ?? '',
         fecha: item['fecha'] as String,
-        horaMarcada: item['created_at'] != null ? DateTime.tryParse(item['created_at'] as String) : null,
+        horaMarcada: item['created_at'] != null
+            ? DateTime.tryParse(item['created_at'] as String)
+            : null,
       );
     }).toList();
   }
 
   /// Lista de profesores registrados para asignación
-  Future<List<ProfesorDisponible>> getProfesoresRegistrados() async {
+  Future<List<AvailableTeacher>> getRegisteredTeachers() async {
     final profs = await _supabase
         .from('profiles')
         .select('id, nombre_completo, cedula, telefono, correo')
         .eq('rol', 'profesor');
 
-    final List<ProfesorDisponible> list = [];
+    final List<AvailableTeacher> list = [];
     for (final p in (profs as List)) {
       // Curso actual si tiene
       final cursoActual = await _supabase
@@ -111,39 +124,41 @@ class CoordinadoresRepository {
           .eq('estado', 'activo')
           .maybeSingle();
 
-      list.add(ProfesorDisponible(
-        id: p['id'] as String,
-        nombreCompleto: p['nombre_completo'] as String,
-        cedula: (p['cedula'] ?? '') as String,
-        telefono: p['telefono'] as String?,
-        correo: p['correo'] as String?,
-        cursoActual: cursoActual?['nombre'] as String?,
-      ));
+      list.add(
+        AvailableTeacher(
+          id: p['id'] as String,
+          nombreCompleto: p['nombre_completo'] as String,
+          cedula: (p['cedula'] ?? '') as String,
+          telefono: p['telefono'] as String?,
+          correo: p['correo'] as String?,
+          cursoActual: cursoActual?['nombre'] as String?,
+        ),
+      );
     }
     return list;
   }
 
   /// Reasignación o asignación de un profesor a un curso
-  Future<void> asignarProfesorACurso({
-    required String cursoId,
-    required String profesorId,
+  Future<void> assignTeacherToCourse({
+    required String courseId,
+    required String teacherId,
   }) async {
     await _supabase
         .from('cursos')
-        .update({'profesor_id': profesorId})
-        .eq('id', cursoId);
+        .update({'profesor_id': teacherId})
+        .eq('id', courseId);
   }
 
   /// Desasignar profesor de un curso (dejar sin profesor asignado temporalmente)
-  Future<void> desasignarProfesor({required String cursoId}) async {
+  Future<void> unassignTeacher({required String courseId}) async {
     await _supabase
         .from('cursos')
         .update({'profesor_id': null})
-        .eq('id', cursoId);
+        .eq('id', courseId);
   }
 
   /// Auditoría de encuestas e insumos en todos los cursos
-  Future<List<AuditoriaEncuesta>> getAuditoriaEncuestas() async {
+  Future<List<SurveyAudit>> getSurveyAudits() async {
     final data = await _supabase
         .from('encuestas')
         .select('''
@@ -161,13 +176,14 @@ class CoordinadoresRepository {
 
     return (data as List).map((e) {
       final c = e['cursos'] as Map<String, dynamic>?;
-      return AuditoriaEncuesta(
+      return SurveyAudit(
         id: e['id'] as String,
         cursoNombre: c?['nombre'] ?? 'Curso',
         fechaClase: e['fecha_clase']?.toString() ?? '',
         costoTotal: (e['costo_total_insumos'] as num?)?.toDouble() ?? 0.0,
         totalConfirmados: (e['total_confirmados'] as num?)?.toInt() ?? 0,
-        montoIndividual: (e['monto_individual_calculado'] as num?)?.toDouble() ?? 0.0,
+        montoIndividual:
+            (e['monto_individual_calculado'] as num?)?.toDouble() ?? 0.0,
         estado: e['estado'] as String? ?? 'activa',
       );
     }).toList();

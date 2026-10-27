@@ -1,11 +1,11 @@
-class CursoProfesor {
+class TeacherCourse {
   final String id;
   final String nombre;
   final String? descripcion;
   final String? horario;
   final int totalAlumnos;
 
-  CursoProfesor({
+  TeacherCourse({
     required this.id,
     required this.nombre,
     this.descripcion,
@@ -13,8 +13,11 @@ class CursoProfesor {
     required this.totalAlumnos,
   });
 
-  factory CursoProfesor.fromJson(Map<String, dynamic> json, {int totalAlumnos = 0}) {
-    return CursoProfesor(
+  factory TeacherCourse.fromJson(
+    Map<String, dynamic> json, {
+    int totalAlumnos = 0,
+  }) {
+    return TeacherCourse(
       id: (json['id'] ?? '') as String,
       nombre: (json['nombre'] ?? 'Curso') as String,
       descripcion: json['descripcion'] as String?,
@@ -24,7 +27,7 @@ class CursoProfesor {
   }
 }
 
-class AlumnoListaAsistencia {
+class StudentAttendanceItem {
   final String alumnoId;
   final String nombreCompleto;
   final String cedula;
@@ -33,7 +36,7 @@ class AlumnoListaAsistencia {
   final bool? confirmoEncuesta;
   final String? estadoPago;
 
-  AlumnoListaAsistencia({
+  StudentAttendanceItem({
     required this.alumnoId,
     required this.nombreCompleto,
     required this.cedula,
@@ -46,7 +49,7 @@ class AlumnoListaAsistencia {
   bool get isPresente => estadoAsistencia == 'Presente';
 }
 
-class ItemRecaudacion {
+class PaymentAuditItem {
   final String respuestaId;
   final String alumnoId;
   final String nombreCompleto;
@@ -55,7 +58,7 @@ class ItemRecaudacion {
   final String estadoPago; // 'pendiente' | 'verificado' | 'rechazado'
   final String? comprobanteUrl;
 
-  ItemRecaudacion({
+  PaymentAuditItem({
     required this.respuestaId,
     required this.alumnoId,
     required this.nombreCompleto,
@@ -66,7 +69,7 @@ class ItemRecaudacion {
   });
 }
 
-class AlumnoPapelera {
+class ArchivedStudentEnrollment {
   final String inscripcionId;
   final String alumnoId;
   final String nombreCompleto;
@@ -74,7 +77,7 @@ class AlumnoPapelera {
   final String estado; // 'activo' | 'retirado'
   final DateTime? deletedAt;
 
-  AlumnoPapelera({
+  ArchivedStudentEnrollment({
     required this.inscripcionId,
     required this.alumnoId,
     required this.nombreCompleto,

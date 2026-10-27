@@ -1,50 +1,57 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/core/utils/formatters.dart';
-import 'package:umbral_immujer/src/features/alumnos/data/alumnos_repository.dart';
-import 'package:umbral_immujer/src/features/alumnos/domain/alumno_models.dart';
+import 'package:umbral_immujer/features/student/data/student_repository.dart';
+import 'package:umbral_immujer/features/student/domain/student_models.dart';
+import 'package:umbral_immujer/features/student/presentation/student_summary_tab.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
-import 'package:umbral_immujer/src/features/auth/presentation/login_screen.dart';
 
-class AlumnoHomeScreen extends StatefulWidget {
+class StudentDashboardPage extends StatefulWidget {
   final UserProfile profile;
   final int initialIndex;
-  const AlumnoHomeScreen({super.key, required this.profile, this.initialIndex = 0});
+  const StudentDashboardPage({
+    super.key,
+    required this.profile,
+    this.initialIndex = 0,
+  });
 
   @override
-  State<AlumnoHomeScreen> createState() => _AlumnoHomeScreenState();
+  State<StudentDashboardPage> createState() => _StudentDashboardPageState();
 }
 
-class _AlumnoHomeScreenState extends State<AlumnoHomeScreen> {
+class _StudentDashboardPageState extends State<StudentDashboardPage> {
   late int _currentIndex;
-  late final AlumnosRepository _alumnosRepo;
+  late final StudentRepository _studentRepository;
 
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.initialIndex;
-    _alumnosRepo = AlumnosRepository(SupabaseConfig.client);
+    _currentIndex = widget.initialIndex.clamp(0, 3);
+    _studentRepository = StudentRepository(SupabaseConfig.client);
   }
 
   void _handleSignOut() async {
     await SupabaseConfig.client.auth.signOut();
     if (mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false,
-      );
+      context.go('/login');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final List<Widget> tabs = [
-      _MisCursosTab(alumnosRepo: _alumnosRepo),
-      _MisAsistenciasTab(alumnosRepo: _alumnosRepo),
-      _EncuestasAportesTab(alumnosRepo: _alumnosRepo),
+      StudentSummaryTab(
+        studentName: widget.profile.fullName,
+        onNavigate: (index) => setState(() => _currentIndex = index),
+      ),
+      _MisCursosTab(studentRepository: _studentRepository),
+      _MisAsistenciasTab(studentRepository: _studentRepository),
+      _EncuestasAportesTab(studentRepository: _studentRepository),
     ];
 
     return Scaffold(
@@ -54,7 +61,10 @@ class _AlumnoHomeScreenState extends State<AlumnoHomeScreen> {
             const Text('UMBRAL • Alumna/o', style: TextStyle(fontSize: 16)),
             Text(
               widget.profile.fullName,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.normal,
+              ),
             ),
           ],
         ),
@@ -72,6 +82,11 @@ class _AlumnoHomeScreenState extends State<AlumnoHomeScreen> {
         onDestinationSelected: (idx) => setState(() => _currentIndex = idx),
         destinations: const [
           NavigationDestination(
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(Icons.dashboard),
+            label: 'Inicio',
+          ),
+          NavigationDestination(
             icon: Icon(Icons.school_outlined),
             selectedIcon: Icon(Icons.school),
             label: 'Mis Cursos',
@@ -84,7 +99,7 @@ class _AlumnoHomeScreenState extends State<AlumnoHomeScreen> {
           NavigationDestination(
             icon: Icon(Icons.poll_outlined),
             selectedIcon: Icon(Icons.poll),
-            label: 'Encuestas & Pagos',
+            label: 'Encuestas',
           ),
         ],
       ),
@@ -96,17 +111,18 @@ class _AlumnoHomeScreenState extends State<AlumnoHomeScreen> {
 /// TAB 1: MIS CURSOS (Activos e Historial de Cursos)
 /// -------------------------------------------------------------
 class _MisCursosTab extends StatefulWidget {
-  final AlumnosRepository alumnosRepo;
-  const _MisCursosTab({required this.alumnosRepo});
+  final StudentRepository studentRepository;
+  const _MisCursosTab({required this.studentRepository});
 
   @override
   State<_MisCursosTab> createState() => _MisCursosTabState();
 }
 
-class _MisCursosTabState extends State<_MisCursosTab> with SingleTickerProviderStateMixin {
+class _MisCursosTabState extends State<_MisCursosTab>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  late Future<List<CursoAlumno>> _cursosActivosFuture;
-  late Future<List<CursoAlumno>> _cursosHistorialFuture;
+  late Future<List<StudentCourse>> _cursosActivosFuture;
+  late Future<List<StudentCourse>> _cursosHistorialFuture;
 
   @override
   void initState() {
@@ -117,8 +133,12 @@ class _MisCursosTabState extends State<_MisCursosTab> with SingleTickerProviderS
 
   void _loadCursos() {
     setState(() {
-      _cursosActivosFuture = widget.alumnosRepo.getMisCursos(estadoFiltro: 'activo');
-      _cursosHistorialFuture = widget.alumnosRepo.getMisCursos(estadoFiltro: 'finalizado');
+      _cursosActivosFuture = widget.studentRepository.getMyCourses(
+        statusFilter: 'activo',
+      );
+      _cursosHistorialFuture = widget.studentRepository.getMyCourses(
+        statusFilter: 'finalizado',
+      );
     });
   }
 
@@ -146,8 +166,14 @@ class _MisCursosTabState extends State<_MisCursosTab> with SingleTickerProviderS
           child: TabBarView(
             controller: _tabController,
             children: [
-              _buildListaCursos(_cursosActivosFuture, 'No estás inscrita en ningún curso activo actualmente.'),
-              _buildListaCursos(_cursosHistorialFuture, 'No tienes cursos finalizados en tu historial.'),
+              _buildListaCursos(
+                _cursosActivosFuture,
+                'No estás inscrita en ningún curso activo actualmente.',
+              ),
+              _buildListaCursos(
+                _cursosHistorialFuture,
+                'No tienes cursos finalizados en tu historial.',
+              ),
             ],
           ),
         ),
@@ -155,8 +181,11 @@ class _MisCursosTabState extends State<_MisCursosTab> with SingleTickerProviderS
     );
   }
 
-  Widget _buildListaCursos(Future<List<CursoAlumno>> future, String emptyMsg) {
-    return FutureBuilder<List<CursoAlumno>>(
+  Widget _buildListaCursos(
+    Future<List<StudentCourse>> future,
+    String emptyMsg,
+  ) {
+    return FutureBuilder<List<StudentCourse>>(
       future: future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -170,7 +199,11 @@ class _MisCursosTabState extends State<_MisCursosTab> with SingleTickerProviderS
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(24.0),
-              child: Text(emptyMsg, textAlign: TextAlign.center, style: const TextStyle(color: Colors.black54)),
+              child: Text(
+                emptyMsg,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.black54),
+              ),
             ),
           );
         }
@@ -196,13 +229,22 @@ class _MisCursosTabState extends State<_MisCursosTab> with SingleTickerProviderS
                           Expanded(
                             child: Text(
                               c.nombre,
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primaryDark),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primaryDark,
+                              ),
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                              color: isActivo ? const Color(0x26388E3C) : const Color(0x33000000),
+                              color: isActivo
+                                  ? const Color(0x26388E3C)
+                                  : const Color(0x33000000),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -210,31 +252,54 @@ class _MisCursosTabState extends State<_MisCursosTab> with SingleTickerProviderS
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
-                                color: isActivo ? AppTheme.successGreen : Colors.black54,
+                                color: isActivo
+                                    ? AppTheme.successGreen
+                                    : Colors.black54,
                               ),
                             ),
                           ),
                         ],
                       ),
-                      if (c.descripcion != null && c.descripcion!.isNotEmpty) ...[
+                      if (c.descripcion != null &&
+                          c.descripcion!.isNotEmpty) ...[
                         const SizedBox(height: 8),
-                        Text(c.descripcion!, style: const TextStyle(fontSize: 13, color: Colors.black87)),
+                        Text(
+                          c.descripcion!,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.black87,
+                          ),
+                        ),
                       ],
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                          const Icon(Icons.person, size: 16, color: AppTheme.primary),
+                          const Icon(
+                            Icons.person,
+                            size: 16,
+                            color: AppTheme.primary,
+                          ),
                           const SizedBox(width: 6),
-                          Text('Profesor: ${c.profesorNombre ?? "Por asignar"}', style: const TextStyle(fontSize: 13)),
+                          Text(
+                            'Profesor: ${c.profesorNombre ?? "Por asignar"}',
+                            style: const TextStyle(fontSize: 13),
+                          ),
                         ],
                       ),
                       if (c.horario != null && c.horario!.isNotEmpty) ...[
                         const SizedBox(height: 6),
                         Row(
                           children: [
-                            const Icon(Icons.schedule, size: 16, color: AppTheme.secondary),
+                            const Icon(
+                              Icons.schedule,
+                              size: 16,
+                              color: AppTheme.secondary,
+                            ),
                             const SizedBox(width: 6),
-                            Text(c.horario!, style: const TextStyle(fontSize: 13)),
+                            Text(
+                              c.horario!,
+                              style: const TextStyle(fontSize: 13),
+                            ),
                           ],
                         ),
                       ],
@@ -254,17 +319,17 @@ class _MisCursosTabState extends State<_MisCursosTab> with SingleTickerProviderS
 /// TAB 2: MIS ASISTENCIAS (Alerta Roja 2da Ausencia + Métricas)
 /// -------------------------------------------------------------
 class _MisAsistenciasTab extends StatefulWidget {
-  final AlumnosRepository alumnosRepo;
-  const _MisAsistenciasTab({required this.alumnosRepo});
+  final StudentRepository studentRepository;
+  const _MisAsistenciasTab({required this.studentRepository});
 
   @override
   State<_MisAsistenciasTab> createState() => _MisAsistenciasTabState();
 }
 
 class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
-  List<CursoAlumno> _misCursos = [];
-  CursoAlumno? _selectedCurso;
-  ResumenAsistencia? _resumen;
+  List<StudentCourse> _misCursos = [];
+  StudentCourse? _selectedCurso;
+  AttendanceSummary? _resumen;
   bool _isLoading = true;
 
   @override
@@ -275,7 +340,9 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
 
   void _loadCursos() async {
     setState(() => _isLoading = true);
-    final cursos = await widget.alumnosRepo.getMisCursos(estadoFiltro: 'activo');
+    final cursos = await widget.studentRepository.getMyCourses(
+      statusFilter: 'activo',
+    );
     if (!mounted) return;
     setState(() {
       _misCursos = cursos;
@@ -290,7 +357,9 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
   }
 
   void _loadAsistenciasCurso(String cursoId) async {
-    final resumen = await widget.alumnosRepo.getAsistenciasPorCurso(cursoId);
+    final resumen = await widget.studentRepository.getAttendanceByCourse(
+      cursoId,
+    );
     if (mounted) {
       setState(() => _resumen = resumen);
     }
@@ -304,7 +373,9 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
 
     if (_misCursos.isEmpty) {
       return const Center(
-        child: Text('No estás inscrito en cursos activos para consultar asistencias.'),
+        child: Text(
+          'No estás inscrito en cursos activos para consultar asistencias.',
+        ),
       );
     }
 
@@ -321,7 +392,7 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Selector de Curso
-            DropdownButtonFormField<CursoAlumno>(
+            DropdownButtonFormField<StudentCourse>(
               initialValue: _selectedCurso,
               decoration: const InputDecoration(
                 labelText: 'Selecciona el Curso',
@@ -357,7 +428,11 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 36),
+                    const Icon(
+                      Icons.warning_amber_rounded,
+                      color: Colors.white,
+                      size: 36,
+                    ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
@@ -374,7 +449,10 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
                           const SizedBox(height: 4),
                           Text(
                             'Inasistencias registradas: ${resumen.inasistencias}. Te recomendamos comunicarte con tu docente o coordinación de IMMUJER para evitar comprometer tu certificación.',
-                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),
@@ -405,7 +483,9 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
                   _buildMetricaCard(
                     title: 'Inasistencias',
                     count: '${resumen.inasistencias}',
-                    color: resumen.tieneAlertaDosAusencias ? AppTheme.errorRed : AppTheme.warningOrange,
+                    color: resumen.tieneAlertaDosAusencias
+                        ? AppTheme.errorRed
+                        : AppTheme.warningOrange,
                     icon: Icons.cancel_outlined,
                   ),
                 ],
@@ -415,7 +495,11 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
               // Historial Detallado de Clases
               const Text(
                 'Registro Detallado por Clase',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.primaryDark),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryDark,
+                ),
               ),
               const SizedBox(height: 10),
 
@@ -424,7 +508,9 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
                   child: Padding(
                     padding: EdgeInsets.all(20.0),
                     child: Center(
-                      child: Text('Aún no se han registrado asistencias para este curso.'),
+                      child: Text(
+                        'Aún no se han registrado asistencias para este curso.',
+                      ),
                     ),
                   ),
                 )
@@ -435,10 +521,14 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
                     margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: esPresente ? const Color(0x26388E3C) : const Color(0x26D32F2F),
+                        backgroundColor: esPresente
+                            ? const Color(0x26388E3C)
+                            : const Color(0x26D32F2F),
                         child: Icon(
                           esPresente ? Icons.check : Icons.close,
-                          color: esPresente ? AppTheme.successGreen : AppTheme.errorRed,
+                          color: esPresente
+                              ? AppTheme.successGreen
+                              : AppTheme.errorRed,
                         ),
                       ),
                       title: Text(
@@ -446,14 +536,23 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       trailing: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
-                          color: esPresente ? AppTheme.successGreen : AppTheme.errorRed,
+                          color: esPresente
+                              ? AppTheme.successGreen
+                              : AppTheme.errorRed,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           reg.estado.toUpperCase(),
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                     ),
@@ -482,7 +581,11 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
               const SizedBox(height: 6),
               Text(
                 count,
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color),
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
               ),
               const SizedBox(height: 2),
               Text(
@@ -502,15 +605,15 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
 /// TAB 3: ENCUESTAS Y APORTES (Confirmación + Comprobante)
 /// -------------------------------------------------------------
 class _EncuestasAportesTab extends StatefulWidget {
-  final AlumnosRepository alumnosRepo;
-  const _EncuestasAportesTab({required this.alumnosRepo});
+  final StudentRepository studentRepository;
+  const _EncuestasAportesTab({required this.studentRepository});
 
   @override
   State<_EncuestasAportesTab> createState() => _EncuestasAportesTabState();
 }
 
 class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
-  late Future<List<EncuestaAlumno>> _encuestasFuture;
+  late Future<List<StudentSurvey>> _encuestasFuture;
   final ImagePicker _picker = ImagePicker();
   bool _isUploading = false;
 
@@ -522,17 +625,24 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
 
   void _loadEncuestas() {
     setState(() {
-      _encuestasFuture = widget.alumnosRepo.getEncuestasActivas();
+      _encuestasFuture = widget.studentRepository.getActiveSurveys();
     });
   }
 
-  Future<void> _responder(EncuestaAlumno enc, bool asistira) async {
+  Future<void> _responder(StudentSurvey enc, bool asistira) async {
     try {
-      await widget.alumnosRepo.responderEncuesta(encuestaId: enc.id, asistira: asistira);
+      await widget.studentRepository.respondToSurvey(
+        surveyId: enc.id,
+        willAttend: asistira,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(asistira ? '¡Participación confirmada!' : 'Respuesta registrada: No asistirás.'),
+            content: Text(
+              asistira
+                  ? '¡Participación confirmada!'
+                  : 'Respuesta registrada: No asistirás.',
+            ),
             backgroundColor: asistira ? AppTheme.successGreen : Colors.black87,
           ),
         );
@@ -541,26 +651,34 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.errorRed),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: AppTheme.errorRed,
+          ),
         );
       }
     }
   }
 
-  Future<void> _seleccionarYSubirComprobante(EncuestaAlumno enc, ImageSource source) async {
+  Future<void> _seleccionarYSubirComprobante(
+    StudentSurvey enc,
+    ImageSource source,
+  ) async {
     final picked = await _picker.pickImage(source: source, imageQuality: 80);
     if (picked == null) return;
 
     setState(() => _isUploading = true);
     try {
-      await widget.alumnosRepo.subirComprobante(
-        encuestaId: enc.id,
+      await widget.studentRepository.uploadPaymentProof(
+        surveyId: enc.id,
         imageFile: File(picked.path),
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('¡Comprobante subido exitosamente! En espera de verificación docente.'),
+            content: Text(
+              '¡Comprobante subido exitosamente! En espera de verificación docente.',
+            ),
             backgroundColor: AppTheme.successGreen,
           ),
         );
@@ -569,7 +687,10 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al subir capture: $e'), backgroundColor: AppTheme.errorRed),
+          SnackBar(
+            content: Text('Error al subir capture: $e'),
+            backgroundColor: AppTheme.errorRed,
+          ),
         );
       }
     } finally {
@@ -577,7 +698,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
     }
   }
 
-  void _mostrarSelectorComprobante(EncuestaAlumno enc) {
+  void _mostrarSelectorComprobante(StudentSurvey enc) {
     showModalBottomSheet(
       context: context,
       builder: (ctx) => SafeArea(
@@ -592,7 +713,10 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library, color: AppTheme.secondary),
+              leading: const Icon(
+                Icons.photo_library,
+                color: AppTheme.secondary,
+              ),
               title: const Text('Seleccionar de la Galería'),
               onTap: () {
                 Navigator.of(ctx).pop();
@@ -607,7 +731,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<EncuestaAlumno>>(
+    return FutureBuilder<List<StudentSurvey>>(
       future: _encuestasFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -621,7 +745,11 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.inventory_2_outlined, size: 64, color: Colors.black26),
+                  Icon(
+                    Icons.inventory_2_outlined,
+                    size: 64,
+                    color: Colors.black26,
+                  ),
                   SizedBox(height: 12),
                   Text(
                     'No hay encuestas de insumos activas en este momento.',
@@ -655,13 +783,22 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                           Expanded(
                             child: Text(
                               enc.cursoNombre,
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primaryDark),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primaryDark,
+                              ),
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                              color: enc.estaVencida ? const Color(0x1AD32F2F) : const Color(0x1A388E3C),
+                              color: enc.estaVencida
+                                  ? const Color(0x1AD32F2F)
+                                  : const Color(0x1A388E3C),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
@@ -669,15 +806,29 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
-                                color: enc.estaVencida ? AppTheme.errorRed : AppTheme.successGreen,
+                                color: enc.estaVencida
+                                    ? AppTheme.errorRed
+                                    : AppTheme.successGreen,
                               ),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text('Fecha de Clase Práctica: ${enc.fechaClase}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                      Text('Límite de Confirmación: ${Formatters.dateTime(enc.fechaLimite)}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                      Text(
+                        'Fecha de Clase Práctica: ${enc.fechaClase}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        'Límite de Confirmación: ${Formatters.dateTime(enc.fechaLimite)}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.black54,
+                        ),
+                      ),
                       const Divider(height: 24),
 
                       // Montos y Cálculos Dinámicos
@@ -686,25 +837,62 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                         children: [
                           Column(
                             children: [
-                              const Text('Presupuesto Total', style: TextStyle(fontSize: 11, color: Colors.black54)),
-                              const SizedBox(height: 2),
-                              Text(Formatters.currency(enc.costoTotalInsumos), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                          Column(
-                            children: [
-                              const Text('Confirmados', style: TextStyle(fontSize: 11, color: Colors.black54)),
-                              const SizedBox(height: 2),
-                              Text('${enc.totalConfirmados}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.primary)),
-                            ],
-                          ),
-                          Column(
-                            children: [
-                              const Text('Tu Aporte Aprox.', style: TextStyle(fontSize: 11, color: Colors.black54)),
+                              const Text(
+                                'Presupuesto Total',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.black54,
+                                ),
+                              ),
                               const SizedBox(height: 2),
                               Text(
-                                enc.montoIndividual > 0 ? Formatters.currency(enc.montoIndividual) : r'$0.00',
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.secondary),
+                                Formatters.currency(enc.costoTotalInsumos),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Column(
+                            children: [
+                              const Text(
+                                'Confirmados',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${enc.totalConfirmados}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Column(
+                            children: [
+                              const Text(
+                                'Tu Aporte Aprox.',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                enc.montoIndividual > 0
+                                    ? Formatters.currency(enc.montoIndividual)
+                                    : r'$0.00',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.secondary,
+                                ),
                               ),
                             ],
                           ),
@@ -716,21 +904,28 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                       if (enc.respondio != true) ...[
                         const Text(
                           '¿Asistirás a la próxima clase y compartirás el costo de insumos?',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         Row(
                           children: [
                             Expanded(
                               child: OutlinedButton(
-                                onPressed: enc.estaVencida ? null : () => _responder(enc, false),
+                                onPressed: enc.estaVencida
+                                    ? null
+                                    : () => _responder(enc, false),
                                 child: const Text('No Asistiré'),
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: ElevatedButton(
-                                onPressed: enc.estaVencida ? null : () => _responder(enc, true),
+                                onPressed: enc.estaVencida
+                                    ? null
+                                    : () => _responder(enc, true),
                                 child: const Text('Confirmar Asistencia'),
                               ),
                             ),
@@ -740,22 +935,32 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: enc.asistira == true ? const Color(0x1A388E3C) : const Color(0x1A000000),
+                            color: enc.asistira == true
+                                ? const Color(0x1A388E3C)
+                                : const Color(0x1A000000),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Row(
                             children: [
                               Icon(
-                                enc.asistira == true ? Icons.check_circle : Icons.cancel,
-                                color: enc.asistira == true ? AppTheme.successGreen : Colors.black54,
+                                enc.asistira == true
+                                    ? Icons.check_circle
+                                    : Icons.cancel,
+                                color: enc.asistira == true
+                                    ? AppTheme.successGreen
+                                    : Colors.black54,
                               ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  enc.asistira == true ? 'Has confirmado que ASISTIRÁS a esta clase' : 'Has indicado que NO ASISTIRÁS',
+                                  enc.asistira == true
+                                      ? 'Has confirmado que ASISTIRÁS a esta clase'
+                                      : 'Has indicado que NO ASISTIRÁS',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: enc.asistira == true ? AppTheme.successGreen : Colors.black87,
+                                    color: enc.asistira == true
+                                        ? AppTheme.successGreen
+                                        : Colors.black87,
                                   ),
                                 ),
                               ),
@@ -766,22 +971,32 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
 
                         // SUBIR COMPROBANTE DE PAGO
                         if (enc.asistira == true) ...[
-                          if (enc.comprobanteUrl == null || enc.comprobanteUrl!.isEmpty) ...[
+                          if (enc.comprobanteUrl == null ||
+                              enc.comprobanteUrl!.isEmpty) ...[
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 color: const Color(0x1FF57C00),
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: AppTheme.warningOrange),
+                                border: Border.all(
+                                  color: AppTheme.warningOrange,
+                                ),
                               ),
                               child: const Row(
                                 children: [
-                                  Icon(Icons.info_outline, color: AppTheme.warningOrange),
+                                  Icon(
+                                    Icons.info_outline,
+                                    color: AppTheme.warningOrange,
+                                  ),
                                   SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
                                       'Capture pendiente: Recuerda adjuntar la imagen de tu pago para que el profesor verifique tu aporte.',
-                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.warningOrange),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppTheme.warningOrange,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -789,22 +1004,42 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                             ),
                             const SizedBox(height: 10),
                             ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.secondary),
-                              onPressed: _isUploading ? null : () => _mostrarSelectorComprobante(enc),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.secondary,
+                              ),
+                              onPressed: _isUploading
+                                  ? null
+                                  : () => _mostrarSelectorComprobante(enc),
                               icon: const Icon(Icons.upload_file),
                               label: _isUploading
-                                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
                                   : const Text('Subir Comprobante de Pago'),
                             ),
                           ] else ...[
                             Row(
                               children: [
-                                const Icon(Icons.receipt_long, color: AppTheme.primary),
+                                const Icon(
+                                  Icons.receipt_long,
+                                  color: AppTheme.primary,
+                                ),
                                 const SizedBox(width: 8),
-                                const Text('Comprobante enviado', style: TextStyle(fontWeight: FontWeight.w600)),
+                                const Text(
+                                  'Comprobante enviado',
+                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                ),
                                 const Spacer(),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: enc.estadoPago == 'verificado'
                                         ? const Color(0x26388E3C)
@@ -812,11 +1047,14 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(
-                                    enc.estadoPago?.toUpperCase() ?? 'PENDIENTE',
+                                    enc.estadoPago?.toUpperCase() ??
+                                        'PENDIENTE',
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
-                                      color: enc.estadoPago == 'verificado' ? AppTheme.successGreen : AppTheme.warningOrange,
+                                      color: enc.estadoPago == 'verificado'
+                                          ? AppTheme.successGreen
+                                          : AppTheme.warningOrange,
                                     ),
                                   ),
                                 ),

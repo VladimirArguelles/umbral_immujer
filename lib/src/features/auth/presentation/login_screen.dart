@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/features/auth/data/auth_repository.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
-import 'package:umbral_immujer/src/features/alumnos/presentation/alumno_home_screen.dart';
-import 'package:umbral_immujer/src/features/profesores/presentation/profesor_home_screen.dart';
-import 'package:umbral_immujer/src/features/coordinadores/presentation/coordinador_home_screen.dart';
-import 'package:umbral_immujer/src/features/auth/presentation/register_screen.dart';
+
 import 'auth_form_styles.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -29,33 +27,16 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _authRepo = AuthRepository(SupabaseConfig.client);
-    _checkExistingSession();
-  }
-
-  void _checkExistingSession() async {
-    final profile = await _authRepo.getCurrentProfile();
-    if (profile != null && mounted) {
-      _navigateToRoleHome(profile);
-    }
   }
 
   void _navigateToRoleHome(UserProfile profile) {
-    Widget destination;
-    switch (profile.role) {
-      case UserRole.alumno:
-        destination = AlumnoHomeScreen(profile: profile);
-        break;
-      case UserRole.profesor:
-        destination = ProfesorHomeScreen(profile: profile);
-        break;
-      case UserRole.coordinador:
-        destination = CoordinadorHomeScreen(profile: profile);
-        break;
-    }
-
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => destination),
-    );
+    final path = switch (profile.role) {
+      UserRole.superAdmin => '/coordinator',
+      UserRole.coordinador => '/coordinator',
+      UserRole.profesor => '/teacher',
+      UserRole.alumno => '/student',
+    };
+    context.go(path);
   }
 
   Future<void> _handleLogin() async {
@@ -144,12 +125,15 @@ class _LoginScreenState extends State<LoginScreen> {
                               Icons.close,
                               color: AuthFormStyles.softAccent,
                             ),
-                            onPressed: () => Navigator.of(context).maybePop(),
+                            onPressed: () => context.go('/'),
                           ),
                         ],
                       ),
                       const SizedBox(height: 20),
-                      Text('Correo electrónico', style: AuthFormStyles.labelStyle),
+                      Text(
+                        'Correo electrónico',
+                        style: AuthFormStyles.labelStyle,
+                      ),
                       const SizedBox(height: 6),
                       TextFormField(
                         controller: _emailController,
@@ -232,11 +216,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Center(
                         child: TextButton(
                           onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const RegisterScreen(),
-                              ),
-                            );
+                            context.push('/register');
                           },
                           child: RichText(
                             text: const TextSpan(

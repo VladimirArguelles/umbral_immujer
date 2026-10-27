@@ -1,10 +1,14 @@
 enum UserRole {
   alumno,
   profesor,
-  coordinador;
+  coordinador,
+  superAdmin;
 
   static UserRole fromString(String? role) {
     switch (role?.toLowerCase()) {
+      case 'super_admin':
+      case 'superadmin':
+        return UserRole.superAdmin;
       case 'profesor':
         return UserRole.profesor;
       case 'coordinador':
@@ -18,6 +22,8 @@ enum UserRole {
 
   String toDbString() {
     switch (this) {
+      case UserRole.superAdmin:
+        return 'super_admin';
       case UserRole.profesor:
         return 'profesor';
       case UserRole.coordinador:
@@ -29,6 +35,8 @@ enum UserRole {
 
   String get displayName {
     switch (this) {
+      case UserRole.superAdmin:
+        return 'Super Admin';
       case UserRole.profesor:
         return 'Profesor';
       case UserRole.coordinador:

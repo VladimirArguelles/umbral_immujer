@@ -1,18 +1,145 @@
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:umbral_immujer/features/landing/presentation/widgets/landing_top_bar.dart';
 import 'package:umbral_immujer/features/landing/presentation/widgets/module_card.dart';
 import 'package:umbral_immujer/features/landing/presentation/widgets/particles_background.dart';
 import 'package:umbral_immujer/src/features/auth/presentation/auth_form_styles.dart';
 
-/// Pantalla de bienvenida para elegir un módulo e iniciar la autenticación.
+/// Pantalla de bienvenida para elegir un módulo e iniciar la autenticación o registro.
 class LandingPage extends StatelessWidget {
   const LandingPage({super.key});
 
   void _openAuth(BuildContext context) {
-    Navigator.of(context).pushNamed('/login');
+    context.go('/login');
+  }
+
+  void _showModuleOptions(
+    BuildContext context, {
+    required String title,
+    required String role,
+    required IconData icon,
+    required String description,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1F132D).withValues(alpha: 0.95),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(28)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color(0xFFE85589).withValues(alpha: 0.2),
+                          border: Border.all(
+                            color:
+                                const Color(0xFFE85589).withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Icon(icon, color: const Color(0xFFFF8DB4)),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Módulo $title',
+                              style: GoogleFonts.montserrat(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              description,
+                              style: GoogleFonts.montserrat(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AuthFormStyles.neonAccent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    icon: const Icon(Icons.person_add_alt_1_rounded),
+                    label: Text(
+                      'Registrarse en $title',
+                      style: GoogleFonts.montserrat(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      context.push('/register?role=$role');
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.25),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    icon: const Icon(Icons.login_rounded),
+                    label: Text(
+                      'Iniciar Sesión',
+                      style: GoogleFonts.montserrat(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      context.go('/login');
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -45,12 +172,18 @@ class LandingPage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 14),
-                      // El inicio de sesión verifica el perfil y abre el panel de su rol.
                       ModuleCard(
                         title: 'Alumnos',
                         description: 'Cursos, asistencia, encuestas y pagos.',
                         icon: Icons.school_rounded,
-                        onTap: () => _openAuth(context),
+                        onTap: () => _showModuleOptions(
+                          context,
+                          title: 'Alumnos',
+                          role: 'alumno',
+                          icon: Icons.school_rounded,
+                          description:
+                              'Solo alumnos previamente inscritos pueden registrarse.',
+                        ),
                       ),
                       const SizedBox(height: 12),
                       ModuleCard(
@@ -58,14 +191,28 @@ class LandingPage extends StatelessWidget {
                         description:
                             'Listado de alumnos, asistencia y evaluaciones.',
                         icon: Icons.menu_book_rounded,
-                        onTap: () => _openAuth(context),
+                        onTap: () => _showModuleOptions(
+                          context,
+                          title: 'Profesores',
+                          role: 'profesor',
+                          icon: Icons.menu_book_rounded,
+                          description:
+                              'Solo profesores autorizados en nómina docente.',
+                        ),
                       ),
                       const SizedBox(height: 12),
                       ModuleCard(
                         title: 'Coordinador',
                         description: 'Cursos, alumnos, pagos y auditoría.',
                         icon: Icons.admin_panel_settings_rounded,
-                        onTap: () => _openAuth(context),
+                        onTap: () => _showModuleOptions(
+                          context,
+                          title: 'Coordinador',
+                          role: 'coordinador',
+                          icon: Icons.admin_panel_settings_rounded,
+                          description:
+                              'Gestión institucional y supervisión de UMBRAL.',
+                        ),
                       ),
                       const SizedBox(height: 24),
                       _buildAuthFooter(context),
@@ -137,7 +284,7 @@ class LandingPage extends StatelessWidget {
           style: TextButton.styleFrom(
             foregroundColor: AuthFormStyles.softAccent,
           ),
-          onPressed: () => Navigator.of(context).pushNamed('/register'),
+          onPressed: () => context.push('/register'),
           child: const Text('Regístrate'),
         ),
         Text(
