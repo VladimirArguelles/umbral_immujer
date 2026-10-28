@@ -393,13 +393,34 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
           children: [
             // Selector de Curso
             DropdownButtonFormField<StudentCourse>(
+              isExpanded: true,
               initialValue: _selectedCurso,
               decoration: const InputDecoration(
                 labelText: 'Selecciona el Curso',
                 prefixIcon: Icon(Icons.class_outlined),
               ),
+              selectedItemBuilder: (BuildContext context) {
+                return _misCursos.map((c) {
+                  return Text(
+                    c.nombre,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  );
+                }).toList();
+              },
               items: _misCursos.map((c) {
-                return DropdownMenuItem(value: c, child: Text(c.nombre));
+                return DropdownMenuItem(
+                  value: c,
+                  child: Text(
+                    c.nombre,
+                    style: const TextStyle(fontSize: 13),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                );
               }).toList(),
               onChanged: (val) {
                 if (val != null) {

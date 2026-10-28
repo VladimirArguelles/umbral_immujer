@@ -225,17 +225,32 @@ class _PaseListaTabState extends State<_PaseListaTab> {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<TeacherCourse>(
+                      isExpanded: true,
                       initialValue: _selectedCurso,
                       decoration: const InputDecoration(
                         labelText: 'Curso',
                         prefixIcon: Icon(Icons.class_outlined),
                       ),
+                      selectedItemBuilder: (BuildContext context) {
+                        return _cursos.map((c) {
+                          return Text(
+                            c.nombre,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          );
+                        }).toList();
+                      },
                       items: _cursos
                           .map(
                             (c) => DropdownMenuItem(
                               value: c,
                               child: Text(
                                 c.nombre,
+                                style: const TextStyle(fontSize: 13),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
@@ -252,7 +267,7 @@ class _PaseListaTabState extends State<_PaseListaTab> {
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
+                      horizontal: 10,
                       vertical: 14,
                     ),
                     decoration: BoxDecoration(
@@ -260,6 +275,7 @@ class _PaseListaTabState extends State<_PaseListaTab> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(
                           Icons.today,
@@ -269,7 +285,10 @@ class _PaseListaTabState extends State<_PaseListaTab> {
                         const SizedBox(width: 6),
                         Text(
                           _fechaSeleccionada,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12.5,
+                          ),
                         ),
                       ],
                     ),
@@ -500,13 +519,36 @@ class _CrearEncuestaTabState extends State<_CrearEncuestaTab> {
 
             // Selector de Curso
             DropdownButtonFormField<TeacherCourse>(
+              isExpanded: true,
               initialValue: _selectedCurso,
               decoration: const InputDecoration(
                 labelText: 'Curso / Asignatura',
                 prefixIcon: Icon(Icons.school_outlined),
               ),
+              selectedItemBuilder: (BuildContext context) {
+                return _cursos.map((c) {
+                  return Text(
+                    c.nombre,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  );
+                }).toList();
+              },
               items: _cursos
-                  .map((c) => DropdownMenuItem(value: c, child: Text(c.nombre)))
+                  .map(
+                    (c) => DropdownMenuItem(
+                      value: c,
+                      child: Text(
+                        c.nombre,
+                        style: const TextStyle(fontSize: 13),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  )
                   .toList(),
               onChanged: (val) => setState(() => _selectedCurso = val),
             ),
@@ -744,17 +786,34 @@ class _AuditoriaRecaudacionTabState extends State<_AuditoriaRecaudacionTab> {
           padding: const EdgeInsets.all(16),
           color: AppTheme.surfaceContainerLow,
           child: DropdownButtonFormField<String>(
+            isExpanded: true,
             initialValue: _selectedEncuestaId,
             decoration: const InputDecoration(
               labelText: 'Seleccionar Encuesta',
               prefixIcon: Icon(Icons.receipt_long),
             ),
+            selectedItemBuilder: (BuildContext context) {
+              return _encuestas.map((e) {
+                final c = e['cursos'] as Map<String, dynamic>?;
+                return Text(
+                  '${c?['nombre'] ?? "Curso"} • Clase: ${e['fecha_clase']}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                );
+              }).toList();
+            },
             items: _encuestas.map((e) {
               final c = e['cursos'] as Map<String, dynamic>?;
               return DropdownMenuItem<String>(
                 value: e['id'] as String,
                 child: Text(
                   '${c?['nombre'] ?? "Curso"} • Clase: ${e['fecha_clase']}',
+                  style: const TextStyle(fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
                 ),
               );
             }).toList(),
@@ -980,13 +1039,36 @@ class _GestionAlumnosTabState extends State<_GestionAlumnosTab> {
           padding: const EdgeInsets.all(16),
           color: AppTheme.surfaceContainerLow,
           child: DropdownButtonFormField<TeacherCourse>(
+            isExpanded: true,
             initialValue: _selectedCurso,
             decoration: const InputDecoration(
               labelText: 'Curso',
               prefixIcon: Icon(Icons.school_outlined),
             ),
+            selectedItemBuilder: (BuildContext context) {
+              return _cursos.map((c) {
+                return Text(
+                  c.nombre,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                );
+              }).toList();
+            },
             items: _cursos
-                .map((c) => DropdownMenuItem(value: c, child: Text(c.nombre)))
+                .map(
+                  (c) => DropdownMenuItem(
+                    value: c,
+                    child: Text(
+                      c.nombre,
+                      style: const TextStyle(fontSize: 13),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                )
                 .toList(),
             onChanged: (val) {
               if (val != null) {
