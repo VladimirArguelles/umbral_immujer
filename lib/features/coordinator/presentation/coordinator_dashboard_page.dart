@@ -44,13 +44,22 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
       _AuditoriaInsumosTab(coordinatorRepository: _coordinatorRepository),
     ];
 
+    final isSuperAdmin = widget.profile.role == UserRole.superAdmin;
+
     return Scaffold(
       appBar: AppBar(
+        leading: isSuperAdmin
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                tooltip: 'Volver a Super Admin',
+                onPressed: () => context.go('/superadmin'),
+              )
+            : null,
         title: Column(
           children: [
             Text(
-              widget.profile.role == UserRole.superAdmin
-                  ? 'UMBRAL • Superadministración'
+              isSuperAdmin
+                  ? 'UMBRAL • Coordinación (Super Admin)'
                   : 'UMBRAL • Coordinación General',
               style: const TextStyle(fontSize: 16),
             ),
@@ -71,7 +80,78 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
           ),
         ],
       ),
-      body: tabs[_currentIndex],
+      body: Column(
+        children: [
+          if (isSuperAdmin)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryContainer.withValues(alpha: 0.25),
+                border: const Border(
+                  bottom: BorderSide(
+                    color: AppTheme.outlineVariant,
+                    width: 0.5,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.admin_panel_settings_outlined,
+                    size: 18,
+                    color: AppTheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Modo Super Admin • Módulo Coordinación',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.onSurface,
+                      ),
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () => context.go('/superadmin'),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.arrow_back_rounded,
+                            size: 14,
+                            color: AppTheme.onPrimary,
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            'Volver al Panel',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.onPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          Expanded(child: tabs[_currentIndex]),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (idx) => setState(() => _currentIndex = idx),
