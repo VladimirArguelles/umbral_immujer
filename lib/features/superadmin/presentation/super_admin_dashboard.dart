@@ -30,11 +30,15 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
   int _currentIndex = 0;
 
   // Telemetría en vivo
-  int _totalAlumnos = 112;
-  int _totalCursos = 20;
-  int _totalProfesores = 8;
-  int _totalUsuarios = 1223;
+  int? _totalAlumnos;
+  int? _totalCursos;
+  int? _totalProfesores;
+  int? _totalCoordinadores;
+  int? _totalUsuarios;
+  int? _totalAsistencias;
+  int? _totalPresentes;
   bool _isLoadingMetrics = true;
+  Object? _metricsError;
 
   // Ajustes de configuración
   String _platformName = 'UMBRAL IMMUJER';
@@ -68,30 +72,46 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
 
       final futures = await Future.wait([
         client.from('alumnos').select('id').count(),
-        client.from('cursos').select('id').count(),
+        client.from('cursos').select('id').eq('estado', 'activo').count(),
         client.from('profesores').select('id').count(),
         client.from('profiles').select('id').count(),
+        client.from('profiles').select('id').eq('rol', 'coordinador').count(),
+        client.from('asistencias').select('id').count(),
+        client
+            .from('asistencias')
+            .select('id')
+            .eq('estado', 'Presente')
+            .count(),
       ]);
 
       if (mounted) {
         setState(() {
-          final alumnosCount = futures[0].count;
-          final cursosCount = futures[1].count;
-          final profesoresCount = futures[2].count;
-          final profilesCount = futures[3].count;
-
-          if (alumnosCount > 0) _totalAlumnos = alumnosCount;
-          if (cursosCount > 0) _totalCursos = cursosCount;
-          if (profesoresCount > 0) _totalProfesores = profesoresCount;
-          if (profilesCount > 0) _totalUsuarios = profilesCount;
+          _totalAlumnos = futures[0].count;
+          _totalCursos = futures[1].count;
+          _totalProfesores = futures[2].count;
+          _totalUsuarios = futures[3].count;
+          _totalCoordinadores = futures[4].count;
+          _totalAsistencias = futures[5].count;
+          _totalPresentes = futures[6].count;
           _isLoadingMetrics = false;
+          _metricsError = null;
         });
       }
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
-        setState(() => _isLoadingMetrics = false);
+        setState(() {
+          _isLoadingMetrics = false;
+          _metricsError = error;
+        });
       }
     }
+  }
+
+  double? get _attendanceRate {
+    final total = _totalAsistencias;
+    final present = _totalPresentes;
+    if (total == null || present == null || total == 0) return null;
+    return present / total;
   }
 
   Future<void> _handleSignOut() async {
@@ -307,7 +327,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
               ),
               onTap: () {
                 Navigator.pop(ctx);
-                context.go('/coordinator');
+                context.go('/student');
               },
             ),
             ListTile(
@@ -329,7 +349,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
               ),
               onTap: () {
                 Navigator.pop(ctx);
-                context.go('/coordinator');
+                context.go('/teacher');
               },
             ),
           ],
@@ -352,42 +372,45 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
         backgroundColor: cOuterBg,
         body: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 440),
+            constraints: const BoxConstraints(maxWidth: 430),
             child: Container(
               color: cBg,
-              child: Stack(
-                children: [
-                  // Contenido desplazable principal
-                  Positioned.fill(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.only(
-                        left: 20,
-                        right: 20,
-                        top: 24,
-                        bottom: 100,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildHeaderSection(),
-                          const SizedBox(height: 20),
-                          _buildKeyMetricsSection(),
-                          const SizedBox(height: 20),
-                          _buildManagementModulesSection(),
-                          const SizedBox(height: 20),
-                        ],
+              child: SafeArea(
+                bottom: false,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.only(
+                          left: 20,
+                          right: 20,
+                          top: 12,
+                          bottom: 100,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildHeaderSection(),
+                            const SizedBox(height: 20),
+                            _buildKeyMetricsSection(),
+                            const SizedBox(height: 20),
+                            _buildManagementModulesSection(),
+                            const SizedBox(height: 20),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-
-                  // Barra de navegación flotante inferior
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: _buildBottomNavigationBar(),
-                  ),
-                ],
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: SafeArea(
+                        top: false,
+                        child: _buildBottomNavigationBar(),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -403,7 +426,9 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
       decoration: BoxDecoration(
         color: Color(0xD9181B24), // cCard.withValues(alpha: 0.85)
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Color(0xB3252936)), // cBorder.withValues(alpha: 0.7)
+        border: Border.all(
+          color: Color(0xB3252936),
+        ), // cBorder.withValues(alpha: 0.7)
         boxShadow: [
           BoxShadow(
             color: Color(0x73000000),
@@ -427,11 +452,21 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                       width: 8,
                       height: 8,
                       decoration: BoxDecoration(
-                        color: cMintBright,
+                        color: _isLoadingMetrics
+                            ? AppTheme.secondary
+                            : _metricsError == null
+                            ? cMintBright
+                            : AppTheme.errorRed,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: cMintBright.withValues(alpha: 0.45),
+                            color:
+                                (_isLoadingMetrics
+                                        ? AppTheme.secondary
+                                        : _metricsError == null
+                                        ? cMintBright
+                                        : AppTheme.errorRed)
+                                    .withValues(alpha: 0.45),
                             blurRadius: 8,
                             spreadRadius: 1,
                           ),
@@ -441,11 +476,19 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(
-                        'SISTEMA OPERATIVO Y SINCRONIZADO',
+                        _isLoadingMetrics
+                            ? 'CARGANDO MÉTRICAS'
+                            : _metricsError == null
+                            ? 'RESUMEN DISPONIBLE'
+                            : 'MÉTRICAS NO DISPONIBLES',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 10,
                           fontWeight: FontWeight.w800,
-                          color: cMintBright,
+                          color: _isLoadingMetrics
+                              ? AppTheme.secondary
+                              : _metricsError == null
+                              ? cMintBright
+                              : AppTheme.errorRed,
                           letterSpacing: 0.8,
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -474,12 +517,12 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                       color: cTextMuted,
                     ),
                     children: const [
-                      TextSpan(text: 'Sede Central '),
+                      TextSpan(text: 'Administración institucional '),
                       TextSpan(
                         text: '• ',
                         style: TextStyle(color: cTextDim),
                       ),
-                      TextSpan(text: 'Telemetría Global en Vivo'),
+                      TextSpan(text: 'Resumen general'),
                     ],
                   ),
                 ),
@@ -534,7 +577,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'MÉTRICAS CLAVE DEL PERIODO',
+              'MÉTRICAS GENERALES',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
@@ -542,12 +585,21 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                 letterSpacing: 0.8,
               ),
             ),
-            Text(
-              _isLoadingMetrics ? 'Cargando...' : 'Actualizado en vivo',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: cTextMuted,
+            Tooltip(
+              message: _metricsError == null
+                  ? 'Las métricas se consultan desde Supabase.'
+                  : 'Error al cargar las métricas: $_metricsError',
+              child: Text(
+                _isLoadingMetrics
+                    ? 'Consultando…'
+                    : _metricsError == null
+                    ? 'Consulta completada'
+                    : 'Datos no disponibles',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: _metricsError == null ? cTextMuted : AppTheme.errorRed,
+                ),
               ),
             ),
           ],
@@ -598,45 +650,19 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Usuarios Activos',
+                'Usuarios Registrados',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w600,
                   color: cTextMuted,
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: cMintBright.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: cMintBright.withValues(alpha: 0.3)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.arrow_upward,
-                      size: 10,
-                      color: cMintBright,
-                    ),
-                    const SizedBox(width: 2),
-                    Text(
-                      '+12%',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.bold,
-                        color: cMintBright,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              const Icon(Symbols.verified_user, size: 16, color: cMintBright),
             ],
           ),
           const SizedBox(height: 4),
           Text(
-            _formatNumber(_totalUsuarios),
+            _formatMetric(_totalUsuarios),
             style: GoogleFonts.plusJakartaSans(
               fontSize: 22,
               fontWeight: FontWeight.w900,
@@ -644,11 +670,14 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
             ),
           ),
           const Spacer(),
-          // Sparkline decorativo en canvas
-          SizedBox(
-            height: 28,
-            width: double.infinity,
-            child: CustomPaint(painter: _SparklinePainter(color: cMintBright)),
+          Text(
+            'Perfiles registrados en la plataforma',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+              color: cTextMuted,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -695,7 +724,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
             textBaseline: TextBaseline.alphabetic,
             children: [
               Text(
-                '$_totalCursos',
+                _formatMetric(_totalCursos),
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
@@ -727,7 +756,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
               const SizedBox(width: 6),
               Flexible(
                 child: Text(
-                  '3 categorías activas',
+                  'Talleres en operación',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 10.5,
                     fontWeight: FontWeight.w600,
@@ -767,7 +796,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Tasa Asistencia',
+                'Asistencia registrada',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w600,
@@ -779,7 +808,9 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           ),
           const SizedBox(height: 6),
           Text(
-            '94.2%',
+            _attendanceRate == null
+                ? '—'
+                : '${(_attendanceRate! * 100).toStringAsFixed(1)}%',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 22,
               fontWeight: FontWeight.w900,
@@ -796,7 +827,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
             ),
             child: FractionallySizedBox(
               alignment: Alignment.centerLeft,
-              widthFactor: 0.942,
+              widthFactor: _attendanceRate?.clamp(0, 1) ?? 0,
               child: Container(
                 decoration: BoxDecoration(
                   color: cMintBright,
@@ -852,11 +883,11 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           ),
           const SizedBox(height: 6),
           Text(
-            '\$38,400',
+            'No disponible',
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              color: cTextMain,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: cTextMuted,
             ),
           ),
           const Spacer(),
@@ -864,19 +895,11 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Meta mensual',
+                'Sin agregado contable',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 10.5,
                   fontWeight: FontWeight.w600,
                   color: cTextMuted,
-                ),
-              ),
-              Text(
-                '96%',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.bold,
-                  color: cTextMain,
                 ),
               ),
             ],
@@ -896,17 +919,13 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           icon: Symbols.school,
           iconColor: AppTheme.primary,
           title: 'Módulo Alumnos',
-          badgeText: '$_totalAlumnos alumnas',
+          badgeText: '${_formatMetric(_totalAlumnos)} alumnas',
           badgeBg: AppTheme.secondaryContainer,
           badgeTextColor: AppTheme.onSecondaryContainer,
-          subtitle: 'Gestión de matrícula, asistencias y...',
-          bottomLeftWidget: _buildStackedAvatars([
-            'MI',
-            'VC',
-            '+${_totalAlumnos > 2 ? _totalAlumnos - 2 : 110}',
-          ]),
+          subtitle: 'Matrícula y seguimiento de asistencias.',
+          bottomLeftWidget: _buildStudentCount(),
           isPrimaryAction: true,
-          onEnter: () => context.go('/coordinator'),
+          onEnter: () => context.go('/student'),
         ),
         const SizedBox(height: 14),
 
@@ -915,10 +934,10 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           icon: Symbols.badge,
           iconColor: AppTheme.secondary,
           title: 'Módulo Profesores',
-          badgeText: '$_totalProfesores docentes',
+          badgeText: '${_formatMetric(_totalProfesores)} docentes',
           badgeBg: AppTheme.secondaryContainer,
           badgeTextColor: AppTheme.onSecondaryContainer,
-          subtitle: 'Plantel docente, programación de sesiones y...',
+          subtitle: 'Plantel docente y programación de sesiones.',
           bottomLeftWidget: Row(
             children: [
               Container(
@@ -936,18 +955,21 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                 ),
               ),
               const SizedBox(width: 6),
-              Text(
-                '$_totalProfesores en clase ahora',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  color: cTextMuted,
+              Flexible(
+                child: Text(
+                  '${_formatMetric(_totalProfesores)} docentes registrados',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: cTextMuted,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
           isPrimaryAction: false,
-          onEnter: () => context.go('/coordinator'),
+          onEnter: () => context.go('/teacher'),
         ),
         const SizedBox(height: 14),
 
@@ -956,16 +978,16 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           icon: Symbols.military_tech,
           iconColor: AppTheme.tertiary,
           title: 'Módulo Coordinadores',
-          badgeText: '12 sedes',
+          badgeText: '${_formatMetric(_totalCoordinadores)} coordinadores',
           badgeBg: AppTheme.tertiaryContainer,
           badgeTextColor: AppTheme.onTertiaryContainer,
-          subtitle: 'Supervisión territorial, auditoría y reportes...',
+          subtitle: 'Supervisión institucional y reportes.',
           bottomLeftWidget: Row(
             children: [
               const Icon(Symbols.verified_user, size: 14, color: cMintBright),
               const SizedBox(width: 6),
               Text(
-                'Auditorías al 100%',
+                'Gestión institucional',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w600,
@@ -1083,9 +1105,14 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           ),
           const SizedBox(height: 14),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              bottomLeftWidget,
+              Flexible(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: bottomLeftWidget,
+                ),
+              ),
+              const SizedBox(width: 8),
               // Botón Entrar al Módulo
               InkWell(
                 onTap: onEnter,
@@ -1147,46 +1174,24 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     );
   }
 
-  Widget _buildStackedAvatars(List<String> labels) {
-    return SizedBox(
-      height: 28,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: List.generate(labels.length, (index) {
-          final isTag = index == labels.length - 1;
-          return Transform.translate(
-            offset: Offset(index * -8.0, 0),
-            child: Container(
-              height: 28,
-              padding: EdgeInsets.symmetric(horizontal: isTag ? 8 : 0),
-              constraints: BoxConstraints(minWidth: isTag ? 34 : 28),
-              decoration: BoxDecoration(
-                color: index == 0
-                    ? AppTheme.surfaceContainerHighest
-                    : index == 1
-                    ? AppTheme.surfaceContainerHigh
-                    : AppTheme.surfaceContainer,
-                shape: isTag ? BoxShape.rectangle : BoxShape.circle,
-                borderRadius: isTag ? BorderRadius.circular(14) : null,
-                border: Border.all(color: cCard, width: 2),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                labels[index],
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                  color: index == 0
-                      ? AppTheme.secondary
-                      : index == 1
-                      ? AppTheme.primary
-                      : AppTheme.tertiary,
-                ),
-              ),
+  Widget _buildStudentCount() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Symbols.groups, size: 16, color: cTextMuted),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            '${_formatMetric(_totalAlumnos)} alumnas',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: cTextMuted,
             ),
-          );
-        }),
-      ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 
@@ -1216,7 +1221,11 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     return InkWell(
       onTap: () {
         setState(() => _currentIndex = index);
-        if (index == 1 || index == 2 || index == 3) {
+        if (index == 1) {
+          context.go('/student');
+        } else if (index == 2) {
+          context.go('/teacher');
+        } else if (index == 3) {
           context.go('/coordinator');
         } else if (index == 4) {
           _showSettingsModal();
@@ -1254,65 +1263,15 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     );
   }
 
+  String _formatMetric(int? number) {
+    if (number == null || _metricsError != null) return '—';
+    return _formatNumber(number);
+  }
+
   String _formatNumber(int number) {
     return number.toString().replaceAllMapped(
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
       (Match m) => '${m[1]},',
     );
   }
-}
-
-// Sparkline Painter para el gráfico mint ondulado
-class _SparklinePainter extends CustomPainter {
-  final Color color;
-  _SparklinePainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 2.6
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final path = Path();
-    path.moveTo(0, size.height * 0.78);
-    path.cubicTo(
-      size.width * 0.22,
-      size.height * 0.78,
-      size.width * 0.35,
-      size.height * 0.68,
-      size.width * 0.52,
-      size.height * 0.58,
-    );
-    path.cubicTo(
-      size.width * 0.68,
-      size.height * 0.48,
-      size.width * 0.82,
-      size.height * 0.18,
-      size.width * 0.9,
-      size.height * 0.32,
-    );
-    path.cubicTo(
-      size.width * 0.94,
-      size.height * 0.38,
-      size.width * 0.97,
-      size.height * 0.55,
-      size.width,
-      size.height * 0.24,
-    );
-
-    // Glow effect
-    final glowPaint = Paint()
-      ..color = AppTheme.tertiary.withValues(alpha: 0.35)
-      ..strokeWidth = 5.0
-      ..style = PaintingStyle.stroke
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
-
-    canvas.drawPath(path, glowPaint);
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
