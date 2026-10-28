@@ -33481,7 +33481,7 @@ return B.ll.guS().bU(q).split("=")[0]},
 avc(){var s=0,r=A.t(t.H)
 var $async$avc=A.o(function(a,b){if(a===1)return A.p(b,r)
 for(;;)switch(s){case 0:s=2
-return A.m(A.avp("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhZnF5cGx2ZHhhbHZ1bnVncXlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NTMxMTcsImV4cCI6MjEwNjUyOTExN30.itw2fSnTYuJydO8XJxgqDSp6NIwAripfmMVOzBX0JX0","https://safqyplvdxalvunugqyk.supabase.co"),$async$avc)
+return A.m(A.avp("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtrZ2FjdmhiY3hnb3hqcG5reG13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI2MDIxNjMsImV4cCI6MjEwODE3ODE2M30.Fj_VaXjO7sdlLB7BfJI-4R6iK9uLFi_oRmxUWKr2g4c","https://kkgacvhbcxgoxjpnkxmw.supabase.co"),$async$avc)
 case 2:return A.q(null,r)}})
 return A.r($async$avc,r)},
 w6(a,b,c){var s=null,r=new A.eH(4,A.c6(10),B.pH),q=A.f9(b,B.cd,s,s),p=r.uA(B.GV)
@@ -110992,16 +110992,18 @@ var s=$.ef().b
 s===$&&A.a()
 this.x!==$&&A.aA()
 this.x=new A.Cf(s)},
-asT(a){var s,r="/coordinator"
-switch(a.f.a){case 3:break
-case 2:break
-case 1:r="/teacher"
+asT(a){var s,r
+switch(a.f.a){case 3:s="/superadmin"
 break
-case 0:r="/student"
+case 2:s="/coordinator"
 break
-default:r=null}s=this.c
-s.toString
-A.i5(s).ix(r,null)},
+case 1:s="/teacher"
+break
+case 0:s="/student"
+break
+default:s=null}r=this.c
+r.toString
+A.i5(r).ix(s,null)},
 CT(){var s=0,r=A.t(t.H),q,p=2,o=[],n=[],m=this,l,k,j,i,h,g
 var $async$CT=A.o(function(a,b){if(a===1){o.push(b)
 s=p}for(;;)switch(s){case 0:if(!m.d.gR().nO()){s=1

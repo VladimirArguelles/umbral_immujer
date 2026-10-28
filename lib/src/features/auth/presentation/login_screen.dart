@@ -31,7 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _navigateToRoleHome(UserProfile profile) {
     final path = switch (profile.role) {
-      UserRole.superAdmin => '/coordinator',
+      UserRole.superAdmin => '/superadmin',
       UserRole.coordinador => '/coordinator',
       UserRole.profesor => '/teacher',
       UserRole.alumno => '/student',
