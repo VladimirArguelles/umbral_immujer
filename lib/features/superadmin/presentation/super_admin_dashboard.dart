@@ -93,9 +93,6 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
             const SizedBox(height: 16),
             // Sección de Seguridad y Respaldos
             _buildSecuritySection(),
-            const SizedBox(height: 16),
-            // Sección de Almacenamiento Cloud
-            _buildCloudStorageSection(),
           ],
         ),
       ),
@@ -108,10 +105,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
             icon: Icon(Symbols.dashboard),
             label: 'General',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Symbols.school),
-            label: 'Alumnos',
-          ),
+          BottomNavigationBarItem(icon: Icon(Symbols.school), label: 'Alumnos'),
           BottomNavigationBarItem(
             icon: Icon(Symbols.badge),
             label: 'Profesores',
@@ -147,15 +141,25 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
             const SizedBox(height: 16),
             // Campos de configuración
             TextFormField(
-              decoration: const InputDecoration(labelText: 'Nombre de la Plataforma'),
+              decoration: const InputDecoration(
+                labelText: 'Nombre de la Plataforma',
+              ),
               initialValue: 'UMBRAL IMMUJER',
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              decoration: const InputDecoration(labelText: 'Ciclo Académico Activo'),
+              decoration: const InputDecoration(
+                labelText: 'Ciclo Académico Activo',
+              ),
               items: const [
-                DropdownMenuItem(value: '2024-B', child: Text('Ciclo 2024-B (Agosto - Diciembre)')),
-                DropdownMenuItem(value: '2025-A', child: Text('Ciclo 2025-A (Enero - Junio)')),
+                DropdownMenuItem(
+                  value: '2024-B',
+                  child: Text('Ciclo 2024-B (Agosto - Diciembre)'),
+                ),
+                DropdownMenuItem(
+                  value: '2025-A',
+                  child: Text('Ciclo 2025-A (Enero - Junio)'),
+                ),
               ],
               onChanged: (_) {},
             ),
@@ -180,19 +184,25 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
             // Interruptores
             SwitchListTile(
               title: const Text('Políticas Institucionales y RLS'),
-              subtitle: const Text('Reglas de acceso por sede institucional y cifrado en reposo activo.'),
+              subtitle: const Text(
+                'Reglas de acceso por sede institucional y cifrado en reposo activo.',
+              ),
               value: _rlsEnabled,
               onChanged: (val) => setState(() => _rlsEnabled = val),
             ),
             SwitchListTile(
               title: const Text('Notificaciones Push y Alertas'),
-              subtitle: const Text('Avisos automáticos a facilitadores y alumnas por WhatsApp/Push.'),
+              subtitle: const Text(
+                'Avisos automáticos a facilitadores y alumnas por WhatsApp/Push.',
+              ),
               value: _notificationsEnabled,
               onChanged: (val) => setState(() => _notificationsEnabled = val),
             ),
             SwitchListTile(
               title: const Text('Modo Mantenimiento'),
-              subtitle: const Text('Suspender temporalmente ingresos al portal de alumnas.'),
+              subtitle: const Text(
+                'Suspender temporalmente ingresos al portal de alumnas.',
+              ),
               value: _maintenanceMode,
               onChanged: (val) => setState(() => _maintenanceMode = val),
             ),
@@ -271,40 +281,6 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
               icon: const Icon(Symbols.logout),
               label: const Text('Cerrar Todas las Sesiones Remotas'),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCloudStorageSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Almacenamiento Cloud',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  '15.6 / 20 GB',
-                  style: TextStyle(color: Colors.grey[600]),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            LinearProgressIndicator(
-              value: 0.78,
-              backgroundColor: Colors.grey[200],
-              color: Colors.pink,
-            ),
-            const SizedBox(height: 8),
-            const Text('78% de cuota ocupada'),
           ],
         ),
       ),
