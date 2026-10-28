@@ -6,6 +6,11 @@ import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
 
+// ─── Responsive breakpoints ───────────────────────────────────────────────────
+// < 600 px  → mobile  : bottom-nav + single column
+// 600-1023  → tablet  : bottom-nav + single column (wider)
+// ≥ 1024 px → desktop : side-nav + two-column grid
+
 class SuperAdminDashboardPage extends StatelessWidget {
   const SuperAdminDashboardPage({super.key, this.profile});
 
@@ -364,54 +369,549 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     );
   }
 
+  // ─── Nav items data ─────────────────────────────────────────────────────────
+  static const _navItems = [
+    (icon: Symbols.dashboard, label: 'General'),
+    (icon: Symbols.school, label: 'Alumnos'),
+    (icon: Symbols.badge, label: 'Profesores'),
+    (icon: Symbols.military_tech, label: 'Coord.'),
+    (icon: Symbols.settings, label: 'Ajustes'),
+  ];
+
+  void _onNavTap(int index) {
+    setState(() => _currentIndex = index);
+    if (index == 1) {
+      context.go('/student');
+    } else if (index == 2) {
+      context.go('/teacher');
+    } else if (index == 3) {
+      context.go('/coordinator');
+    } else if (index == 4) {
+      _showSettingsModal();
+    }
+  }
+
+  // ─── Root build ─────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Theme(
       data: AppTheme.lightTheme.copyWith(scaffoldBackgroundColor: cOuterBg),
       child: Scaffold(
         backgroundColor: cOuterBg,
-        body: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 430),
-            child: Container(
-              color: cBg,
-              child: SafeArea(
-                bottom: false,
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.only(
-                          left: 20,
-                          right: 20,
-                          top: 12,
-                          bottom: 100,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildHeaderSection(),
-                            const SizedBox(height: 20),
-                            _buildKeyMetricsSection(),
-                            const SizedBox(height: 20),
-                            _buildManagementModulesSection(),
-                            const SizedBox(height: 20),
-                          ],
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            final isDesktop = constraints.maxWidth >= 1024;
+            final isTablet =
+                constraints.maxWidth >= 600 && constraints.maxWidth < 1024;
+
+            if (isDesktop) {
+              return _buildDesktopLayout();
+            } else {
+              return _buildMobileLayout(isTablet: isTablet);
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  DESKTOP LAYOUT  ≥ 1024 px
+  //  Side navigation + two-column content grid
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildDesktopLayout() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Sidebar ────────────────────────────────────────────────────────
+        _buildSideNav(),
+        // ── Main content ──────────────────────────────────────────────────
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildDesktopHeader(),
+                const SizedBox(height: 28),
+                _buildDesktopMetricsGrid(),
+                const SizedBox(height: 28),
+                _buildDesktopModulesGrid(),
+                const SizedBox(height: 32),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Sidebar de escritorio ─────────────────────────────────────────────────
+  Widget _buildSideNav() {
+    return Container(
+      width: 220,
+      height: double.infinity,
+      decoration: const BoxDecoration(
+        color: cCard,
+        border: Border(right: BorderSide(color: cBorder)),
+      ),
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Logo / marca
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [cAccent, AppTheme.primary],
+                        begin: Alignment.bottomLeft,
+                        end: Alignment.topRight,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: const [
+                        BoxShadow(color: cAccentGlow, blurRadius: 12),
+                      ],
+                    ),
+                    child: const Icon(
+                      Symbols.shield_person,
+                      color: AppTheme.onPrimaryContainer,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'UMBRAL',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      color: cTextMain,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  Text(
+                    'Super Admin',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: cTextMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(color: cBorder, height: 1),
+            const SizedBox(height: 12),
+            // Nav items
+            for (int i = 0; i < _navItems.length; i++)
+              _buildSideNavItem(
+                index: i,
+                icon: _navItems[i].icon,
+                label: _navItems[i].label,
+              ),
+            const Spacer(),
+            // Logout
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: InkWell(
+                onTap: _handleSignOut,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: cCardInner,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: cBorder),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Symbols.logout, size: 18, color: cTextMuted),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Cerrar sesión',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: cTextMuted,
                         ),
                       ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSideNavItem({
+    required int index,
+    required IconData icon,
+    required String label,
+  }) {
+    final isSelected = _currentIndex == index;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      child: InkWell(
+        onTap: () => _onNavTap(index),
+        borderRadius: BorderRadius.circular(12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? cAccent.withValues(alpha: 0.12)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            border: isSelected
+                ? Border.all(color: cAccent.withValues(alpha: 0.25))
+                : Border.all(color: Colors.transparent),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: isSelected ? cAccent : cTextMuted,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight:
+                      isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? cAccent : cTextMuted,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Header escritorio ─────────────────────────────────────────────────────
+  Widget _buildDesktopHeader() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: _isLoadingMetrics
+                          ? AppTheme.secondary
+                          : _metricsError == null
+                              ? cMintBright
+                              : AppTheme.errorRed,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: (_isLoadingMetrics
+                                  ? AppTheme.secondary
+                                  : _metricsError == null
+                                      ? cMintBright
+                                      : AppTheme.errorRed)
+                              .withValues(alpha: 0.5),
+                          blurRadius: 8,
+                          spreadRadius: 2,
+                        ),
+                      ],
                     ),
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: SafeArea(
-                        top: false,
-                        child: _buildBottomNavigationBar(),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _isLoadingMetrics
+                        ? 'CARGANDO MÉTRICAS'
+                        : _metricsError == null
+                            ? 'SISTEMA OPERATIVO Y SINCRONIZADO'
+                            : 'MÉTRICAS NO DISPONIBLES',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: _isLoadingMetrics
+                          ? AppTheme.secondary
+                          : _metricsError == null
+                              ? cMintBright
+                              : AppTheme.errorRed,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Centro de Control Super Admin',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                  color: cTextMain,
+                  height: 1.15,
+                ),
+              ),
+              const SizedBox(height: 4),
+              RichText(
+                text: TextSpan(
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: cTextMuted,
+                  ),
+                  children: const [
+                    TextSpan(text: 'Sede Central '),
+                    TextSpan(text: '• ', style: TextStyle(color: cTextDim)),
+                    TextSpan(text: 'Telemetría global en vivo'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Botón de acción rápida
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: _showQuickAddDialog,
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [cAccent, AppTheme.primary],
+                  begin: Alignment.bottomLeft,
+                  end: Alignment.topRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: const [
+                  BoxShadow(color: cAccentGlow, blurRadius: 16, offset: Offset(0, 4)),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.add_circle_outline,
+                    color: AppTheme.onPrimaryContainer,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Añadir registro',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.onPrimaryContainer,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        // Refresh
+        IconButton(
+          onPressed: _loadMetrics,
+          tooltip: 'Actualizar métricas',
+          icon: _isLoadingMetrics
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: cMintBright),
+                )
+              : const Icon(Symbols.refresh, color: cTextMuted),
+        ),
+      ],
+    );
+  }
+
+  // ── Grid de métricas escritorio (4 columnas) ──────────────────────────────
+  Widget _buildDesktopMetricsGrid() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionLabel('MÉTRICAS GENERALES'),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            Expanded(child: _buildMetricCardUsers()),
+            const SizedBox(width: 16),
+            Expanded(child: _buildMetricCardCourses()),
+            const SizedBox(width: 16),
+            Expanded(child: _buildMetricCardAttendance()),
+            const SizedBox(width: 16),
+            Expanded(child: _buildMetricCardRevenue()),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ── Grid de módulos escritorio (3 columnas) ───────────────────────────────
+  Widget _buildDesktopModulesGrid() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionLabel('MÓDULOS DE GESTIÓN'),
+        const SizedBox(height: 14),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _buildModuleCard(
+                icon: Symbols.school,
+                iconColor: AppTheme.primary,
+                title: 'Módulo Alumnos',
+                badgeText: '${_formatMetric(_totalAlumnos)} alumnas',
+                badgeBg: AppTheme.secondaryContainer,
+                badgeTextColor: AppTheme.onSecondaryContainer,
+                subtitle: 'Matrícula y seguimiento de asistencias.',
+                bottomLeftWidget: _buildStudentCount(),
+                isPrimaryAction: true,
+                onEnter: () => context.go('/student'),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildModuleCard(
+                icon: Symbols.badge,
+                iconColor: AppTheme.secondary,
+                title: 'Módulo Profesores',
+                badgeText: '${_formatMetric(_totalProfesores)} docentes',
+                badgeBg: AppTheme.secondaryContainer,
+                badgeTextColor: AppTheme.onSecondaryContainer,
+                subtitle: 'Plantel docente y programación de sesiones.',
+                bottomLeftWidget: Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: cMintBright,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: cMintBright.withValues(alpha: 0.45),
+                            blurRadius: 6,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        '${_formatMetric(_totalProfesores)} docentes registrados',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: cTextMuted,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
                 ),
+                isPrimaryAction: false,
+                onEnter: () => context.go('/teacher'),
               ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildModuleCard(
+                icon: Symbols.military_tech,
+                iconColor: AppTheme.tertiary,
+                title: 'Módulo Coordinadores',
+                badgeText: '${_formatMetric(_totalCoordinadores)} coordinadores',
+                badgeBg: AppTheme.tertiaryContainer,
+                badgeTextColor: AppTheme.onTertiaryContainer,
+                subtitle: 'Supervisión institucional y reportes.',
+                bottomLeftWidget: Row(
+                  children: [
+                    const Icon(Symbols.verified_user, size: 14, color: cMintBright),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Gestión institucional',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: cTextMuted,
+                      ),
+                    ),
+                  ],
+                ),
+                isPrimaryAction: false,
+                onEnter: () => context.go('/coordinator'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  MOBILE / TABLET LAYOUT  < 1024 px
+  //  Bottom nav + single column (max-width 600 on mobile, full on tablet)
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildMobileLayout({required bool isTablet}) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: isTablet ? 720 : 430),
+        child: Container(
+          color: cBg,
+          child: SafeArea(
+            bottom: false,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.only(
+                      left: 20,
+                      right: 20,
+                      top: 12,
+                      bottom: 100,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHeaderSection(),
+                        const SizedBox(height: 20),
+                        _buildKeyMetricsSection(isTablet: isTablet),
+                        const SizedBox(height: 20),
+                        _buildManagementModulesSection(),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: SafeArea(
+                    top: false,
+                    child: _buildBottomNavigationBar(),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -419,7 +919,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     );
   }
 
-  // --- BEGIN: HeaderSection ---
+  // --- BEGIN: HeaderSection (mobile) ---
   Widget _buildHeaderSection() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -429,7 +929,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
         border: Border.all(
           color: Color(0xB3252936),
         ), // cBorder.withValues(alpha: 0.7)
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: Color(0x73000000),
             blurRadius: 20,
@@ -546,7 +1046,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                     end: Alignment.topRight,
                   ),
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
+                  boxShadow: const [
                     BoxShadow(
                       color: cAccentGlow,
                       blurRadius: 16,
@@ -567,8 +1067,8 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     );
   }
 
-  // --- BEGIN: KeyMetricsSection ---
-  Widget _buildKeyMetricsSection() {
+  // --- BEGIN: KeyMetricsSection (mobile) ---
+  Widget _buildKeyMetricsSection({bool isTablet = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -576,15 +1076,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'MÉTRICAS GENERALES',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.primaryFixed,
-                letterSpacing: 0.8,
-              ),
-            ),
+            _buildSectionLabel('MÉTRICAS GENERALES'),
             Tooltip(
               message: _metricsError == null
                   ? 'Las métricas se consultan desde Supabase.'
@@ -606,314 +1098,47 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
         ),
         const SizedBox(height: 12),
 
-        // Grid 2x2
-        Row(
-          children: [
-            Expanded(child: _buildMetricCardUsers()),
-            const SizedBox(width: 12),
-            Expanded(child: _buildMetricCardCourses()),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(child: _buildMetricCardAttendance()),
-            const SizedBox(width: 12),
-            Expanded(child: _buildMetricCardRevenue()),
-          ],
-        ),
+        // En tablet: grid 4 columnas; en mobile: grid 2x2
+        if (isTablet)
+          Row(
+            children: [
+              Expanded(child: _buildMetricCardUsers()),
+              const SizedBox(width: 12),
+              Expanded(child: _buildMetricCardCourses()),
+              const SizedBox(width: 12),
+              Expanded(child: _buildMetricCardAttendance()),
+              const SizedBox(width: 12),
+              Expanded(child: _buildMetricCardRevenue()),
+            ],
+          )
+        else ...[
+          Row(
+            children: [
+              Expanded(child: _buildMetricCardUsers()),
+              const SizedBox(width: 12),
+              Expanded(child: _buildMetricCardCourses()),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _buildMetricCardAttendance()),
+              const SizedBox(width: 12),
+              Expanded(child: _buildMetricCardRevenue()),
+            ],
+          ),
+        ],
       ],
     );
   }
 
-  // Card 1: Usuarios Activos
-  Widget _buildMetricCardUsers() {
-    return Container(
-      height: 132,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: cCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cBorder.withValues(alpha: 0.7)),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x59000000),
-            blurRadius: 14,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Usuarios Registrados',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  color: cTextMuted,
-                ),
-              ),
-              const Icon(Symbols.verified_user, size: 16, color: cMintBright),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            _formatMetric(_totalUsuarios),
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              color: cTextMain,
-            ),
-          ),
-          const Spacer(),
-          Text(
-            'Perfiles registrados en la plataforma',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w600,
-              color: cTextMuted,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Card 2: Cursos Activos
-  Widget _buildMetricCardCourses() {
-    return Container(
-      height: 132,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: cCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cBorder.withValues(alpha: 0.7)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x59000000),
-            blurRadius: 14,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Cursos Activos',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  color: cTextMuted,
-                ),
-              ),
-              const Icon(Symbols.menu_book, size: 16, color: AppTheme.primary),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                _formatMetric(_totalCursos),
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: cTextMain,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'talleres',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: cTextMuted,
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          Row(
-            children: [
-              Container(
-                width: 7,
-                height: 7,
-                decoration: BoxDecoration(
-                  color: cAccent,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  'Talleres en operación',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w600,
-                    color: cTextMuted,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Card 3: Tasa Asistencia
-  Widget _buildMetricCardAttendance() {
-    return Container(
-      height: 132,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: cCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cBorder.withValues(alpha: 0.7)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x59000000),
-            blurRadius: 14,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Asistencia registrada',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  color: cTextMuted,
-                ),
-              ),
-              const Icon(Symbols.check_circle, size: 16, color: cMintBright),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            _attendanceRate == null
-                ? '—'
-                : '${(_attendanceRate! * 100).toStringAsFixed(1)}%',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              color: cMintBright,
-            ),
-          ),
-          const Spacer(),
-          Container(
-            height: 6,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: cBorder.withValues(alpha: 0.25),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: _attendanceRate?.clamp(0, 1) ?? 0,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: cMintBright,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: cMintBright.withValues(alpha: 0.45),
-                      blurRadius: 6,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Card 4: Recaudación
-  Widget _buildMetricCardRevenue() {
-    return Container(
-      height: 132,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: cCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cBorder.withValues(alpha: 0.7)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x59000000),
-            blurRadius: 14,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Recaudación',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  color: cTextMuted,
-                ),
-              ),
-              const Icon(Symbols.wallet, size: 16, color: AppTheme.primary),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'No disponible',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: cTextMuted,
-            ),
-          ),
-          const Spacer(),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Sin agregado contable',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w600,
-                  color: cTextMuted,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --- BEGIN: ManagementModulesSection ---
+  // --- BEGIN: ManagementModulesSection (mobile) ---
   Widget _buildManagementModulesSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _buildSectionLabel('MÓDULOS DE GESTIÓN'),
+        const SizedBox(height: 12),
         // Módulo 1: Alumnos
         _buildModuleCard(
           icon: Symbols.school,
@@ -1003,6 +1228,313 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     );
   }
 
+  // ─── Shared widgets ──────────────────────────────────────────────────────
+
+  /// Etiqueta de sección estilo ALL-CAPS
+  Widget _buildSectionLabel(String text) {
+    return Text(
+      text,
+      style: GoogleFonts.plusJakartaSans(
+        fontSize: 11,
+        fontWeight: FontWeight.w800,
+        color: AppTheme.primaryFixed,
+        letterSpacing: 0.8,
+      ),
+    );
+  }
+
+  // Card 1: Usuarios Activos
+  Widget _buildMetricCardUsers() {
+    return Container(
+      height: 132,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cBorder.withValues(alpha: 0.7)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x59000000),
+            blurRadius: 14,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Text(
+                  'Usuarios Registrados',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: cTextMuted,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const Icon(Symbols.verified_user, size: 16, color: cMintBright),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _formatMetric(_totalUsuarios),
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: cTextMain,
+            ),
+          ),
+          const Spacer(),
+          Text(
+            'Perfiles registrados en la plataforma',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+              color: cTextMuted,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Card 2: Cursos Activos
+  Widget _buildMetricCardCourses() {
+    return Container(
+      height: 132,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cBorder.withValues(alpha: 0.7)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x59000000),
+            blurRadius: 14,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Text(
+                  'Cursos Activos',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: cTextMuted,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const Icon(Symbols.menu_book, size: 16, color: AppTheme.primary),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                _formatMetric(_totalCursos),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  color: cTextMain,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'talleres',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: cTextMuted,
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          Row(
+            children: [
+              Container(
+                width: 7,
+                height: 7,
+                decoration: const BoxDecoration(
+                  color: cAccent,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  'Talleres en operación',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                    color: cTextMuted,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Card 3: Tasa Asistencia
+  Widget _buildMetricCardAttendance() {
+    return Container(
+      height: 132,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cBorder.withValues(alpha: 0.7)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x59000000),
+            blurRadius: 14,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Text(
+                  'Asistencia registrada',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: cTextMuted,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const Icon(Symbols.check_circle, size: 16, color: cMintBright),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _attendanceRate == null
+                ? '—'
+                : '${(_attendanceRate! * 100).toStringAsFixed(1)}%',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: cMintBright,
+            ),
+          ),
+          const Spacer(),
+          Container(
+            height: 6,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: cBorder.withValues(alpha: 0.25),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: FractionallySizedBox(
+              alignment: Alignment.centerLeft,
+              widthFactor: _attendanceRate?.clamp(0, 1) ?? 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: cMintBright,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: cMintBright.withValues(alpha: 0.45),
+                      blurRadius: 6,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Card 4: Recaudación
+  Widget _buildMetricCardRevenue() {
+    return Container(
+      height: 132,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cBorder.withValues(alpha: 0.7)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x59000000),
+            blurRadius: 14,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Text(
+                  'Recaudación',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: cTextMuted,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const Icon(Symbols.wallet, size: 16, color: AppTheme.primary),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'No disponible',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: cTextMuted,
+            ),
+          ),
+          const Spacer(),
+          Text(
+            'Sin agregado contable',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+              color: cTextMuted,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Module card (shared between mobile and desktop) ───────────────────────
   Widget _buildModuleCard({
     required IconData icon,
     required Color iconColor,
@@ -1145,7 +1677,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'ENTRAR AL MÓDULO',
+                        'ENTRAR',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 10,
                           fontWeight: FontWeight.w800,
@@ -1195,7 +1727,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     );
   }
 
-  // --- BEGIN: BottomNavigation ---
+  // --- BEGIN: BottomNavigation (mobile only) ---
   Widget _buildBottomNavigationBar() {
     return Container(
       decoration: BoxDecoration(
@@ -1219,18 +1751,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
   Widget _buildNavItem(int index, IconData icon, String label) {
     final isSelected = _currentIndex == index;
     return InkWell(
-      onTap: () {
-        setState(() => _currentIndex = index);
-        if (index == 1) {
-          context.go('/student');
-        } else if (index == 2) {
-          context.go('/teacher');
-        } else if (index == 3) {
-          context.go('/coordinator');
-        } else if (index == 4) {
-          _showSettingsModal();
-        }
-      },
+      onTap: () => _onNavTap(index),
       borderRadius: BorderRadius.circular(16),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -1263,6 +1784,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     );
   }
 
+  // ─── Helpers ──────────────────────────────────────────────────────────────
   String _formatMetric(int? number) {
     if (number == null || _metricsError != null) return '—';
     return _formatNumber(number);
