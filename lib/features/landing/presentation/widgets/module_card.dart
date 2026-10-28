@@ -2,6 +2,7 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 
 /// Tarjeta translúcida reutilizable para acceder a cada módulo de UMBRAL.
 class ModuleCard extends StatelessWidget {
@@ -28,9 +29,9 @@ class ModuleCard extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF1F132D).withValues(alpha: 0.7),
+            color: AppTheme.surfaceContainer.withValues(alpha: 0.9),
             borderRadius: borderRadius,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+            border: Border.all(color: AppTheme.outlineVariant),
           ),
           child: Material(
             color: Colors.transparent,
@@ -47,14 +48,14 @@ class ModuleCard extends StatelessWidget {
                       height: 54,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: const Color(0xFFE85589).withValues(alpha: 0.16),
+                        color: AppTheme.primary.withValues(alpha: 0.16),
                         border: Border.all(
-                          color: const Color(0xFFE85589).withValues(alpha: 0.3),
+                          color: AppTheme.primary.withValues(alpha: 0.3),
                         ),
                       ),
                       child: Icon(
                         icon,
-                        color: const Color(0xFFFF8DB4),
+                        color: AppTheme.primary,
                         size: 27,
                       ),
                     ),
@@ -65,8 +66,8 @@ class ModuleCard extends StatelessWidget {
                         children: [
                           Text(
                             title,
-                            style: GoogleFonts.montserrat(
-                              color: Colors.white,
+                            style: GoogleFonts.plusJakartaSans(
+                              color: AppTheme.onSurface,
                               fontSize: 17,
                               fontWeight: FontWeight.w800,
                             ),
@@ -74,8 +75,8 @@ class ModuleCard extends StatelessWidget {
                           const SizedBox(height: 5),
                           Text(
                             description,
-                            style: GoogleFonts.montserrat(
-                              color: Colors.white70,
+                            style: GoogleFonts.plusJakartaSans(
+                              color: AppTheme.onSurfaceVariant,
                               fontSize: 12,
                               height: 1.45,
                             ),
@@ -86,7 +87,7 @@ class ModuleCard extends StatelessWidget {
                     const SizedBox(width: 12),
                     const Icon(
                       Icons.arrow_forward_ios_rounded,
-                      color: Color(0xFFFF8DB4),
+                      color: AppTheme.primary,
                       size: 18,
                     ),
                   ],

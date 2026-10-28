@@ -1,60 +1,195 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-class AppTheme {
-  // Paleta Institucional IMMUJER (Púrpura, Violeta y Rosa)
-  static const Color primary = Color(0xFF6A1B9A); // Morado profundo
-  static const Color primaryLight = Color(0xFF9C4DCC);
-  static const Color primaryDark = Color(0xFF38006B);
-  static const Color secondary = Color(0xFFD81B60); // Magenta/Rosa acento
-  static const Color background = Color(0xFFF8F9FA);
-  static const Color surface = Colors.white;
-  static const Color errorRed = Color(0xFFD32F2F);
-  static const Color warningOrange = Color(0xFFF57C00);
-  static const Color successGreen = Color(0xFF388E3C);
+abstract final class AppTheme {
+  static const Color background = Color(0xFF10131A);
+  static const Color surface = Color(0xFF10131A);
+  static const Color surfaceDim = Color(0xFF10131A);
+  static const Color surfaceBright = Color(0xFF363941);
+  static const Color surfaceContainerLowest = Color(0xFF0B0E15);
+  static const Color surfaceContainerLow = Color(0xFF191B23);
+  static const Color surfaceContainer = Color(0xFF1D1F27);
+  static const Color surfaceContainerHigh = Color(0xFF272A32);
+  static const Color surfaceContainerHighest = Color(0xFF32353D);
+  static const Color onSurface = Color(0xFFE1E2EC);
+  static const Color onSurfaceVariant = Color(0xFFE3BDBF);
+  static const Color outline = Color(0xFFAA888A);
+  static const Color outlineVariant = Color(0xFF5B4041);
+  static const Color primary = Color(0xFFFFB2B7);
+  static const Color onPrimary = Color(0xFF67001B);
+  static const Color primaryContainer = Color(0xFFFF516A);
+  static const Color onPrimaryContainer = Color(0xFF5B0017);
+  static const Color primaryFixed = Color(0xFFFFDADB);
+  static const Color primaryFixedDim = Color(0xFFFFB2B7);
+  static const Color onPrimaryFixed = Color(0xFF40000D);
+  static const Color onPrimaryFixedVariant = Color(0xFF92002A);
+  static const Color primaryDark = primary;
+  static const Color inversePrimary = Color(0xFFBC0B3B);
+  static const Color secondary = Color(0xFFBFC6DC);
+  static const Color onSecondary = Color(0xFF283041);
+  static const Color secondaryContainer = Color(0xFF41495B);
+  static const Color onSecondaryContainer = Color(0xFFB0B8CD);
+  static const Color secondaryFixed = Color(0xFFDBE2F8);
+  static const Color secondaryFixedDim = Color(0xFFBFC6DC);
+  static const Color onSecondaryFixed = Color(0xFF131C2B);
+  static const Color onSecondaryFixedVariant = Color(0xFF3F4758);
+  static const Color tertiary = Color(0xFF4EDEA3);
+  static const Color onTertiary = Color(0xFF003824);
+  static const Color tertiaryContainer = Color(0xFF00A572);
+  static const Color onTertiaryContainer = Color(0xFF00311F);
+  static const Color tertiaryFixed = Color(0xFF6FFBBE);
+  static const Color tertiaryFixedDim = Color(0xFF4EDEA3);
+  static const Color onTertiaryFixed = Color(0xFF002113);
+  static const Color onTertiaryFixedVariant = Color(0xFF005236);
+  static const Color errorRed = Color(0xFFFFB4AB);
+  static const Color onError = Color(0xFF690005);
+  static const Color errorContainer = Color(0xFF93000A);
+  static const Color onErrorContainer = Color(0xFFFFDAD6);
+  static const Color warningOrange = Color(0xFFF59E0B);
+  static const Color successGreen = tertiary;
+
+  static const ColorScheme colorScheme = ColorScheme(
+    brightness: Brightness.dark,
+    primary: primary,
+    onPrimary: onPrimary,
+    primaryContainer: primaryContainer,
+    onPrimaryContainer: onPrimaryContainer,
+    secondary: secondary,
+    onSecondary: onSecondary,
+    secondaryContainer: secondaryContainer,
+    onSecondaryContainer: onSecondaryContainer,
+    secondaryFixed: secondaryFixed,
+    secondaryFixedDim: secondaryFixedDim,
+    onSecondaryFixed: onSecondaryFixed,
+    onSecondaryFixedVariant: onSecondaryFixedVariant,
+    tertiary: tertiary,
+    onTertiary: onTertiary,
+    tertiaryContainer: tertiaryContainer,
+    onTertiaryContainer: onTertiaryContainer,
+    tertiaryFixed: tertiaryFixed,
+    tertiaryFixedDim: tertiaryFixedDim,
+    onTertiaryFixed: onTertiaryFixed,
+    onTertiaryFixedVariant: onTertiaryFixedVariant,
+    primaryFixed: primaryFixed,
+    primaryFixedDim: primaryFixedDim,
+    onPrimaryFixed: onPrimaryFixed,
+    onPrimaryFixedVariant: onPrimaryFixedVariant,
+    error: errorRed,
+    onError: onError,
+    errorContainer: errorContainer,
+    onErrorContainer: onErrorContainer,
+    surface: surface,
+    onSurface: onSurface,
+    onSurfaceVariant: onSurfaceVariant,
+    outline: outline,
+    outlineVariant: outlineVariant,
+    shadow: Colors.black,
+    scrim: Colors.black,
+    inverseSurface: onSurface,
+    onInverseSurface: Color(0xFF2D3038),
+    inversePrimary: inversePrimary,
+    surfaceTint: primary,
+    surfaceDim: surfaceDim,
+    surfaceBright: surfaceBright,
+    surfaceContainerLowest: surfaceContainerLowest,
+    surfaceContainerLow: surfaceContainerLow,
+    surfaceContainer: surfaceContainer,
+    surfaceContainerHigh: surfaceContainerHigh,
+    surfaceContainerHighest: surfaceContainerHighest,
+  );
 
   static ThemeData get lightTheme {
+    final baseTextTheme = GoogleFonts.plusJakartaSansTextTheme(
+      ThemeData.dark().textTheme,
+    ).apply(
+      bodyColor: onSurface,
+      displayColor: onSurface,
+    );
+    final textTheme = baseTextTheme.copyWith(
+      headlineLarge: baseTextTheme.headlineLarge?.copyWith(
+        fontSize: 32,
+        fontWeight: FontWeight.w700,
+        height: 40 / 32,
+      ),
+      headlineMedium: baseTextTheme.headlineMedium?.copyWith(
+        fontSize: 22,
+        fontWeight: FontWeight.w700,
+        height: 28 / 22,
+      ),
+      headlineSmall: baseTextTheme.headlineSmall?.copyWith(
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        height: 24 / 18,
+      ),
+      titleMedium: baseTextTheme.titleMedium?.copyWith(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        height: 22 / 16,
+      ),
+      bodyLarge: baseTextTheme.bodyLarge?.copyWith(
+        fontSize: 16,
+        fontWeight: FontWeight.w400,
+        height: 24 / 16,
+      ),
+      bodyMedium: baseTextTheme.bodyMedium?.copyWith(
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+        height: 20 / 14,
+      ),
+      bodySmall: baseTextTheme.bodySmall?.copyWith(
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
+        height: 16 / 12,
+      ),
+      labelLarge: baseTextTheme.labelLarge?.copyWith(
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+        height: 18 / 14,
+      ),
+      labelMedium: baseTextTheme.labelMedium?.copyWith(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        height: 16 / 12,
+      ),
+      labelSmall: baseTextTheme.labelSmall?.copyWith(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        height: 14 / 11,
+      ),
+    );
+
     return ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primary,
-        primary: primary,
-        secondary: secondary,
-        surface: surface,
-        error: errorRed,
-        brightness: Brightness.light,
-      ),
+      brightness: Brightness.dark,
+      colorScheme: colorScheme,
       scaffoldBackgroundColor: background,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
+      textTheme: textTheme,
+      appBarTheme: AppBarTheme(
+        backgroundColor: surfaceContainerLow,
+        foregroundColor: onSurface,
         elevation: 0,
         centerTitle: true,
-        titleTextStyle: TextStyle(
-          color: Colors.white,
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.5,
+        titleTextStyle: textTheme.titleLarge?.copyWith(
+          color: onSurface,
+          fontWeight: FontWeight.w700,
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primary,
-          foregroundColor: Colors.white,
+          foregroundColor: onPrimary,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          elevation: 2,
-          textStyle: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-          ),
+          elevation: 0,
+          textStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: primary,
-          side: const BorderSide(color: primary, width: 1.5),
+          side: const BorderSide(color: outline, width: 1),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -63,15 +198,20 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        fillColor: surfaceContainerLow,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+        hintStyle: const TextStyle(color: onSurfaceVariant),
+        labelStyle: const TextStyle(color: onSurfaceVariant),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          borderSide: const BorderSide(color: outlineVariant),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          borderSide: const BorderSide(color: outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -83,13 +223,30 @@ class AppTheme {
         ),
       ),
       cardTheme: CardThemeData(
-        color: Colors.white,
-        elevation: 2,
-        shadowColor: const Color(0x14000000),
+        color: surfaceContainerLow,
+        elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: outlineVariant),
         ),
       ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: surfaceContainerLow,
+        indicatorColor: primary.withValues(alpha: 0.18),
+        surfaceTintColor: Colors.transparent,
+        labelTextStyle: WidgetStatePropertyAll(
+          textTheme.labelSmall?.copyWith(color: onSurfaceVariant),
+        ),
+      ),
+      dialogTheme: const DialogThemeData(
+        backgroundColor: surfaceContainer,
+        surfaceTintColor: Colors.transparent,
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: surfaceContainer,
+        surfaceTintColor: Colors.transparent,
+      ),
+      dividerTheme: const DividerThemeData(color: outlineVariant),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:umbral_immujer/features/home/presentation/theme/home_theme_colors.dart';
+import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 
 class FloatingBottomBar extends StatelessWidget {
   final int currentIndex;
@@ -50,10 +51,10 @@ class FloatingBottomBar extends StatelessWidget {
           child: Container(
             height: 88,
             decoration: BoxDecoration(
-              color: const Color(0xFF160B22).withValues(alpha: 0.82),
+              color: AppTheme.surfaceContainer.withValues(alpha: 0.92),
               borderRadius: borderRadius,
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.1),
+                color: AppTheme.outlineVariant,
                 width: 1.5,
               ),
             ),
@@ -87,11 +88,11 @@ class FloatingBottomBar extends StatelessWidget {
                                 colors: isSelected
                                     ? [
                                         HomeThemeColors.accentPink,
-                                        const Color(0xFF9C27B0),
+                                        AppTheme.primary,
                                       ]
                                     : [
-                                        const Color(0xFF231435),
-                                        const Color(0xFF12081C),
+                                        AppTheme.surfaceContainerHigh,
+                                        AppTheme.surfaceContainerLowest,
                                       ],
                               ),
                               boxShadow: isSelected
@@ -118,7 +119,9 @@ class FloatingBottomBar extends StatelessWidget {
                             ),
                             child: Icon(
                               item['icon'] as IconData,
-                              color: isSelected ? Colors.white : Colors.white60,
+                              color: isSelected
+                                  ? AppTheme.onPrimary
+                                  : AppTheme.onSurfaceVariant,
                               size: 22,
                             ),
                           ),
@@ -128,15 +131,15 @@ class FloatingBottomBar extends StatelessWidget {
                             child: Text(
                               item['label'] as String,
                               maxLines: 1,
-                              style: GoogleFonts.montserrat(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 9,
                                 fontWeight: isSelected
                                     ? FontWeight.w800
                                     : FontWeight.w500,
                                 letterSpacing: 0.4,
                                 color: isSelected
-                                    ? Colors.white
-                                    : Colors.white60,
+                                    ? AppTheme.onSurface
+                                    : AppTheme.onSurfaceVariant,
                               ),
                             ),
                           ),

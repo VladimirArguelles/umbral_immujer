@@ -242,7 +242,7 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: AppTheme.primaryDark,
+                                color: AppTheme.onSurface,
                               ),
                             ),
                           ),
@@ -271,7 +271,7 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                               c.horario!,
                               style: const TextStyle(
                                 fontSize: 13,
-                                color: Colors.black87,
+                                color: AppTheme.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -317,7 +317,7 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                                 'Inscritos',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.black54,
+                                  color: AppTheme.onSurfaceVariant,
                                 ),
                               ),
                             ],
@@ -338,7 +338,7 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                                 'Ausencias Hoy',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.black54,
+                                  color: AppTheme.onSurfaceVariant,
                                 ),
                               ),
                             ],
@@ -406,7 +406,7 @@ class _MonitorRealtimeAusenciasTabState
         // Banner Informativo de Supabase Realtime
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          color: const Color(0x1AD32F2F),
+          color: AppTheme.errorRed.withValues(alpha: 0.12),
           child: Row(
             children: [
               const Icon(Icons.circle, color: AppTheme.errorRed, size: 14),
@@ -468,7 +468,10 @@ class _MonitorRealtimeAusenciasTabState
                       child: ListTile(
                         leading: const CircleAvatar(
                           backgroundColor: AppTheme.errorRed,
-                          child: Icon(Icons.person_off, color: Colors.white),
+                          child: Icon(
+                            Icons.person_off,
+                            color: AppTheme.onError,
+                          ),
                         ),
                         title: Text(
                           aus.alumnoNombre,
@@ -495,7 +498,7 @@ class _MonitorRealtimeAusenciasTabState
                           child: const Text(
                             'AUSENTE',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: AppTheme.onError,
                               fontWeight: FontWeight.bold,
                               fontSize: 11,
                             ),
@@ -565,7 +568,7 @@ class _AsignacionProfesoresTabState extends State<_AsignacionProfesoresTab> {
                 child: ListTile(
                   leading: const CircleAvatar(
                     backgroundColor: AppTheme.primary,
-                    child: Icon(Icons.school, color: Colors.white),
+                    child: Icon(Icons.school, color: AppTheme.onPrimary),
                   ),
                   title: Text(
                     p.nombreCompleto,
@@ -634,7 +637,7 @@ class _AuditoriaInsumosTab extends StatelessWidget {
                         Text(
                           'Fecha: ${e.fechaClase}',
                           style: const TextStyle(
-                            color: Colors.black54,
+                            color: AppTheme.onSurfaceVariant,
                             fontSize: 12,
                           ),
                         ),
@@ -650,7 +653,7 @@ class _AuditoriaInsumosTab extends StatelessWidget {
                               'Presupuesto Total',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.black54,
+                                color: AppTheme.onSurfaceVariant,
                               ),
                             ),
                             Text(
@@ -667,7 +670,7 @@ class _AuditoriaInsumosTab extends StatelessWidget {
                               'Confirmados',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.black54,
+                                color: AppTheme.onSurfaceVariant,
                               ),
                             ),
                             Text(
@@ -685,7 +688,7 @@ class _AuditoriaInsumosTab extends StatelessWidget {
                               'Cuota por Alumna',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.black54,
+                                color: AppTheme.onSurfaceVariant,
                               ),
                             ),
                             Text(

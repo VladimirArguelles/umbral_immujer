@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 
 /// Fondo estrellado sutil y con gradientes ambientales para la Landing Page
 class ParticlesBackground extends StatelessWidget {
@@ -10,7 +11,7 @@ class ParticlesBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFF0D0714), // Fondo oscuro profundo
+      color: AppTheme.background,
       child: Stack(
         children: [
           // Luces ambientales difuminadas (Glows púrpuras y magenta)
@@ -22,7 +23,7 @@ class ParticlesBackground extends StatelessWidget {
               height: 250,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFFE85589).withValues(alpha: 0.12),
+                color: AppTheme.primary.withValues(alpha: 0.12),
               ),
             ),
           ),
@@ -34,7 +35,7 @@ class ParticlesBackground extends StatelessWidget {
               height: 280,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF6A1B9A).withValues(alpha: 0.16),
+                color: AppTheme.secondary.withValues(alpha: 0.16),
               ),
             ),
           ),
@@ -55,7 +56,7 @@ class _StarsPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.white;
+    final paint = Paint()..color = AppTheme.onSurface;
 
     // Dibujar 45 partículas/estrellas sutiles difuminadas
     for (int i = 0; i < 45; i++) {
@@ -64,7 +65,7 @@ class _StarsPainter extends CustomPainter {
       final radius = _random.nextDouble() * 1.6 + 0.4;
       final opacity = _random.nextDouble() * 0.45 + 0.1;
 
-      paint.color = Colors.white.withValues(alpha: opacity);
+      paint.color = AppTheme.onSurface.withValues(alpha: opacity);
       canvas.drawCircle(Offset(x, y), radius, paint);
     }
   }

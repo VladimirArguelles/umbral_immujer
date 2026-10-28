@@ -155,7 +155,7 @@ class _MisCursosTabState extends State<_MisCursosTab>
         TabBar(
           controller: _tabController,
           labelColor: AppTheme.primary,
-          unselectedLabelColor: Colors.black54,
+          unselectedLabelColor: AppTheme.onSurfaceVariant,
           indicatorColor: AppTheme.primary,
           tabs: const [
             Tab(text: 'Cursos Activos', icon: Icon(Icons.play_circle_outline)),
@@ -202,7 +202,7 @@ class _MisCursosTabState extends State<_MisCursosTab>
               child: Text(
                 emptyMsg,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.black54),
+                style: const TextStyle(color: AppTheme.onSurfaceVariant),
               ),
             ),
           );
@@ -232,7 +232,7 @@ class _MisCursosTabState extends State<_MisCursosTab>
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: AppTheme.primaryDark,
+                                color: AppTheme.onSurface,
                               ),
                             ),
                           ),
@@ -243,8 +243,8 @@ class _MisCursosTabState extends State<_MisCursosTab>
                             ),
                             decoration: BoxDecoration(
                               color: isActivo
-                                  ? const Color(0x26388E3C)
-                                  : const Color(0x33000000),
+                                  ? AppTheme.tertiary.withValues(alpha: 0.15)
+                                  : AppTheme.surfaceBright,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -254,7 +254,7 @@ class _MisCursosTabState extends State<_MisCursosTab>
                                 fontWeight: FontWeight.bold,
                                 color: isActivo
                                     ? AppTheme.successGreen
-                                    : Colors.black54,
+                                    : AppTheme.onSurfaceVariant,
                               ),
                             ),
                           ),
@@ -267,7 +267,7 @@ class _MisCursosTabState extends State<_MisCursosTab>
                           c.descripcion!,
                           style: const TextStyle(
                             fontSize: 13,
-                            color: Colors.black87,
+                            color: AppTheme.onSurface,
                           ),
                         ),
                       ],
@@ -418,9 +418,9 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
                 decoration: BoxDecoration(
                   color: AppTheme.errorRed,
                   borderRadius: BorderRadius.circular(14),
-                  boxShadow: const [
+                  boxShadow: [
                     BoxShadow(
-                      color: Color(0x59D32F2F),
+                      color: AppTheme.errorRed.withValues(alpha: 0.35),
                       blurRadius: 8,
                       offset: Offset(0, 4),
                     ),
@@ -430,7 +430,7 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
                   children: [
                     const Icon(
                       Icons.warning_amber_rounded,
-                      color: Colors.white,
+                      color: AppTheme.onError,
                       size: 36,
                     ),
                     const SizedBox(width: 14),
@@ -441,7 +441,7 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
                           const Text(
                             'Atención: Has acumulado 2 inasistencias en este curso',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: AppTheme.onErrorContainer,
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
                             ),
@@ -450,7 +450,7 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
                           Text(
                             'Inasistencias registradas: ${resumen.inasistencias}. Te recomendamos comunicarte con tu docente o coordinación de IMMUJER para evitar comprometer tu certificación.',
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: AppTheme.onErrorContainer,
                               fontSize: 12,
                             ),
                           ),
@@ -498,7 +498,7 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryDark,
+                  color: AppTheme.onSurface,
                 ),
               ),
               const SizedBox(height: 10),
@@ -522,8 +522,8 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
                     child: ListTile(
                       leading: CircleAvatar(
                         backgroundColor: esPresente
-                            ? const Color(0x26388E3C)
-                            : const Color(0x26D32F2F),
+                            ? AppTheme.tertiary.withValues(alpha: 0.15)
+                            : AppTheme.errorRed.withValues(alpha: 0.15),
                         child: Icon(
                           esPresente ? Icons.check : Icons.close,
                           color: esPresente
@@ -549,7 +549,7 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
                         child: Text(
                           reg.estado.toUpperCase(),
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: AppTheme.onSurface,
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
                           ),
@@ -591,7 +591,10 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 11, color: Colors.black54),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppTheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -643,7 +646,9 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                   ? '¡Participación confirmada!'
                   : 'Respuesta registrada: No asistirás.',
             ),
-            backgroundColor: asistira ? AppTheme.successGreen : Colors.black87,
+            backgroundColor: asistira
+                ? AppTheme.successGreen
+                : AppTheme.surfaceContainerHigh,
           ),
         );
         _loadEncuestas();
@@ -748,13 +753,16 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                   Icon(
                     Icons.inventory_2_outlined,
                     size: 64,
-                    color: Colors.black26,
+                    color: AppTheme.onSurfaceVariant,
                   ),
                   SizedBox(height: 12),
                   Text(
                     'No hay encuestas de insumos activas en este momento.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 15, color: Colors.black54),
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: AppTheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -786,7 +794,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: AppTheme.primaryDark,
+                                color: AppTheme.onSurface,
                               ),
                             ),
                           ),
@@ -797,8 +805,8 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                             ),
                             decoration: BoxDecoration(
                               color: enc.estaVencida
-                                  ? const Color(0x1AD32F2F)
-                                  : const Color(0x1A388E3C),
+                                  ? AppTheme.errorRed.withValues(alpha: 0.12)
+                                  : AppTheme.tertiary.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
@@ -826,7 +834,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                         'Límite de Confirmación: ${Formatters.dateTime(enc.fechaLimite)}',
                         style: const TextStyle(
                           fontSize: 12,
-                          color: Colors.black54,
+                          color: AppTheme.onSurfaceVariant,
                         ),
                       ),
                       const Divider(height: 24),
@@ -841,7 +849,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                 'Presupuesto Total',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.black54,
+                                  color: AppTheme.onSurfaceVariant,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -860,7 +868,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                 'Confirmados',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.black54,
+                                  color: AppTheme.onSurfaceVariant,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -880,7 +888,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                 'Tu Aporte Aprox.',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.black54,
+                                  color: AppTheme.onSurfaceVariant,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -936,8 +944,8 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: enc.asistira == true
-                                ? const Color(0x1A388E3C)
-                                : const Color(0x1A000000),
+                                ? AppTheme.tertiary.withValues(alpha: 0.12)
+                                : AppTheme.surfaceBright,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Row(
@@ -948,7 +956,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                     : Icons.cancel,
                                 color: enc.asistira == true
                                     ? AppTheme.successGreen
-                                    : Colors.black54,
+                                    : AppTheme.onSurfaceVariant,
                               ),
                               const SizedBox(width: 8),
                               Expanded(
@@ -960,7 +968,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                     fontWeight: FontWeight.bold,
                                     color: enc.asistira == true
                                         ? AppTheme.successGreen
-                                        : Colors.black87,
+                                        : AppTheme.onSurface,
                                   ),
                                 ),
                               ),
@@ -976,7 +984,9 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: const Color(0x1FF57C00),
+                                color: AppTheme.warningOrange.withValues(
+                                  alpha: 0.12,
+                                ),
                                 borderRadius: BorderRadius.circular(10),
                                 border: Border.all(
                                   color: AppTheme.warningOrange,
@@ -1016,7 +1026,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                       width: 16,
                                       height: 16,
                                       child: CircularProgressIndicator(
-                                        color: Colors.white,
+                                        color: AppTheme.onSurface,
                                         strokeWidth: 2,
                                       ),
                                     )
@@ -1042,8 +1052,12 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                   ),
                                   decoration: BoxDecoration(
                                     color: enc.estadoPago == 'verificado'
-                                        ? const Color(0x26388E3C)
-                                        : const Color(0x26F57C00),
+                                        ? AppTheme.tertiary.withValues(
+                                            alpha: 0.15,
+                                          )
+                                        : AppTheme.warningOrange.withValues(
+                                            alpha: 0.15,
+                                          ),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(

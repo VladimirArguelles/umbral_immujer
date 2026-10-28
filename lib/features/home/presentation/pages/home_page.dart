@@ -7,6 +7,7 @@ import 'package:umbral_immujer/features/home/presentation/widgets/hero_banner.da
 import 'package:umbral_immujer/features/home/presentation/widgets/menu_option_card.dart';
 import 'package:umbral_immujer/features/home/presentation/widgets/floating_bottom_bar.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
+import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/features/auth/data/auth_repository.dart';
 
 /// Pantalla Principal (Home Dashboard) para Alumnos UMBRAL - IMMUJER
@@ -51,25 +52,25 @@ class _HomePageState extends State<HomePage> {
             children: [
               Text(
                 'Acceso al Módulo de $rutaNombre',
-                style: GoogleFonts.montserrat(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: AppTheme.onSurface,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Para consultar tus cursos, asistencias o responder encuestas oficiales, inicia sesión con tu cuenta de alumna de IMMUJER.',
-                style: GoogleFonts.montserrat(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 13,
-                  color: Colors.white70,
+                  color: AppTheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 20),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: HomeThemeColors.accentPink,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppTheme.onPrimary,
                   shape: const StadiumBorder(),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
@@ -79,7 +80,7 @@ class _HomePageState extends State<HomePage> {
                 },
                 child: Text(
                   'Iniciar Sesión',
-                  style: GoogleFonts.montserrat(
+                  style: GoogleFonts.plusJakartaSans(
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.5,
                   ),
@@ -151,11 +152,11 @@ class _HomePageState extends State<HomePage> {
                           const SizedBox(width: 8),
                           Text(
                             'Accesos Rápidos de Alumnas',
-                            style: GoogleFonts.montserrat(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 16,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 0.5,
-                              color: Colors.white,
+                              color: AppTheme.onSurface,
                             ),
                           ),
                         ],

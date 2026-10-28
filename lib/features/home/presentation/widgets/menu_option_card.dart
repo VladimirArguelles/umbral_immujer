@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:umbral_immujer/features/home/presentation/theme/home_theme_colors.dart';
+import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 
 /// Componente modular reutilizable para las opciones de acceso rápido del Menú Principal
 class MenuOptionCard extends StatelessWidget {
@@ -73,20 +74,20 @@ class MenuOptionCard extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: GoogleFonts.montserrat(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.5,
-                          color: Colors.white,
+                          color: AppTheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 3),
                       Text(
                         subtitle,
-                        style: GoogleFonts.montserrat(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w400,
-                          color: Colors.white.withValues(alpha: 0.65),
+                          color: AppTheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -102,7 +103,7 @@ class MenuOptionCard extends StatelessWidget {
                     ),
                     child: Text(
                       badgeText!,
-                      style: GoogleFonts.montserrat(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                         color: accentColor,
@@ -121,7 +122,7 @@ class MenuOptionCard extends StatelessWidget {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: accentColor,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppTheme.onPrimary,
                   elevation: 3,
                   shadowColor: accentColor.withValues(alpha: 0.4),
                   shape: const StadiumBorder(),
@@ -133,7 +134,7 @@ class MenuOptionCard extends StatelessWidget {
                   children: [
                     Text(
                       buttonText,
-                      style: GoogleFonts.montserrat(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1.0,

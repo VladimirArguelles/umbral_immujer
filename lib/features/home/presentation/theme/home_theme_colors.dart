@@ -1,27 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 
-/// Paleta de colores y constantes de diseño visual para el Dashboard de Alumnos UMBRAL
+/// Compatibility names backed by the application's shared palette.
 class HomeThemeColors {
-  // Fondo Principal (Dark Purple)
-  static const Color background = Color(0xFF0F0818);
-
-  // Tarjetas y Contenedores
-  static const Color cardStart = Color(0xFF1F1133);
-  static const Color cardEnd = Color(0xFF281540);
+  static const Color background = AppTheme.background;
+  static const Color cardStart = AppTheme.surfaceContainerLow;
+  static const Color cardEnd = AppTheme.surfaceContainer;
   static const LinearGradient cardGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [cardStart, cardEnd],
   );
-
-  // Botón Primario y Acentos (Magenta/Rosa vibrante)
-  static const Color accentPink = Color(0xFFE85589);
-  static const Color accentPinkGlow = Color(0x66E85589);
-  static const Color accentPurple = Color(0xFF9C4DCC);
-
-  // Barra de Navegación Flotante
-  static const Color navBarStart = Color(0xFF180D29);
-  static const Color navBarEnd = Color(0xFF23123B);
+  static const Color accentPink = AppTheme.primary;
+  static const Color accentPinkGlow = Color(0x59FFB2B7);
+  static const Color accentPurple = AppTheme.secondary;
+  static const Color navBarStart = AppTheme.surfaceContainer;
+  static const Color navBarEnd = AppTheme.surfaceContainerLow;
   static const LinearGradient navBarGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
@@ -29,6 +23,6 @@ class HomeThemeColors {
   );
 
   // Bordes y Superficies
-  static const Color cardBorder = Color(0x1AFFFFFF); // Colors.white10
-  static const Color activeIconContainer = Color(0xFFE85589);
+  static const Color cardBorder = AppTheme.outlineVariant;
+  static const Color activeIconContainer = AppTheme.primary;
 }

@@ -86,7 +86,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         } else {
           setState(() {
             _cedulaValidated = false;
-            _validationMessage = result.errorMessage ??
+            _validationMessage =
+                result.errorMessage ??
                 'Acceso denegado: El documento $document no cumple los requisitos de registro de alumno.';
           });
         }
@@ -220,7 +221,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     };
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0714),
+      backgroundColor: AppTheme.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -247,7 +248,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               Text(
                                 title,
                                 style: const TextStyle(
-                                  color: Colors.white,
+                                  color: AppTheme.onSurface,
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -276,7 +277,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       const Text(
                         'Validación de Padrón Institucional',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: AppTheme.onSurface,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
@@ -286,18 +287,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         _selectedRole == UserRole.alumno
                             ? 'Solo alumnos que estén formalmente inscritos en la Tabla de Alumnos pueden registrarse.'
                             : _selectedRole == UserRole.profesor
-                                ? 'Solo profesores previamente incorporados en el registro docente pueden registrarse.'
-                                : 'Acceso para el equipo de coordinación y supervisión de IMMUJER.',
-                        style: const TextStyle(fontSize: 13, color: Colors.white70),
+                            ? 'Solo profesores previamente incorporados en el registro docente pueden registrarse.'
+                            : 'Acceso para el equipo de coordinación y supervisión de IMMUJER.',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppTheme.onSurfaceVariant,
+                        ),
                       ),
                       const SizedBox(height: 20),
                       Text('Tipo de cuenta', style: AuthFormStyles.labelStyle),
                       const SizedBox(height: 6),
                       SegmentedButton<UserRole>(
                         style: SegmentedButton.styleFrom(
-                          foregroundColor: Colors.white,
+                          foregroundColor: AppTheme.onSurface,
                           backgroundColor: AuthFormStyles.panel,
-                          selectedForegroundColor: Colors.white,
+                          selectedForegroundColor: AppTheme.onPrimaryContainer,
                           selectedBackgroundColor: AuthFormStyles.neonAccent,
                           side: const BorderSide(
                             color: AuthFormStyles.softAccent,
@@ -322,8 +326,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         onSelectionChanged: (val) {
                           setState(() {
                             _selectedRole = val.first;
-                            _cedulaValidated = _selectedRole == UserRole.coordinador;
-                            _validationMessage = _selectedRole == UserRole.coordinador
+                            _cedulaValidated =
+                                _selectedRole == UserRole.coordinador;
+                            _validationMessage =
+                                _selectedRole == UserRole.coordinador
                                 ? 'Registro de rol administrativo/coordinador.'
                                 : null;
                           });
@@ -352,7 +358,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 value: _documentType,
                                 dropdownColor: AuthFormStyles.panel,
                                 style: const TextStyle(
-                                  color: Colors.white,
+                                  color: AppTheme.onSurface,
                                   fontWeight: FontWeight.bold,
                                 ),
                                 icon: const Icon(
@@ -388,7 +394,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               keyboardType: _documentType == 'V'
                                   ? TextInputType.number
                                   : TextInputType.text,
-                              style: const TextStyle(color: Colors.white),
+                              style: const TextStyle(color: AppTheme.onSurface),
                               decoration: AuthFormStyles.inputDecoration(
                                 hintText: _documentType == 'V'
                                     ? 'Número de cédula'
@@ -428,7 +434,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       height: 16,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        color: Colors.white,
+                                        color: AppTheme.onSurface,
                                       ),
                                     )
                                   : const Text('Verificar'),
@@ -442,8 +448,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: _cedulaValidated
-                                ? const Color(0x1F388E3C)
-                                : const Color(0x1FD32F2F),
+                                ? AppTheme.tertiary.withValues(alpha: 0.12)
+                                : AppTheme.errorRed.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
                               color: _cedulaValidated
@@ -459,7 +465,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     : Icons.error_outline,
                                 color: _cedulaValidated
                                     ? AppTheme.successGreen
-                                    : const Color(0xFFFF6B7A),
+                                    : AppTheme.errorRed,
                               ),
                               const SizedBox(width: 10),
                               Expanded(
@@ -467,8 +473,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   _validationMessage!,
                                   style: TextStyle(
                                     color: _cedulaValidated
-                                        ? const Color(0xFF7FE3A0)
-                                        : const Color(0xFFFF9AA2),
+                                        ? AppTheme.tertiary
+                                        : AppTheme.errorRed,
                                     fontWeight: FontWeight.w600,
                                     fontSize: 13,
                                   ),
@@ -483,7 +489,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       const SizedBox(height: 6),
                       TextFormField(
                         controller: _nombreController,
-                        style: const TextStyle(color: Colors.white),
+                        style: const TextStyle(color: AppTheme.onSurface),
                         decoration: AuthFormStyles.inputDecoration(
                           hintText: 'Tu nombre completo',
                           prefixIcon: Icons.person_outline,
@@ -498,7 +504,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       TextFormField(
                         controller: _telefonoController,
                         keyboardType: TextInputType.phone,
-                        style: const TextStyle(color: Colors.white),
+                        style: const TextStyle(color: AppTheme.onSurface),
                         decoration: AuthFormStyles.inputDecoration(
                           hintText: 'Número de teléfono',
                           prefixIcon: Icons.phone_outlined,
@@ -516,7 +522,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       TextFormField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
-                        style: const TextStyle(color: Colors.white),
+                        style: const TextStyle(color: AppTheme.onSurface),
                         decoration: AuthFormStyles.inputDecoration(
                           hintText: 'correo@ejemplo.com',
                           prefixIcon: Icons.mail_outline,
@@ -535,7 +541,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       TextFormField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
-                        style: const TextStyle(color: Colors.white),
+                        style: const TextStyle(color: AppTheme.onSurface),
                         decoration: AuthFormStyles.inputDecoration(
                           hintText: '••••••••',
                           prefixIcon: Icons.lock_outline,
@@ -570,7 +576,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 width: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Colors.white,
+                                  color: AppTheme.onPrimary,
                                 ),
                               )
                             : const Row(
@@ -596,7 +602,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             text: const TextSpan(
                               text: '¿Ya tienes cuenta? ',
                               style: TextStyle(
-                                color: Colors.white70,
+                                color: AppTheme.onSurfaceVariant,
                                 fontSize: 14,
                               ),
                               children: [

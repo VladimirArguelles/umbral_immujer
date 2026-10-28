@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:umbral_immujer/features/home/presentation/theme/home_theme_colors.dart';
+import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 
 /// Barra superior limpia con el Logotipo Oficial de UMBRAL y botón de acceso 'Entrar'
 class CustomTopBar extends StatelessWidget {
@@ -32,11 +33,11 @@ class CustomTopBar extends StatelessWidget {
                     errorBuilder: (context, error, stackTrace) {
                       return Text(
                         'UMBRAL',
-                        style: GoogleFonts.montserrat(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 2.0,
-                          color: Colors.white,
+                          color: AppTheme.onSurface,
                         ),
                       );
                     },
@@ -48,7 +49,7 @@ class CustomTopBar extends StatelessWidget {
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: HomeThemeColors.accentPink,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppTheme.onPrimary,
                       elevation: 4,
                       shadowColor: HomeThemeColors.accentPinkGlow,
                       shape: const StadiumBorder(),
@@ -61,7 +62,7 @@ class CustomTopBar extends StatelessWidget {
                     icon: const Icon(Icons.login, size: 16),
                     label: Text(
                       'Entrar',
-                      style: GoogleFonts.montserrat(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.5,

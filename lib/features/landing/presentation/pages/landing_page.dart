@@ -7,6 +7,7 @@ import 'package:umbral_immujer/features/landing/presentation/widgets/landing_top
 import 'package:umbral_immujer/features/landing/presentation/widgets/module_card.dart';
 import 'package:umbral_immujer/features/landing/presentation/widgets/particles_background.dart';
 import 'package:umbral_immujer/src/features/auth/presentation/auth_form_styles.dart';
+import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 
 /// Pantalla de bienvenida para elegir un módulo e iniciar la autenticación o registro.
 class LandingPage extends StatelessWidget {
@@ -34,10 +35,10 @@ class LandingPage extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
               decoration: BoxDecoration(
-                color: const Color(0xFF1F132D).withValues(alpha: 0.95),
+                color: AppTheme.surfaceContainer.withValues(alpha: 0.95),
                 borderRadius:
                     const BorderRadius.vertical(top: Radius.circular(28)),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                border: Border.all(color: AppTheme.outlineVariant),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -50,13 +51,13 @@ class LandingPage extends StatelessWidget {
                         height: 48,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: const Color(0xFFE85589).withValues(alpha: 0.2),
+                          color: AppTheme.primary.withValues(alpha: 0.2),
                           border: Border.all(
                             color:
-                                const Color(0xFFE85589).withValues(alpha: 0.4),
+                                AppTheme.primary.withValues(alpha: 0.4),
                           ),
                         ),
-                        child: Icon(icon, color: const Color(0xFFFF8DB4)),
+                        child: Icon(icon, color: AppTheme.primary),
                       ),
                       const SizedBox(width: 14),
                       Expanded(
@@ -65,8 +66,8 @@ class LandingPage extends StatelessWidget {
                           children: [
                             Text(
                               'Módulo $title',
-                              style: GoogleFonts.montserrat(
-                                color: Colors.white,
+                              style: GoogleFonts.plusJakartaSans(
+                                color: AppTheme.onSurface,
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -74,8 +75,8 @@ class LandingPage extends StatelessWidget {
                             const SizedBox(height: 3),
                             Text(
                               description,
-                              style: GoogleFonts.montserrat(
-                                color: Colors.white70,
+                              style: GoogleFonts.plusJakartaSans(
+                                color: AppTheme.onSurfaceVariant,
                                 fontSize: 12,
                               ),
                             ),
@@ -88,7 +89,7 @@ class LandingPage extends StatelessWidget {
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AuthFormStyles.neonAccent,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppTheme.onPrimaryContainer,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
@@ -97,7 +98,7 @@ class LandingPage extends StatelessWidget {
                     icon: const Icon(Icons.person_add_alt_1_rounded),
                     label: Text(
                       'Registrarse en $title',
-                      style: GoogleFonts.montserrat(
+                      style: GoogleFonts.plusJakartaSans(
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
                       ),
@@ -110,9 +111,9 @@ class LandingPage extends StatelessWidget {
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppTheme.primary,
                       side: BorderSide(
-                        color: Colors.white.withValues(alpha: 0.25),
+                        color: AppTheme.outline.withValues(alpha: 0.25),
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -122,7 +123,7 @@ class LandingPage extends StatelessWidget {
                     icon: const Icon(Icons.login_rounded),
                     label: Text(
                       'Iniciar Sesión',
-                      style: GoogleFonts.montserrat(
+                      style: GoogleFonts.plusJakartaSans(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                       ),
@@ -145,7 +146,7 @@ class LandingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0714),
+      backgroundColor: AppTheme.background,
       body: ParticlesBackground(
         child: SafeArea(
           child: SingleChildScrollView(
@@ -165,8 +166,8 @@ class LandingPage extends StatelessWidget {
                       const SizedBox(height: 24),
                       Text(
                         'Selecciona tu módulo',
-                        style: GoogleFonts.montserrat(
-                          color: Colors.white,
+                        style: GoogleFonts.plusJakartaSans(
+                          color: AppTheme.onSurface,
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
                         ),
@@ -239,17 +240,17 @@ class LandingPage extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: const Color(0xFF1F132D).withValues(alpha: 0.7),
+            color: AppTheme.surfaceContainer.withValues(alpha: 0.9),
             borderRadius: borderRadius,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+            border: Border.all(color: AppTheme.outlineVariant),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 '¡Hola Equipo!',
-                style: GoogleFonts.montserrat(
-                  color: Colors.white,
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppTheme.onSurface,
                   fontSize: 26,
                   fontWeight: FontWeight.w900,
                 ),
@@ -257,8 +258,8 @@ class LandingPage extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 'Bienvenidos a UMBRAL. Selecciona un módulo para comenzar:',
-                style: GoogleFonts.montserrat(
-                  color: Colors.white70,
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppTheme.onSurfaceVariant,
                   fontSize: 14,
                   height: 1.5,
                 ),
@@ -278,7 +279,10 @@ class LandingPage extends StatelessWidget {
       children: [
         Text(
           '¿Aún no tienes una cuenta? ',
-          style: GoogleFonts.montserrat(color: Colors.white70, fontSize: 12),
+          style: GoogleFonts.plusJakartaSans(
+            color: AppTheme.onSurfaceVariant,
+            fontSize: 12,
+          ),
         ),
         TextButton(
           style: TextButton.styleFrom(
@@ -289,7 +293,10 @@ class LandingPage extends StatelessWidget {
         ),
         Text(
           ' o ',
-          style: GoogleFonts.montserrat(color: Colors.white70, fontSize: 12),
+          style: GoogleFonts.plusJakartaSans(
+            color: AppTheme.onSurfaceVariant,
+            fontSize: 12,
+          ),
         ),
         TextButton(
           style: TextButton.styleFrom(

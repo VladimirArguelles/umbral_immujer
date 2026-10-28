@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:umbral_immujer/features/home/presentation/theme/home_theme_colors.dart';
+import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 
 /// Banner Hero destacado de "FORMACIONES IMMUJER" con ilustración redimensionada
 class HeroBanner extends StatelessWidget {
@@ -23,11 +24,11 @@ class HeroBanner extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF24113D),
-            Color(0xFF381656),
+            AppTheme.surfaceContainerLow,
+            AppTheme.surfaceContainerHigh,
           ],
         ),
-        border: Border.all(color: Colors.white12, width: 1),
+        border: Border.all(color: AppTheme.outlineVariant, width: 1),
         boxShadow: const [
           BoxShadow(
             color: Color(0x33000000),
@@ -79,7 +80,7 @@ class HeroBanner extends StatelessWidget {
                           ),
                           child: Text(
                             'IMMUJER OFICIAL',
-                            style: GoogleFonts.montserrat(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 9,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 1.0,
@@ -92,12 +93,12 @@ class HeroBanner extends StatelessWidget {
                         // Título Grande
                         Text(
                           'FORMACIONES\nIMMUJER',
-                          style: GoogleFonts.montserrat(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 22,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 0.8,
                             height: 1.15,
-                            color: Colors.white,
+                            color: AppTheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -105,11 +106,11 @@ class HeroBanner extends StatelessWidget {
                         // Subtítulo
                         Text(
                           'Empoderando MUJERES a través de la Educación y la Formación Profesional.',
-                          style: GoogleFonts.montserrat(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             fontWeight: FontWeight.w400,
                             height: 1.35,
-                            color: Colors.white.withValues(alpha: 0.75),
+                            color: AppTheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -149,7 +150,7 @@ class HeroBanner extends StatelessWidget {
                               child: Icon(
                                 Icons.auto_stories,
                                 size: 52,
-                                color: Colors.white,
+                                color: AppTheme.onPrimary,
                               ),
                             ),
                           );

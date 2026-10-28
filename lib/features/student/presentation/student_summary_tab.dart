@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 
 class StudentSummaryTab extends StatelessWidget {
   const StudentSummaryTab({
@@ -16,7 +17,7 @@ class StudentSummaryTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: const Color(0xFFF8F6FA),
+      color: AppTheme.background,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final horizontalPadding = constraints.maxWidth > 720 ? 28.0 : 16.0;
@@ -30,8 +31,8 @@ class StudentSummaryTab extends StatelessWidget {
             children: [
               Text(
                 'Hola, $studentName',
-                style: GoogleFonts.montserrat(
-                  color: const Color(0xFF251536),
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppTheme.onSurface,
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
                 ),
@@ -39,8 +40,8 @@ class StudentSummaryTab extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 'Este es el resumen de tu experiencia formativa.',
-                style: GoogleFonts.montserrat(
-                  color: const Color(0xFF746B7D),
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppTheme.onSurfaceVariant,
                   fontSize: 13,
                 ),
               ),
@@ -52,8 +53,8 @@ class StudentSummaryTab extends StatelessWidget {
                   Expanded(
                     child: Text(
                       'Módulos de alumna',
-                      style: GoogleFonts.montserrat(
-                        color: const Color(0xFF251536),
+                      style: GoogleFonts.plusJakartaSans(
+                        color: AppTheme.onSurface,
                         fontSize: 17,
                         fontWeight: FontWeight.w800,
                       ),
@@ -61,8 +62,8 @@ class StudentSummaryTab extends StatelessWidget {
                   ),
                   Text(
                     'Tu espacio',
-                    style: GoogleFonts.montserrat(
-                      color: const Color(0xFF746B7D),
+                    style: GoogleFonts.plusJakartaSans(
+                      color: AppTheme.onSurfaceVariant,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
@@ -74,7 +75,7 @@ class StudentSummaryTab extends StatelessWidget {
                 title: 'MIS CURSOS',
                 description: 'Consulta tus cursos registrados, clases y material didáctico.',
                 icon: Icons.menu_book_rounded,
-                accent: const Color(0xFFE85589),
+                accent: AppTheme.primary,
                 action: 'IR A MIS CURSOS',
                 onTap: () => onNavigate(1),
               ),
@@ -84,7 +85,7 @@ class StudentSummaryTab extends StatelessWidget {
                 description:
                     'Revisa tu participación y el historial de tus clases.',
                 icon: Icons.event_available_rounded,
-                accent: const Color(0xFF2D9E78),
+                accent: AppTheme.tertiary,
                 action: 'IR A MI ASISTENCIA',
                 onTap: () => onNavigate(2),
               ),
@@ -93,7 +94,7 @@ class StudentSummaryTab extends StatelessWidget {
                 title: 'ENCUESTAS Y APORTES',
                 description: 'Responde las evaluaciones de tus talleres y consulta tus aportes.',
                 icon: Icons.rate_review_rounded,
-                accent: const Color(0xFF7552A3),
+                accent: AppTheme.secondary,
                 action: 'IR A ENCUESTAS',
                 onTap: () => onNavigate(3),
               ),
@@ -122,7 +123,7 @@ class _FormationCarouselState extends State<_FormationCarousel> {
       description: 'Gestión de proyectos y desarrollo de habilidades.',
       tag: 'LIDERAZGO',
       icon: Icons.workspace_premium_rounded,
-      color: Color(0xFFE85589),
+      color: AppTheme.primary,
     ),
     _Formation(
       area: 'Área 2 · Tecnología',
@@ -130,7 +131,7 @@ class _FormationCarouselState extends State<_FormationCarousel> {
       description: 'Desarrollo web, tecnología y diseño de interfaces.',
       tag: 'CODING LAB',
       icon: Icons.code_rounded,
-      color: Color(0xFF47C69B),
+      color: AppTheme.tertiary,
     ),
     _Formation(
       area: 'Área 3 · Diseño textil y modas',
@@ -138,7 +139,7 @@ class _FormationCarouselState extends State<_FormationCarousel> {
       description: 'Patronaje, costura y desarrollo de marca.',
       tag: 'TALLER DE MODA',
       icon: Icons.checkroom_rounded,
-      color: Color(0xFFB88BE8),
+      color: AppTheme.secondary,
     ),
     _Formation(
       area: 'Área 4 · Repostería artesanal',
@@ -146,7 +147,7 @@ class _FormationCarouselState extends State<_FormationCarousel> {
       description: 'Técnicas de pastelería, decoración y costos.',
       tag: 'PASTELERÍA',
       icon: Icons.cake_rounded,
-      color: Color(0xFFFFB96B),
+      color: AppTheme.warningOrange,
     ),
   ];
 
@@ -198,11 +199,11 @@ class _FormationCarouselState extends State<_FormationCarousel> {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF29183B), Color(0xFF170E23)],
+          colors: [AppTheme.surfaceContainer, AppTheme.surfaceContainerLow],
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x1F1A0D29),
+            color: Colors.black.withValues(alpha: 0.12),
             blurRadius: 16,
             offset: Offset(0, 8),
           ),
@@ -215,27 +216,27 @@ class _FormationCarouselState extends State<_FormationCarousel> {
             children: [
               const Icon(
                 Icons.auto_awesome_rounded,
-                color: Color(0xFFFF9DBB),
+                color: AppTheme.primary,
                 size: 18,
               ),
               const SizedBox(width: 7),
               Expanded(
                 child: Text(
                   'FORMACIONES IMMUJER',
-                  style: GoogleFonts.montserrat(
-                    color: Colors.white,
+                  style: GoogleFonts.plusJakartaSans(
+                    color: AppTheme.onSurface,
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1.1,
                   ),
                 ),
               ),
-              const Icon(Icons.circle, color: Color(0xFF55D8A5), size: 8),
+              const Icon(Icons.circle, color: AppTheme.tertiary, size: 8),
               const SizedBox(width: 5),
               Text(
                 'ACTIVO',
-                style: GoogleFonts.montserrat(
-                  color: const Color(0xFF7DE6BC),
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppTheme.tertiary,
                   fontSize: 9,
                   fontWeight: FontWeight.w800,
                 ),
@@ -245,8 +246,8 @@ class _FormationCarouselState extends State<_FormationCarousel> {
           const SizedBox(height: 8),
           Text(
             'Explora las áreas formativas para impulsar tu autonomía profesional.',
-            style: GoogleFonts.montserrat(
-              color: Colors.white70,
+            style: GoogleFonts.plusJakartaSans(
+              color: AppTheme.onSurfaceVariant,
               fontSize: 12,
               height: 1.45,
             ),
@@ -285,8 +286,8 @@ class _FormationCarouselState extends State<_FormationCarousel> {
                           height: 7,
                           decoration: BoxDecoration(
                             color: selected
-                                ? const Color(0xFFFF6B91)
-                                : Colors.white24,
+                                ? AppTheme.primary
+                                : AppTheme.outlineVariant,
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
@@ -342,8 +343,8 @@ class _FormationCard extends StatelessWidget {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              const Color(0xFF170E23).withValues(alpha: 0.55),
-              const Color(0xFF170E23).withValues(alpha: 0.94),
+              AppTheme.surfaceContainer.withValues(alpha: 0.55),
+              AppTheme.surfaceContainer.withValues(alpha: 0.94),
             ],
           ),
         ),
@@ -357,8 +358,8 @@ class _FormationCard extends StatelessWidget {
                     formation.area.toUpperCase(),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.montserrat(
-                      color: Colors.white,
+                    style: GoogleFonts.plusJakartaSans(
+                      color: AppTheme.onSurface,
                       fontSize: 9,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.5,
@@ -372,12 +373,12 @@ class _FormationCard extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.45),
+                    color: AppTheme.surfaceContainerLowest.withValues(alpha: 0.8),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     formation.tag,
-                    style: GoogleFonts.montserrat(
+                    style: GoogleFonts.plusJakartaSans(
                       color: formation.color,
                       fontSize: 8,
                       fontWeight: FontWeight.w800,
@@ -393,8 +394,8 @@ class _FormationCard extends StatelessWidget {
               formation.title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.montserrat(
-                color: Colors.white,
+              style: GoogleFonts.plusJakartaSans(
+                color: AppTheme.onSurface,
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
                 height: 1.2,
@@ -405,8 +406,8 @@ class _FormationCard extends StatelessWidget {
               formation.description,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.montserrat(
-                color: Colors.white70,
+              style: GoogleFonts.plusJakartaSans(
+                color: AppTheme.onSurfaceVariant,
                 fontSize: 10,
               ),
             ),
@@ -436,8 +437,8 @@ class _CarouselArrow extends StatelessWidget {
       visualDensity: VisualDensity.compact,
       constraints: const BoxConstraints.tightFor(width: 32, height: 32),
       style: IconButton.styleFrom(
-        backgroundColor: Colors.white.withValues(alpha: 0.12),
-        foregroundColor: Colors.white,
+        backgroundColor: AppTheme.surfaceBright,
+        foregroundColor: AppTheme.onSurface,
       ),
       icon: Icon(icon, size: 20),
     );
@@ -466,12 +467,12 @@ class _ModuleCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFECE7F0)),
-        boxShadow: const [
+        border: Border.all(color: AppTheme.outlineVariant),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0C1A0D29),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 12,
             offset: Offset(0, 5),
           ),
@@ -499,8 +500,8 @@ class _ModuleCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: GoogleFonts.montserrat(
-                        color: const Color(0xFF29183B),
+                      style: GoogleFonts.plusJakartaSans(
+                        color: AppTheme.onSurface,
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
                       ),
@@ -508,8 +509,8 @@ class _ModuleCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       description,
-                      style: GoogleFonts.montserrat(
-                        color: const Color(0xFF746B7D),
+                      style: GoogleFonts.plusJakartaSans(
+                        color: AppTheme.onSurfaceVariant,
                         fontSize: 11,
                         height: 1.4,
                       ),
@@ -526,7 +527,7 @@ class _ModuleCard extends StatelessWidget {
               onPressed: onTap,
               style: FilledButton.styleFrom(
                 backgroundColor: accent,
-                foregroundColor: Colors.white,
+                foregroundColor: AppTheme.onPrimary,
                 minimumSize: const Size.fromHeight(42),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -537,7 +538,7 @@ class _ModuleCard extends StatelessWidget {
                 children: [
                   Text(
                     action,
-                    style: GoogleFonts.montserrat(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
                     ),
@@ -562,7 +563,7 @@ class _OpportunityBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF29183B),
+      color: AppTheme.surfaceContainer,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onTap,
@@ -575,12 +576,12 @@ class _OpportunityBanner extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
+                  color: AppTheme.surfaceBright,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
                   Icons.campaign_rounded,
-                  color: Color(0xFFFF9DBB),
+                  color: AppTheme.primary,
                 ),
               ),
               const SizedBox(width: 12),
@@ -590,8 +591,8 @@ class _OpportunityBanner extends StatelessWidget {
                   children: [
                     Text(
                       'OPORTUNIDADES DE FORMACIÓN',
-                      style: GoogleFonts.montserrat(
-                        color: const Color(0xFFFF9DBB),
+                      style: GoogleFonts.plusJakartaSans(
+                        color: AppTheme.primary,
                         fontSize: 9,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.4,
@@ -600,8 +601,8 @@ class _OpportunityBanner extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       'Conoce las novedades de tus cursos',
-                      style: GoogleFonts.montserrat(
-                        color: Colors.white,
+                      style: GoogleFonts.plusJakartaSans(
+                        color: AppTheme.onSurface,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
@@ -609,7 +610,7 @@ class _OpportunityBanner extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded, color: Colors.white70),
+              const Icon(Icons.chevron_right_rounded, color: AppTheme.onSurfaceVariant),
             ],
           ),
         ),

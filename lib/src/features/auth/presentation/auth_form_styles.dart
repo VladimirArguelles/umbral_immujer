@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 
 abstract final class AuthFormStyles {
-  static const background = Color(0xFF190F2C);
-  static const panel = Color(0xFF211536);
-  static const neonAccent = Color(0xFFFF006F);
-  static const softAccent = Color(0xFFFF6FD3);
+  static const background = AppTheme.background;
+  static const panel = AppTheme.surfaceContainerLow;
+  static const neonAccent = AppTheme.primaryContainer;
+  static const softAccent = AppTheme.primary;
 
   static InputDecoration inputDecoration({
     required String hintText,
@@ -18,7 +19,7 @@ abstract final class AuthFormStyles {
 
     return InputDecoration(
       hintText: hintText,
-      hintStyle: const TextStyle(color: Colors.white54),
+      hintStyle: const TextStyle(color: AppTheme.onSurfaceVariant),
       prefixIcon: prefixIcon == null
           ? null
           : Icon(prefixIcon, color: softAccent),
@@ -31,18 +32,18 @@ abstract final class AuthFormStyles {
         borderSide: const BorderSide(color: neonAccent, width: 2),
       ),
       errorBorder: border.copyWith(
-        borderSide: const BorderSide(color: Color(0xFFFF6B7A)),
+        borderSide: const BorderSide(color: AppTheme.errorRed),
       ),
       focusedErrorBorder: border.copyWith(
-        borderSide: const BorderSide(color: Color(0xFFFF6B7A), width: 2),
+        borderSide: const BorderSide(color: AppTheme.errorRed, width: 2),
       ),
-      errorStyle: const TextStyle(color: Color(0xFFFF9AA2)),
+      errorStyle: const TextStyle(color: AppTheme.errorRed),
     );
   }
 
   static ButtonStyle get actionButtonStyle => ElevatedButton.styleFrom(
     backgroundColor: neonAccent,
-    foregroundColor: Colors.white,
+    foregroundColor: AppTheme.onPrimaryContainer,
     padding: const EdgeInsets.symmetric(vertical: 14),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
   );

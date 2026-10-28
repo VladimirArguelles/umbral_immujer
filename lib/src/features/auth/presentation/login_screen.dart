@@ -77,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0714),
+      backgroundColor: AppTheme.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -104,7 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               Text(
                                 'Iniciar Sesión',
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: AppTheme.onSurface,
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -138,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextFormField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
-                        style: const TextStyle(color: Colors.white),
+                        style: const TextStyle(color: AppTheme.onSurface),
                         decoration: AuthFormStyles.inputDecoration(
                           hintText: 'correo@ejemplo.com',
                           prefixIcon: Icons.mail_outline,
@@ -159,7 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextFormField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
-                        style: const TextStyle(color: Colors.white),
+                        style: const TextStyle(color: AppTheme.onSurface),
                         decoration: AuthFormStyles.inputDecoration(
                           hintText: '••••••••',
                           prefixIcon: Icons.lock_outline,
@@ -194,7 +194,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 width: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Colors.white,
+                                  color: AppTheme.onPrimary,
                                 ),
                               )
                             : const Row(
@@ -222,7 +222,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             text: const TextSpan(
                               text: '¿Primera vez en la plataforma? ',
                               style: TextStyle(
-                                color: Colors.white70,
+                                color: AppTheme.onSurfaceVariant,
                                 fontSize: 14,
                               ),
                               children: [

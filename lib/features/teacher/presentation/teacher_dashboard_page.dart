@@ -218,7 +218,7 @@ class _PaseListaTabState extends State<_PaseListaTab> {
         // Panel de Control Superior
         Container(
           padding: const EdgeInsets.all(16.0),
-          color: Colors.white,
+          color: AppTheme.surfaceContainerLow,
           child: Column(
             children: [
               Row(
@@ -256,7 +256,7 @@ class _PaseListaTabState extends State<_PaseListaTab> {
                       vertical: 14,
                     ),
                     decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFFE0E0E0)),
+                      border: Border.all(color: AppTheme.outlineVariant),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -326,7 +326,7 @@ class _PaseListaTabState extends State<_PaseListaTab> {
                               : AppTheme.errorRed,
                           child: Icon(
                             a.isPresente ? Icons.check : Icons.close,
-                            color: Colors.white,
+                            color: AppTheme.onTertiary,
                           ),
                         ),
                         title: Text(
@@ -368,7 +368,7 @@ class _PaseListaTabState extends State<_PaseListaTab> {
         // Botón Inferior para Guardar Lista
         Container(
           padding: const EdgeInsets.all(16),
-          color: Colors.white,
+          color: AppTheme.surfaceContainerLow,
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -378,7 +378,7 @@ class _PaseListaTabState extends State<_PaseListaTab> {
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
-                        color: Colors.white,
+                        color: AppTheme.onSurface,
                         strokeWidth: 2,
                       ),
                     )
@@ -488,13 +488,13 @@ class _CrearEncuestaTabState extends State<_CrearEncuestaTab> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppTheme.primaryDark,
+                color: AppTheme.onSurface,
               ),
             ),
             const SizedBox(height: 6),
             const Text(
               'Crea una encuesta para que las alumnas confirmen su asistencia y el costo de los insumos se divida automáticamente.',
-              style: TextStyle(fontSize: 13, color: Colors.black54),
+              style: TextStyle(fontSize: 13, color: AppTheme.onSurfaceVariant),
             ),
             const SizedBox(height: 20),
 
@@ -531,10 +531,10 @@ class _CrearEncuestaTabState extends State<_CrearEncuestaTab> {
             // Fecha de Clase
             ListTile(
               shape: RoundedRectangleBorder(
-                side: const BorderSide(color: Color(0xFFE0E0E0)),
+                side: const BorderSide(color: AppTheme.outlineVariant),
                 borderRadius: BorderRadius.circular(12),
               ),
-              tileColor: Colors.white,
+              tileColor: AppTheme.surfaceContainerLow,
               leading: const Icon(Icons.event, color: AppTheme.primary),
               title: const Text('Fecha de la Práctica'),
               subtitle: Text(Formatters.date(_fechaClase)),
@@ -554,10 +554,10 @@ class _CrearEncuestaTabState extends State<_CrearEncuestaTab> {
             // Fecha y Hora Límite
             ListTile(
               shape: RoundedRectangleBorder(
-                side: const BorderSide(color: Color(0xFFE0E0E0)),
+                side: const BorderSide(color: AppTheme.outlineVariant),
                 borderRadius: BorderRadius.circular(12),
               ),
-              tileColor: Colors.white,
+              tileColor: AppTheme.surfaceContainerLow,
               leading: const Icon(Icons.timer, color: AppTheme.secondary),
               title: const Text('Fecha y Hora Límite para Responder'),
               subtitle: Text(Formatters.dateTime(_fechaLimite)),
@@ -597,7 +597,7 @@ class _CrearEncuestaTabState extends State<_CrearEncuestaTab> {
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(
-                        color: Colors.white,
+                        color: AppTheme.onSurface,
                         strokeWidth: 2,
                       ),
                     )
@@ -742,7 +742,7 @@ class _AuditoriaRecaudacionTabState extends State<_AuditoriaRecaudacionTab> {
       children: [
         Container(
           padding: const EdgeInsets.all(16),
-          color: Colors.white,
+          color: AppTheme.surfaceContainerLow,
           child: DropdownButtonFormField<String>(
             initialValue: _selectedEncuestaId,
             decoration: const InputDecoration(
@@ -813,7 +813,7 @@ class _AuditoriaRecaudacionTabState extends State<_AuditoriaRecaudacionTab> {
                             Text(
                               'C.I: ${item.cedula}',
                               style: const TextStyle(
-                                color: Colors.black54,
+                                color: AppTheme.onSurfaceVariant,
                                 fontSize: 12,
                               ),
                             ),
@@ -863,8 +863,10 @@ class _AuditoriaRecaudacionTabState extends State<_AuditoriaRecaudacionTab> {
                                       horizontal: 10,
                                       vertical: 6,
                                     ),
-                                    decoration: const BoxDecoration(
-                                      color: Color(0x26388E3C),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.tertiary.withValues(
+                                        alpha: 0.15,
+                                      ),
                                       borderRadius: BorderRadius.all(
                                         Radius.circular(10),
                                       ),
@@ -976,7 +978,7 @@ class _GestionAlumnosTabState extends State<_GestionAlumnosTab> {
       children: [
         Container(
           padding: const EdgeInsets.all(16),
-          color: Colors.white,
+          color: AppTheme.surfaceContainerLow,
           child: DropdownButtonFormField<TeacherCourse>(
             initialValue: _selectedCurso,
             decoration: const InputDecoration(
@@ -1006,16 +1008,18 @@ class _GestionAlumnosTabState extends State<_GestionAlumnosTab> {
                     final enPapelera = al.estaEliminado;
 
                     return Card(
-                      color: enPapelera ? Colors.grey.shade100 : Colors.white,
+                      color: enPapelera
+                          ? AppTheme.surfaceContainerHigh
+                          : AppTheme.surfaceContainerLow,
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ListTile(
                         leading: CircleAvatar(
                           backgroundColor: enPapelera
-                              ? Colors.grey
+                              ? AppTheme.onSurfaceVariant
                               : AppTheme.primary,
                           child: Icon(
                             enPapelera ? Icons.delete_outline : Icons.person,
-                            color: Colors.white,
+                            color: AppTheme.onSurface,
                           ),
                         ),
                         title: Text(
@@ -1024,7 +1028,9 @@ class _GestionAlumnosTabState extends State<_GestionAlumnosTab> {
                             decoration: enPapelera
                                 ? TextDecoration.lineThrough
                                 : null,
-                            color: enPapelera ? Colors.black54 : Colors.black87,
+                            color: enPapelera
+                                ? AppTheme.onSurfaceVariant
+                                : AppTheme.onSurface,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
