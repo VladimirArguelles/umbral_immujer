@@ -48,9 +48,11 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
       appBar: AppBar(
         title: Column(
           children: [
-            const Text(
-              'UMBRAL • Coordinación General',
-              style: TextStyle(fontSize: 16),
+            Text(
+              widget.profile.role == UserRole.superAdmin
+                  ? 'UMBRAL • Superadministración'
+                  : 'UMBRAL • Coordinación General',
+              style: const TextStyle(fontSize: 16),
             ),
             Text(
               widget.profile.fullName,

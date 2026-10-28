@@ -11,6 +11,7 @@ import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
 import 'package:umbral_immujer/src/features/auth/presentation/login_screen.dart';
 import 'package:umbral_immujer/src/features/auth/presentation/register_screen.dart';
 import 'package:umbral_immujer/features/coordinator/presentation/coordinator_dashboard_page.dart';
+import 'package:umbral_immujer/features/superadmin/presentation/super_admin_dashboard.dart';
 import 'package:umbral_immujer/features/teacher/presentation/teacher_dashboard_page.dart';
 
 final GoRouter appRouter = GoRouter(
@@ -26,7 +27,8 @@ final GoRouter appRouter = GoRouter(
         _matchesPrefix(path, '/teacher') ||
         _matchesPrefix(path, '/profesor') ||
         _matchesPrefix(path, '/coordinator') ||
-        _matchesPrefix(path, '/coordinador');
+        _matchesPrefix(path, '/coordinador') ||
+        _matchesPrefix(path, '/superadmin');
 
     if (!isAuthenticated && isProtected) {
       return '/login';
@@ -104,6 +106,12 @@ final GoRouter appRouter = GoRouter(
         builder: (profile) => CoordinatorDashboardPage(profile: profile),
       ),
     ),
+    GoRoute(
+      path: '/superadmin',
+      builder: (context, state) => _AuthenticatedDashboardPage(
+        builder: (profile) => SuperAdminDashboardPage(profile: profile),
+      ),
+    ),
     GoRoute(path: '/coordinador', redirect: (context, state) => '/coordinator'),
   ],
 );
@@ -114,7 +122,7 @@ bool _matchesPrefix(String path, String prefix) =>
 String _routeForCurrentRole() {
   final role = SupabaseConfig.client.auth.currentUser?.userMetadata?['rol'];
   return switch (UserRole.fromString(role is String ? role : null)) {
-    UserRole.superAdmin => '/coordinator',
+    UserRole.superAdmin => '/superadmin',
     UserRole.coordinador => '/coordinator',
     UserRole.profesor => '/teacher',
     UserRole.alumno => '/student',
