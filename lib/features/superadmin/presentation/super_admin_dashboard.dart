@@ -54,7 +54,6 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
 
   // Constantes de diseño según especificación Tailwind
   static const Color cBg = AppTheme.background;
-  static const Color cOuterBg = AppTheme.surfaceContainerLowest;
   static const Color cCard = AppTheme.surfaceContainerLow;
   static const Color cCardInner = AppTheme.surfaceContainer;
   static const Color cBorder = AppTheme.outlineVariant;
@@ -395,9 +394,9 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
   @override
   Widget build(BuildContext context) {
     return Theme(
-      data: AppTheme.lightTheme.copyWith(scaffoldBackgroundColor: cOuterBg),
+      data: AppTheme.lightTheme.copyWith(scaffoldBackgroundColor: cBg),
       child: Scaffold(
-        backgroundColor: cOuterBg,
+        backgroundColor: cBg,
         body: LayoutBuilder(
           builder: (context, constraints) {
             final isDesktop = constraints.maxWidth >= 1024;
@@ -405,7 +404,10 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                 constraints.maxWidth >= 600 && constraints.maxWidth < 1024;
 
             if (isDesktop) {
-              return _buildDesktopLayout();
+              // SizedBox.expand fuerza al layout a llenar TODA la pantalla
+              return SizedBox.expand(
+                child: _buildDesktopLayout(constraints),
+              );
             } else {
               return _buildMobileLayout(isTablet: isTablet);
             }
@@ -417,28 +419,33 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
 
   // ═══════════════════════════════════════════════════════════════════════════
   //  DESKTOP LAYOUT  ≥ 1024 px
-  //  Side navigation + two-column content grid
+  //  Side navigation + full-width scrollable content
   // ═══════════════════════════════════════════════════════════════════════════
-  Widget _buildDesktopLayout() {
+  Widget _buildDesktopLayout(BoxConstraints constraints) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      // stretch: el sidebar y el área de contenido se extienden
+      // hasta llenar toda la altura disponible de la pantalla
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // ── Sidebar ────────────────────────────────────────────────────────
-        _buildSideNav(),
+        _buildSideNav(constraints.maxHeight),
         // ── Main content ──────────────────────────────────────────────────
         Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildDesktopHeader(),
-                const SizedBox(height: 28),
-                _buildDesktopMetricsGrid(),
-                const SizedBox(height: 28),
-                _buildDesktopModulesGrid(),
-                const SizedBox(height: 32),
-              ],
+          child: Container(
+            color: cBg,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildDesktopHeader(),
+                  const SizedBox(height: 28),
+                  _buildDesktopMetricsGrid(),
+                  const SizedBox(height: 28),
+                  _buildDesktopModulesGrid(),
+                  const SizedBox(height: 32),
+                ],
+              ),
             ),
           ),
         ),
@@ -447,10 +454,10 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
   }
 
   // ── Sidebar de escritorio ─────────────────────────────────────────────────
-  Widget _buildSideNav() {
+  Widget _buildSideNav(double screenHeight) {
     return Container(
       width: 220,
-      height: double.infinity,
+      height: screenHeight,
       decoration: const BoxDecoration(
         color: cCard,
         border: Border(right: BorderSide(color: cBorder)),
