@@ -109990,7 +109990,7 @@ H(a){var s=null,r=A.ng(s,B.f6,s,s,s,s,s,B.l,s,s,s,s,s,s,s,s,s)
 return A.ed(s,B.qe,A.dX(this.c,s,s,20),s,s,this.e,s,r,this.d,B.pu)}}
 A.Am.prototype={}
 A.T2.prototype={
-H(a){var s=null,r=A.aYu(new A.xs(A.b_e(s,s,new A.rt("assets/images/Logo Umbral.png",s,s)),s,new A.aiD(),36,B.qh,s),s,s,s,"app_logo_umbral",!1),q=A.b_(30),p=A.b([new A.bs(1,B.O,B.I.bj(0.25),B.j,10)],t.V),o=A.x6(s,s,B.I,s,s,s,0,s,s,B.dD,s,s,B.N2,s,B.kL,new A.aQ(B.hs.bj(0.25),1,B.x,-1),s,s,s,s)
+H(a){var s=null,r=A.aYu(new A.xs(A.b_e(s,s,new A.rt("assets/images/Logo Umbral.png",s,s)),s,new A.aiD(),52,B.qh,s),s,s,s,"app_logo_umbral",!1),q=A.b_(30),p=A.b([new A.bs(1,B.O,B.I.bj(0.25),B.j,10)],t.V),o=A.x6(s,s,B.I,s,s,s,0,s,s,B.dD,s,s,B.N2,s,B.kL,new A.aQ(B.hs.bj(0.25),1,B.x,-1),s,s,s,s)
 return new A.aK(B.rR,A.aL(A.b([r,A.b6(s,A.Rx(B.Q2,A.T("Entrar",s,s,s,s,A.bm().$3$fontSize$fontWeight$letterSpacing(13,B.Q,0.5),s,s,s),this.c,o),B.n,s,s,new A.aY(s,s,s,q,p,s,B.B),s,s,s,s,s,s,s)],t.p),B.m,B.bb,B.i,0,s,s),s)}}
 A.aiD.prototype={
 $3(a,b,c){var s=null

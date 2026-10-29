@@ -20,7 +20,7 @@ class LandingTopBar extends StatelessWidget {
             tag: 'app_logo_umbral',
             child: Image.asset(
               'assets/images/Logo Umbral.png',
-              height: 36,
+              height: 52,
               fit: BoxFit.contain,
               errorBuilder: (context, error, stackTrace) {
                 return Text(
