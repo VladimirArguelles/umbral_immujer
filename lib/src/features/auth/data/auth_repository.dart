@@ -33,19 +33,31 @@ class AuthRepository {
     String? email,
   }) async {
     final cleanCedula = cedula.trim().replaceAll(RegExp(r'[^0-9a-zA-Z]'), '');
+    final numericCedula = cedula.trim().replaceAll(RegExp(r'[^0-9]'), '');
 
-    // 1. Buscar en alumnos por cédula
-    Map<String, dynamic>? alumnoData = await _supabase
+    // 1. Buscar en alumnos por cédula (numérica limpia o alfanumérica)
+    Map<String, dynamic>? alumnoData;
+    if (numericCedula.isNotEmpty) {
+      alumnoData = await _supabase
+          .from('alumnos')
+          .select()
+          .eq('cedula', numericCedula)
+          .maybeSingle();
+    }
+
+    alumnoData ??= await _supabase
         .from('alumnos')
         .select()
         .eq('cedula', cleanCedula)
         .maybeSingle();
 
-    alumnoData ??= await _supabase
-        .from('alumnos')
-        .select()
-        .ilike('cedula', '%$cleanCedula%')
-        .maybeSingle();
+    if (alumnoData == null && numericCedula.isNotEmpty) {
+      alumnoData = await _supabase
+          .from('alumnos')
+          .select()
+          .ilike('cedula', '%$numericCedula%')
+          .maybeSingle();
+    }
 
     if (alumnoData == null && email != null && email.trim().isNotEmpty) {
       alumnoData = await _supabase
@@ -120,12 +132,30 @@ class AuthRepository {
     String? email,
   }) async {
     final cleanCedula = cedula.trim().replaceAll(RegExp(r'[^0-9a-zA-Z]'), '');
+    final numericCedula = cedula.trim().replaceAll(RegExp(r'[^0-9]'), '');
 
-    final res = await _supabase
+    Map<String, dynamic>? res;
+    if (numericCedula.isNotEmpty) {
+      res = await _supabase
+          .from('profesores')
+          .select()
+          .eq('cedula', numericCedula)
+          .maybeSingle();
+    }
+
+    res ??= await _supabase
         .from('profesores')
         .select()
         .eq('cedula', cleanCedula)
         .maybeSingle();
+
+    if (res == null && numericCedula.isNotEmpty) {
+      res = await _supabase
+          .from('profesores')
+          .select()
+          .ilike('cedula', '%$numericCedula%')
+          .maybeSingle();
+    }
 
     if (res != null && res['user_id'] == null) return res;
 
