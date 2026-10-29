@@ -2,29 +2,60 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 abstract final class AppTheme {
-  static const Color background = Color(0xFF10131A);
-  static const Color surface = Color(0xFF10131A);
-  static const Color surfaceDim = Color(0xFF10131A);
+  // ===========================================================================
+  // PALETA OFICIAL UMBRAL - IMMUJER
+  // ===========================================================================
+
+  /// Gris Oscuro / Antracita: Color de contenedores, tarjetas de métricas y módulos.
+  static const Color anthracite = Color(0xFF1D1F27);
+  static const Color anthraciteDark = Color(0xFF10131A);
+  static const Color anthraciteCard = Color(0xFF191B23);
+  static const Color anthraciteElevated = Color(0xFF272A32);
+
+  /// Verde Menta / Neón: Indicadores de estado positivo, gráficos de líneas,
+  /// porcentajes de éxito y barras de progreso.
+  static const Color mintNeon = Color(0xFF4EDEA3);
+
+  /// Rosa Coral / Fucsia: Llamada a la acción (CTA) para botones principales,
+  /// insignias de alerta y notificaciones.
+  static const Color coralFuchsia = Color(0xFFFF516A);
+  static const Color coralFuchsiaSoft = Color(0xFFFFB2B7);
+
+  /// Blanco Puro: Tipografías principales de títulos, valores numéricos y textos destacados.
+  static const Color pureWhite = Color(0xFFFFFFFF);
+
+  /// Gris Claro / Atenuado: Textos secundarios, descripciones y subtítulos.
+  static const Color mutedGray = Color(0xFFA1A1AA);
+
+  // ===========================================================================
+  // TOKENS MATERIAL 3 VINCULADOS A LA PALETA OFICIAL
+  // ===========================================================================
+
+  static const Color background = anthraciteDark;
+  static const Color surface = anthraciteDark;
+  static const Color surfaceDim = anthraciteDark;
   static const Color surfaceBright = Color(0xFF363941);
   static const Color surfaceContainerLowest = Color(0xFF0B0E15);
-  static const Color surfaceContainerLow = Color(0xFF191B23);
-  static const Color surfaceContainer = Color(0xFF1D1F27);
-  static const Color surfaceContainerHigh = Color(0xFF272A32);
+  static const Color surfaceContainerLow = anthraciteCard;
+  static const Color surfaceContainer = anthracite;
+  static const Color surfaceContainerHigh = anthraciteElevated;
   static const Color surfaceContainerHighest = Color(0xFF32353D);
-  static const Color onSurface = Color(0xFFE1E2EC);
-  static const Color onSurfaceVariant = Color(0xFFE3BDBF);
-  static const Color outline = Color(0xFFAA888A);
-  static const Color outlineVariant = Color(0xFF5B4041);
-  static const Color primary = Color(0xFFFFB2B7);
+  static const Color onSurface = pureWhite;
+  static const Color onSurfaceVariant = mutedGray;
+  static const Color outline = Color(0xFF3F424E);
+  static const Color outlineVariant = Color(0xFF2B2D38);
+  /// Botones principales, acentos y llamadas a la acción (Rosa Coral / Fucsia)
+  static const Color primary = coralFuchsiaSoft;
   static const Color onPrimary = Color(0xFF67001B);
-  static const Color primaryContainer = Color(0xFFFF516A);
+  static const Color primaryContainer = coralFuchsia;
   static const Color onPrimaryContainer = Color(0xFF5B0017);
   static const Color primaryFixed = Color(0xFFFFDADB);
-  static const Color primaryFixedDim = Color(0xFFFFB2B7);
+  static const Color primaryFixedDim = coralFuchsiaSoft;
   static const Color onPrimaryFixed = Color(0xFF40000D);
   static const Color onPrimaryFixedVariant = Color(0xFF92002A);
   static const Color primaryDark = primary;
   static const Color inversePrimary = Color(0xFFBC0B3B);
+
   static const Color secondary = Color(0xFFBFC6DC);
   static const Color onSecondary = Color(0xFF283041);
   static const Color secondaryContainer = Color(0xFF41495B);
@@ -33,12 +64,14 @@ abstract final class AppTheme {
   static const Color secondaryFixedDim = Color(0xFFBFC6DC);
   static const Color onSecondaryFixed = Color(0xFF131C2B);
   static const Color onSecondaryFixedVariant = Color(0xFF3F4758);
-  static const Color tertiary = Color(0xFF4EDEA3);
+
+  /// Indicadores de estado positivo, gráficos, porcentajes de éxito y barras de progreso (Verde Menta / Neón)
+  static const Color tertiary = mintNeon;
   static const Color onTertiary = Color(0xFF003824);
   static const Color tertiaryContainer = Color(0xFF00A572);
   static const Color onTertiaryContainer = Color(0xFF00311F);
   static const Color tertiaryFixed = Color(0xFF6FFBBE);
-  static const Color tertiaryFixedDim = Color(0xFF4EDEA3);
+  static const Color tertiaryFixedDim = mintNeon;
   static const Color onTertiaryFixed = Color(0xFF002113);
   static const Color onTertiaryFixedVariant = Color(0xFF005236);
   static const Color errorRed = Color(0xFFFFB4AB);
@@ -46,7 +79,7 @@ abstract final class AppTheme {
   static const Color errorContainer = Color(0xFF93000A);
   static const Color onErrorContainer = Color(0xFFFFDAD6);
   static const Color warningOrange = Color(0xFFF59E0B);
-  static const Color successGreen = tertiary;
+  static const Color successGreen = mintNeon;
 
   static const ColorScheme colorScheme = ColorScheme(
     brightness: Brightness.dark,
