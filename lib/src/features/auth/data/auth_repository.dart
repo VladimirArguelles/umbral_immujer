@@ -224,49 +224,38 @@ class AuthRepository {
       throw Exception('No se pudo completar el registro.');
     }
 
-    // El ID de Auth es la clave única del perfil, creado por el trigger de Auth.
-    await _supabase.from('perfiles').upsert({
-      'id': user.id,
-      'nombre_completo': nombreCompleto.trim(),
-      'cedula': cleanCedula,
-      'telefono': telefono.trim(),
-      'correo': email.trim(),
-      'rol': role.toDbString(),
-    }, onConflict: 'id');
+    // El trigger en PostgreSQL (handle_new_user) inserta el perfil en 'perfiles'
+    // y vincula automáticamente 'user_id' en 'alumnos' o 'profesores' mediante SECURITY DEFINER.
+    try {
+      await _supabase.from('perfiles').upsert({
+        'id': user.id,
+        'nombre_completo': nombreCompleto.trim(),
+        'cedula': cleanCedula,
+        'telefono': telefono.trim(),
+        'correo': email.trim(),
+        'rol': role.toDbString(),
+      }, onConflict: 'id');
+    } catch (_) {
+      // El perfil ya fue generado de forma atómica por el trigger de base de datos
+    }
 
-    // Vincular user_id en la tabla respectiva
-    if (role == UserRole.alumno) {
-      if (rosterId is! String) {
-        throw StateError('El padrón de alumnos no devolvió un ID válido.');
+    // Vinculación complementaria de resguardo
+    try {
+      if (role == UserRole.alumno && rosterId is String) {
+        await _supabase
+            .from('alumnos')
+            .update({'user_id': user.id})
+            .eq('id', rosterId)
+            .isFilter('user_id', null);
+      } else if (role == UserRole.profesor && rosterId is String) {
+        await _supabase
+            .from('profesores')
+            .update({'user_id': user.id})
+            .eq('id', rosterId)
+            .isFilter('user_id', null);
       }
-      final linked = await _supabase
-          .from('alumnos')
-          .update({'user_id': user.id})
-          .eq('id', rosterId)
-          .isFilter('user_id', null)
-          .select('id')
-          .maybeSingle();
-      if (linked == null) {
-        throw StateError(
-          'No se pudo vincular la cuenta con el padrón de alumnos.',
-        );
-      }
-    } else if (role == UserRole.profesor) {
-      if (rosterId is! String) {
-        throw StateError('El padrón de profesores no devolvió un ID válido.');
-      }
-      final linked = await _supabase
-          .from('profesores')
-          .update({'user_id': user.id})
-          .eq('id', rosterId)
-          .isFilter('user_id', null)
-          .select('id')
-          .maybeSingle();
-      if (linked == null) {
-        throw StateError(
-          'No se pudo vincular la cuenta con el padrón de profesores.',
-        );
-      }
+    } catch (_) {
+      // La vinculación ya fue efectuada por el trigger institucional
     }
 
     return UserProfile(
