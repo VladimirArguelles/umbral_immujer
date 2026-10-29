@@ -28,7 +28,7 @@ class TeacherRepository {
             deleted_at
           )
         ''')
-        .or('profesor_id.eq.$uid,profesor_id.is.null')
+        .eq('profesor_id', uid)
         .eq('estado', 'activo');
 
     final List<TeacherCourse> list = [];
@@ -64,7 +64,7 @@ class TeacherRepository {
 
     // 2. Asistencias ya guardadas para esa fecha
     final asistenciasExistentes = await _supabase
-        .from('asistencias')
+        .from('asistencia')
         .select('alumno_id, estado')
         .eq('curso_id', courseId)
         .eq('fecha', date);
@@ -76,7 +76,7 @@ class TeacherRepository {
 
     // 3. Encuesta activa o reciente para este curso y fecha
     final encuesta = await _supabase
-        .from('encuestas')
+        .from('encuestas_participacion')
         .select('id')
         .eq('curso_id', courseId)
         .eq('fecha_clase', date)
@@ -150,7 +150,7 @@ class TeacherRepository {
     }).toList();
 
     await _supabase
-        .from('asistencias')
+        .from('asistencia')
         .upsert(records, onConflict: 'curso_id, alumno_id, fecha');
   }
 
@@ -162,7 +162,7 @@ class TeacherRepository {
     required DateTime deadline,
   }) async {
     final uid = currentUserId;
-    await _supabase.from('encuestas').insert({
+    await _supabase.from('encuestas_participacion').insert({
       'curso_id': courseId,
       'fecha_clase': classDate,
       'costo_total_insumos': totalSupplyCost,

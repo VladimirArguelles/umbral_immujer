@@ -31,13 +31,22 @@ class StudentRepository {
           .from('alumnos')
           .select()
           .ilike('correo', email)
+          .isFilter('user_id', null)
           .maybeSingle();
       if (byEmail != null) {
-        // Enlazar
-        await _supabase
+        final linked = await _supabase
             .from('alumnos')
             .update({'user_id': uid})
-            .eq('id', byEmail['id']);
+            .eq('id', byEmail['id'])
+            .isFilter('user_id', null)
+            .select()
+            .maybeSingle();
+        if (linked == null) {
+          throw StateError(
+            'No se pudo vincular el registro del alumno con la cuenta actual.',
+          );
+        }
+        byEmail['user_id'] = uid;
         return byEmail;
       }
     }
@@ -60,7 +69,7 @@ class StudentRepository {
             descripcion,
             horario,
             estado,
-            profiles:profesor_id (
+            perfiles:profesor_id (
               nombre_completo
             )
           )
@@ -89,7 +98,7 @@ class StudentRepository {
     }
 
     final data = await _supabase
-        .from('asistencias')
+        .from('asistencia')
         .select()
         .eq('curso_id', courseId)
         .eq('alumno_id', alumno['id'])
@@ -116,7 +125,7 @@ class StudentRepository {
   /// Stream en tiempo real de asistencias para el alumno en un curso
   Stream<List<Map<String, dynamic>>> streamAsistenciasCurso(String cursoId) {
     return _supabase
-        .from('asistencias')
+        .from('asistencia')
         .stream(primaryKey: ['id'])
         .eq('curso_id', cursoId);
   }
@@ -139,7 +148,7 @@ class StudentRepository {
     if (cursoIds.isEmpty) return [];
 
     final encuestasData = await _supabase
-        .from('encuestas')
+        .from('encuestas_participacion')
         .select('''
           id,
           curso_id,
@@ -210,7 +219,7 @@ class StudentRepository {
 
     // Verificar si la encuesta no ha vencido
     final enc = await _supabase
-        .from('encuestas')
+        .from('encuestas_participacion')
         .select('fecha_limite')
         .eq('id', surveyId)
         .single();

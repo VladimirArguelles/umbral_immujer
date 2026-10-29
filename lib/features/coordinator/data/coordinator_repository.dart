@@ -16,14 +16,14 @@ class CoordinatorRepository {
           nombre,
           horario,
           profesor_id,
-          profiles:profesor_id (
+          perfiles:profesor_id (
             nombre_completo
           ),
           inscripciones (
             id,
             deleted_at
           ),
-          asistencias (
+          asistencia (
             id,
             fecha,
             estado
@@ -34,11 +34,11 @@ class CoordinatorRepository {
     final List<CourseDashboardItem> lista = [];
 
     for (final c in (cursosData as List)) {
-      final prof = c['profiles'] as Map<String, dynamic>?;
+      final prof = (c['perfiles'] ?? c['profiles']) as Map<String, dynamic>?;
       final inscripciones = (c['inscripciones'] as List? ?? [])
           .where((i) => i['deleted_at'] == null)
           .toList();
-      final asistencias = (c['asistencias'] as List? ?? [])
+      final asistencias = ((c['asistencia'] ?? c['asistencias']) as List? ?? [])
           .where(
             (a) =>
                 a['fecha'] == date &&
@@ -65,7 +65,7 @@ class CoordinatorRepository {
   /// Suscripción en Tiempo Real (Supabase Realtime) a las ausencias marcadas hoy
   Stream<List<Map<String, dynamic>>> streamTodayAttendance(String date) {
     return _supabase
-        .from('asistencias')
+        .from('asistencia')
         .stream(primaryKey: ['id'])
         .eq('fecha', date);
   }
@@ -73,7 +73,7 @@ class CoordinatorRepository {
   /// Detalle de ausencias de hoy con nombres de alumno y curso
   Future<List<LiveAbsence>> getTodayAbsences(String date) async {
     final data = await _supabase
-        .from('asistencias')
+        .from('asistencia')
         .select('''
           id,
           fecha,
@@ -110,7 +110,7 @@ class CoordinatorRepository {
   /// Lista de profesores registrados para asignación
   Future<List<AvailableTeacher>> getRegisteredTeachers() async {
     final profs = await _supabase
-        .from('profiles')
+        .from('perfiles')
         .select('id, nombre_completo, cedula, telefono, correo')
         .eq('rol', 'profesor');
 
@@ -160,7 +160,7 @@ class CoordinatorRepository {
   /// Auditoría de encuestas e insumos en todos los cursos
   Future<List<SurveyAudit>> getSurveyAudits() async {
     final data = await _supabase
-        .from('encuestas')
+        .from('encuestas_participacion')
         .select('''
           id,
           fecha_clase,

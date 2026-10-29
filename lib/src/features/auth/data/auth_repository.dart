@@ -1,20 +1,23 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../domain/user_profile.dart';
 
 class AlumnoValidationResult {
   final bool foundInAlumnos;
   final bool hasActiveInscripcion;
+  final bool isLinked;
   final Map<String, dynamic>? data;
   final String? errorMessage;
 
   const AlumnoValidationResult({
     required this.foundInAlumnos,
     required this.hasActiveInscripcion,
+    this.isLinked = false,
     this.data,
     this.errorMessage,
   });
 
-  bool get isValid => foundInAlumnos && hasActiveInscripcion;
+  bool get isValid => foundInAlumnos && hasActiveInscripcion && !isLinked;
 }
 
 class AuthRepository {
@@ -62,6 +65,16 @@ class AuthRepository {
     }
 
     final alumnoId = alumnoData['id'] as String;
+    if (alumnoData['user_id'] != null) {
+      return AlumnoValidationResult(
+        foundInAlumnos: true,
+        hasActiveInscripcion: false,
+        isLinked: true,
+        data: alumnoData,
+        errorMessage:
+            'Este registro ya está vinculado a una cuenta. Inicia sesión o recupera el acceso existente.',
+      );
+    }
 
     // 2. Validar si está inscrito en al menos un curso
     final List<dynamic> inscripciones = await _supabase
@@ -75,8 +88,7 @@ class AuthRepository {
         foundInAlumnos: true,
         hasActiveInscripcion: false,
         data: alumnoData,
-        errorMessage:
-            'Acceso denegado: El alumno figura en el padrón, pero no cuenta con una inscripción activa en ningún curso. Debe formalizar su inscripción primero.',
+        errorMessage: 'Acceso denegado: El alumno figura en el padrón, pero no cuenta con una inscripción activa en ningún curso. Debe formalizar su inscripción primero.',
       );
     }
 
@@ -92,7 +104,10 @@ class AuthRepository {
     required String cedula,
     String? email,
   }) async {
-    final result = await validateAlumnoEligibility(cedula: cedula, email: email);
+    final result = await validateAlumnoEligibility(
+      cedula: cedula,
+      email: email,
+    );
     if (!result.isValid) {
       return null;
     }
@@ -112,7 +127,7 @@ class AuthRepository {
         .eq('cedula', cleanCedula)
         .maybeSingle();
 
-    if (res != null) return res;
+    if (res != null && res['user_id'] == null) return res;
 
     if (email != null && email.isNotEmpty) {
       final resEmail = await _supabase
@@ -120,7 +135,7 @@ class AuthRepository {
           .select()
           .ilike('correo', email.trim())
           .maybeSingle();
-      if (resEmail != null) return resEmail;
+      if (resEmail != null && resEmail['user_id'] == null) return resEmail;
     }
 
     return null;
@@ -136,6 +151,7 @@ class AuthRepository {
     required UserRole role,
   }) async {
     final cleanCedula = cedula.trim().replaceAll(RegExp(r'[^0-9a-zA-Z]'), '');
+    Object? rosterId;
 
     if (role == UserRole.alumno) {
       final alumnoCheck = await validateAlumnoEligibility(
@@ -144,10 +160,10 @@ class AuthRepository {
       );
       if (!alumnoCheck.isValid) {
         throw Exception(
-          alumnoCheck.errorMessage ??
-              'Acceso denegado: Solo alumnos registrados e inscritos en IMMUJER pueden registrarse.',
+          alumnoCheck.errorMessage ?? 'Acceso denegado: Solo alumnos registrados e inscritos en IMMUJER pueden registrarse.',
         );
       }
+      rosterId = alumnoCheck.data?['id'];
     } else if (role == UserRole.profesor) {
       final profesorData = await checkProfesorPreRegistered(
         cedula: cleanCedula,
@@ -158,6 +174,7 @@ class AuthRepository {
           'Acceso denegado: La cédula $cedula no figura en el registro de profesores autorizados de IMMUJER.',
         );
       }
+      rosterId = profesorData['id'];
     }
 
     // Registro en Supabase Auth
@@ -177,27 +194,49 @@ class AuthRepository {
       throw Exception('No se pudo completar el registro.');
     }
 
-    // Asegurar que el perfil quede guardado en 'profiles'
-    await _supabase.from('profiles').upsert({
+    // El ID de Auth es la clave única del perfil, creado por el trigger de Auth.
+    await _supabase.from('perfiles').upsert({
       'id': user.id,
       'nombre_completo': nombreCompleto.trim(),
       'cedula': cleanCedula,
       'telefono': telefono.trim(),
       'correo': email.trim(),
       'rol': role.toDbString(),
-    });
+    }, onConflict: 'id');
 
     // Vincular user_id en la tabla respectiva
     if (role == UserRole.alumno) {
-      await _supabase
+      if (rosterId is! String) {
+        throw StateError('El padrón de alumnos no devolvió un ID válido.');
+      }
+      final linked = await _supabase
           .from('alumnos')
           .update({'user_id': user.id})
-          .eq('cedula', cleanCedula);
+          .eq('id', rosterId)
+          .isFilter('user_id', null)
+          .select('id')
+          .maybeSingle();
+      if (linked == null) {
+        throw StateError(
+          'No se pudo vincular la cuenta con el padrón de alumnos.',
+        );
+      }
     } else if (role == UserRole.profesor) {
-      await _supabase
+      if (rosterId is! String) {
+        throw StateError('El padrón de profesores no devolvió un ID válido.');
+      }
+      final linked = await _supabase
           .from('profesores')
           .update({'user_id': user.id})
-          .eq('cedula', cleanCedula);
+          .eq('id', rosterId)
+          .isFilter('user_id', null)
+          .select('id')
+          .maybeSingle();
+      if (linked == null) {
+        throw StateError(
+          'No se pudo vincular la cuenta con el padrón de profesores.',
+        );
+      }
     }
 
     return UserProfile(
@@ -238,11 +277,16 @@ class AuthRepository {
     final user = currentUser;
     if (user == null) return null;
 
-    final data = await _supabase
-        .from('profiles')
-        .select()
-        .eq('id', user.id)
-        .maybeSingle();
+    Map<String, dynamic>? data;
+    try {
+      data = await _supabase
+          .from('perfiles')
+          .select()
+          .eq('id', user.id)
+          .maybeSingle();
+    } catch (_) {
+      // Si la consulta falla temporalmente, se procede con la metadata del usuario de Auth
+    }
 
     if (data == null) {
       final meta = user.userMetadata ?? {};

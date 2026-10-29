@@ -77,12 +77,16 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
       final futures = await Future.wait([
         client.from('alumnos').select('id').count(),
         client.from('cursos').select('id').eq('estado', 'activo').count(),
-        client.from('profesores').select('id').count(),
-        client.from('profiles').select('id').count(),
-        client.from('profiles').select('id').eq('rol', 'coordinador').count(),
-        client.from('asistencias').select('id').count(),
         client
-            .from('asistencias')
+            .from('perfiles')
+            .select('id')
+            .eq('rol', 'profesor')
+            .count(),
+        client.from('perfiles').select('id').count(),
+        client.from('perfiles').select('id').eq('rol', 'coordinador').count(),
+        client.from('asistencia').select('id').count(),
+        client
+            .from('asistencia')
             .select('id')
             .eq('estado', 'Presente')
             .count(),

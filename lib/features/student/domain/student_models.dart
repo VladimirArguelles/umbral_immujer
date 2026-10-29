@@ -17,11 +17,15 @@ class StudentCourse {
 
   factory StudentCourse.fromJson(Map<String, dynamic> json) {
     String? profName;
-    if (json['cursos'] != null && json['cursos']['profiles'] != null) {
-      profName = json['cursos']['profiles']['nombre_completo'] as String?;
-    } else if (json['profiles'] != null) {
-      profName = json['profiles']['nombre_completo'] as String?;
+    final pMap = (json['cursos'] is Map ? (json['cursos']['perfiles'] ?? json['cursos']['profiles']) : null) ?? json['perfiles'] ?? json['profiles'];
+    if (pMap is Map) {
+      profName = pMap['nombre_completo'] as String?;
     }
+
+
+
+
+
 
     final cursoMap = json['cursos'] is Map<String, dynamic>
         ? json['cursos']

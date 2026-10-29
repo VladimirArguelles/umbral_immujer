@@ -762,7 +762,7 @@ class _AuditoriaRecaudacionTabState extends State<_AuditoriaRecaudacionTab> {
   void _loadEncuestasDocente() async {
     setState(() => _isLoading = true);
     final data = await SupabaseConfig.client
-        .from('encuestas')
+        .from('encuestas_participacion')
         .select(
           'id, fecha_clase, costo_total_insumos, monto_individual_calculado, total_confirmados, cursos(nombre)',
         )
