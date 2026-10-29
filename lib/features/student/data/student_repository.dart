@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -128,6 +129,93 @@ class StudentRepository {
         .from('asistencia')
         .stream(primaryKey: ['id'])
         .eq('curso_id', cursoId);
+  }
+
+  /// Obtiene los justificativos médicos registrados por el alumno para un curso
+  Future<List<JustificativoAsistencia>> getJustificativos({
+    required String cursoId,
+  }) async {
+    final alumno = await getAlumnoRecord();
+    if (alumno == null) return [];
+
+    final data = await _supabase
+        .from('justificativos_asistencia')
+        .select()
+        .eq('curso_id', cursoId)
+        .eq('alumno_id', alumno['id'])
+        .order('fecha', ascending: false);
+
+    return (data as List)
+        .map((e) => JustificativoAsistencia.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Envía un justificativo médico de ausencia con motivo y soporte fotográfico
+  Future<JustificativoAsistencia> submitAbsenceJustification({
+    required String cursoId,
+    required String fecha,
+    required String motivo,
+    Uint8List? imageBytes,
+    String? fileExtension,
+  }) async {
+    final alumno = await getAlumnoRecord();
+    if (alumno == null) {
+      throw Exception('No se encontró el registro de alumno asociado al usuario.');
+    }
+
+    String? publicUrl;
+    if (imageBytes != null && imageBytes.isNotEmpty) {
+      final ext = (fileExtension ?? 'jpg').replaceAll('.', '');
+      final fileName =
+          'justificativo_${alumno['id']}_${DateTime.now().millisecondsSinceEpoch}.$ext';
+      final storagePath = 'justificativos/$fileName';
+
+      // Subir archivo al bucket de Supabase con resguardo
+      try {
+        await _supabase.storage.from('justificativos').uploadBinary(
+              storagePath,
+              imageBytes,
+              fileOptions: FileOptions(
+                contentType: 'image/$ext',
+                cacheControl: '3600',
+                upsert: true,
+              ),
+            );
+        publicUrl =
+            _supabase.storage.from('justificativos').getPublicUrl(storagePath);
+      } catch (_) {
+        await _supabase.storage.from('comprobantes').uploadBinary(
+              storagePath,
+              imageBytes,
+              fileOptions: FileOptions(
+                contentType: 'image/$ext',
+                cacheControl: '3600',
+                upsert: true,
+              ),
+            );
+        publicUrl =
+            _supabase.storage.from('comprobantes').getPublicUrl(storagePath);
+      }
+    }
+
+    final insertData = <String, dynamic>{
+      'alumno_id': alumno['id'],
+      'curso_id': cursoId,
+      'fecha': fecha,
+      'motivo': motivo.trim(),
+      'estado': 'pendiente',
+    };
+    if (publicUrl != null) {
+      insertData['comprobante_url'] = publicUrl;
+    }
+
+    final inserted = await _supabase
+        .from('justificativos_asistencia')
+        .insert(insertData)
+        .select()
+        .single();
+
+    return JustificativoAsistencia.fromJson(inserted);
   }
 
   /// Obtiene las encuestas activas de los cursos donde el alumno está inscrito

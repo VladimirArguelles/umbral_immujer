@@ -123,3 +123,53 @@ class StudentSurvey {
   bool get tieneCapturePendiente =>
       (asistira == true) && (comprobanteUrl == null || comprobanteUrl!.isEmpty);
 }
+
+
+class JustificativoAsistencia {
+  final String id;
+  final String alumnoId;
+  final String cursoId;
+  final String fecha;
+  final String motivo;
+  final String? comprobanteUrl;
+  final String estado; // 'pendiente' | 'aprobado' | 'rechazado'
+  final String? comentariosRevision;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  JustificativoAsistencia({
+    required this.id,
+    required this.alumnoId,
+    required this.cursoId,
+    required this.fecha,
+    required this.motivo,
+    this.comprobanteUrl,
+    this.estado = 'pendiente',
+    this.comentariosRevision,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  factory JustificativoAsistencia.fromJson(Map<String, dynamic> json) {
+    return JustificativoAsistencia(
+      id: (json['id'] ?? '') as String,
+      alumnoId: (json['alumno_id'] ?? '') as String,
+      cursoId: (json['curso_id'] ?? '') as String,
+      fecha: (json['fecha'] ?? '') as String,
+      motivo: (json['motivo'] ?? '') as String,
+      comprobanteUrl: json['comprobante_url'] as String?,
+      estado: (json['estado'] ?? 'pendiente') as String,
+      comentariosRevision: json['comentarios_revision'] as String?,
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'] as String)
+          : null,
+      updatedAt: json['updated_at'] != null
+          ? DateTime.tryParse(json['updated_at'] as String)
+          : null,
+    );
+  }
+
+  bool get isPendiente => estado.toLowerCase() == 'pendiente';
+  bool get isAprobado => estado.toLowerCase() == 'aprobado';
+  bool get isRechazado => estado.toLowerCase() == 'rechazado';
+}

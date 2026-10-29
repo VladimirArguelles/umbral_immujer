@@ -1,4 +1,5 @@
-import 'dart:io';
+﻿import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -413,7 +414,9 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
   List<StudentCourse> _misCursos = [];
   StudentCourse? _selectedCurso;
   AttendanceSummary? _resumen;
+  List<JustificativoAsistencia> _justificativos = [];
   bool _isLoading = true;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -443,9 +446,110 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
     final resumen = await widget.studentRepository.getAttendanceByCourse(
       cursoId,
     );
+    final justificativos = await widget.studentRepository.getJustificativos(
+      cursoId: cursoId,
+    );
     if (mounted) {
-      setState(() => _resumen = resumen);
+      setState(() {
+        _resumen = resumen;
+        _justificativos = justificativos;
+      });
     }
+  }
+
+  JustificativoAsistencia? _getJustificativoForDate(String fecha) {
+    try {
+      return _justificativos.firstWhere((j) => j.fecha == fecha);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _mostrarDialogoJustificativo({String? initialFecha}) {
+    if (_selectedCurso == null) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _ModalJustificarAusencia(
+        curso: _selectedCurso!,
+        initialFecha: initialFecha,
+        studentRepository: widget.studentRepository,
+        picker: _picker,
+        onSubmitted: () {
+          _loadAsistenciasCurso(_selectedCurso!.id);
+        },
+      ),
+    );
+  }
+
+  void _verComprobanteGrande(String url) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: AppTheme.anthraciteCard,
+        insetPadding: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  const Icon(Icons.image_outlined, color: AppTheme.coralFuchsia, size: 20),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Comprobante Médico Adjunto',
+                    style: TextStyle(
+                      color: AppTheme.pureWhite,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: AppTheme.mutedGray),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1, color: AppTheme.outlineVariant),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Center(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      url,
+                      fit: BoxFit.contain,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const Padding(
+                          padding: EdgeInsets.all(40),
+                          child: CircularProgressIndicator(),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) => const Padding(
+                        padding: EdgeInsets.all(30),
+                        child: Text(
+                          'No se pudo cargar la vista previa de la imagen.',
+                          style: TextStyle(color: AppTheme.errorRed),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -512,6 +616,53 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
                 }
               },
             ),
+            const SizedBox(height: 14),
+
+            // BOTÓN PRINCIPAL DE LLAMADA A LA ACCIÓN (CTA): JUSTIFICAR AUSENCIA MÉDICA
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                gradient: LinearGradient(
+                  colors: [
+                    AppTheme.coralFuchsia,
+                    AppTheme.coralFuchsia.withValues(alpha: 0.85),
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.coralFuchsia.withValues(alpha: 0.28),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () => _mostrarDialogoJustificativo(),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(Icons.medical_services_rounded, color: AppTheme.pureWhite, size: 22),
+                        SizedBox(width: 10),
+                        Text(
+                          'Justificar Ausencia Médica',
+                          style: TextStyle(
+                            color: AppTheme.pureWhite,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
             const SizedBox(height: 16),
 
             // ALERTA AUTOMÁTICA A LA 2DA AUSENCIA
@@ -526,7 +677,7 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
                     BoxShadow(
                       color: AppTheme.errorRed.withValues(alpha: 0.35),
                       blurRadius: 8,
-                      offset: Offset(0, 4),
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
@@ -552,7 +703,7 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Inasistencias registradas: ${resumen.inasistencias}. Te recomendamos comunicarte con tu docente o coordinación de IMMUJER para evitar comprometer tu certificación.',
+                            'Inasistencias registradas: ${resumen.inasistencias}. Puedes justificar tus ausencias por causa médica adjuntando tu reposo en el botón superior.',
                             style: const TextStyle(
                               color: AppTheme.onErrorContainer,
                               fontSize: 12,
@@ -580,7 +731,7 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
                   _buildMetricaCard(
                     title: 'Presente',
                     count: '${resumen.presentes}',
-                    color: AppTheme.successGreen,
+                    color: AppTheme.mintNeon,
                     icon: Icons.check_circle_outline,
                   ),
                   const SizedBox(width: 8),
@@ -597,23 +748,41 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
               const SizedBox(height: 20),
 
               // Historial Detallado de Clases
-              const Text(
-                'Registro Detallado por Clase',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.onSurface,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Registro Detallado por Clase',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.onSurface,
+                    ),
+                  ),
+                  Text(
+                    '${resumen.historial.length} sesiones',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
 
               if (resumen.historial.isEmpty)
-                const Card(
-                  child: Padding(
+                Card(
+                  color: AppTheme.anthraciteCard,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: AppTheme.outlineVariant),
+                  ),
+                  child: const Padding(
                     padding: EdgeInsets.all(20.0),
                     child: Center(
                       child: Text(
                         'Aún no se han registrado asistencias para este curso.',
+                        style: TextStyle(color: AppTheme.mutedGray),
                       ),
                     ),
                   ),
@@ -621,43 +790,325 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
               else
                 ...resumen.historial.map((reg) {
                   final esPresente = reg.estado.toLowerCase() == 'presente';
+                  final just = _getJustificativoForDate(reg.fecha);
+
                   return Card(
                     margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: esPresente
-                            ? AppTheme.tertiary.withValues(alpha: 0.15)
-                            : AppTheme.errorRed.withValues(alpha: 0.15),
-                        child: Icon(
-                          esPresente ? Icons.check : Icons.close,
-                          color: esPresente
-                              ? AppTheme.successGreen
-                              : AppTheme.errorRed,
-                        ),
+                    color: AppTheme.anthraciteCard,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(
+                        color: just != null && just.isAprobado
+                            ? AppTheme.mintNeon.withValues(alpha: 0.4)
+                            : AppTheme.outlineVariant,
                       ),
-                      title: Text(
-                        'Fecha: ${reg.fecha}',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      trailing: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: esPresente
-                              ? AppTheme.successGreen
-                              : AppTheme.errorRed,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          reg.estado.toUpperCase(),
-                          style: const TextStyle(
-                            color: AppTheme.onSurface,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 18,
+                                backgroundColor: esPresente
+                                    ? AppTheme.mintNeon.withValues(alpha: 0.15)
+                                    : (just != null && just.isAprobado
+                                        ? AppTheme.mintNeon.withValues(alpha: 0.15)
+                                        : AppTheme.errorRed.withValues(alpha: 0.15)),
+                                child: Icon(
+                                  esPresente
+                                      ? Icons.check
+                                      : (just != null && just.isAprobado
+                                          ? Icons.verified_user_outlined
+                                          : Icons.close),
+                                  size: 20,
+                                  color: esPresente || (just != null && just.isAprobado)
+                                      ? AppTheme.mintNeon
+                                      : AppTheme.errorRed,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Fecha: ${reg.fecha}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: AppTheme.pureWhite,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    if (!esPresente && just != null) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Justificativo: ${just.isAprobado ? "Aprobado (Justificada)" : just.isRechazado ? "Rechazado" : "En Revisión"}',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: just.isAprobado
+                                              ? AppTheme.mintNeon
+                                              : just.isRechazado
+                                                  ? AppTheme.errorRed
+                                                  : AppTheme.warningOrange,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: esPresente
+                                      ? AppTheme.mintNeon
+                                      : (just != null && just.isAprobado
+                                          ? AppTheme.mintNeon
+                                          : AppTheme.errorRed),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Text(
+                                  (just != null && just.isAprobado)
+                                      ? 'JUSTIFICADA'
+                                      : reg.estado.toUpperCase(),
+                                  style: const TextStyle(
+                                    color: AppTheme.anthraciteDark,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
+                          if (!esPresente) ...[
+                            const SizedBox(height: 8),
+                            const Divider(height: 1, color: AppTheme.outlineVariant),
+                            const SizedBox(height: 6),
+                            if (just == null) ...[
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton.icon(
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: AppTheme.coralFuchsia,
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  icon: const Icon(Icons.upload_file_outlined, size: 16),
+                                  label: const Text(
+                                    'Subir justificativo para esta falta',
+                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                  ),
+                                  onPressed: () => _mostrarDialogoJustificativo(
+                                    initialFecha: reg.fecha,
+                                  ),
+                                ),
+                              ),
+                            ] else ...[
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      'Motivo: "${just.motivo}"',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontStyle: FontStyle.italic,
+                                        color: AppTheme.mutedGray,
+                                      ),
+                                    ),
+                                  ),
+                                  if (just.comprobanteUrl != null && just.comprobanteUrl!.isNotEmpty)
+                                    IconButton(
+                                      icon: const Icon(Icons.remove_red_eye_outlined, size: 18),
+                                      color: AppTheme.mintNeon,
+                                      tooltip: 'Ver comprobante médico adjunto',
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      onPressed: () => _verComprobanteGrande(just.comprobanteUrl!),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+              const SizedBox(height: 24),
+
+              // SECCIÓN: JUSTIFICATIVOS MÉDICOS REGISTRADOS
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Historial de Justificativos Médicos',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.pureWhite,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppTheme.anthraciteElevated,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${_justificativos.length}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.coralFuchsia,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              if (_justificativos.isEmpty)
+                Card(
+                  color: AppTheme.anthraciteCard,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: AppTheme.outlineVariant),
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Center(
+                      child: Text(
+                        'No has enviado justificativos médicos para este curso.',
+                        style: TextStyle(
+                          color: AppTheme.mutedGray,
+                          fontSize: 13,
                         ),
+                      ),
+                    ),
+                  ),
+                )
+              else
+                ..._justificativos.map((just) {
+                  final chipColor = just.isAprobado
+                      ? AppTheme.mintNeon
+                      : just.isRechazado
+                          ? AppTheme.errorRed
+                          : AppTheme.warningOrange;
+
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    color: AppTheme.anthraciteCard,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      side: const BorderSide(color: AppTheme.outlineVariant),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.event_note, color: AppTheme.coralFuchsia, size: 18),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Fecha de falta: ${just.fecha}',
+                                    style: const TextStyle(
+                                      color: AppTheme.pureWhite,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: chipColor.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: chipColor.withValues(alpha: 0.4)),
+                                ),
+                                child: Text(
+                                  just.estado.toUpperCase(),
+                                  style: TextStyle(
+                                    color: chipColor,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            just.motivo,
+                            style: const TextStyle(
+                              color: AppTheme.pureWhite,
+                              fontSize: 13,
+                              height: 1.3,
+                            ),
+                          ),
+                          if (just.comentariosRevision != null &&
+                              just.comentariosRevision!.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppTheme.anthraciteElevated,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Icon(Icons.rate_review_outlined,
+                                      size: 16, color: AppTheme.mutedGray),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      'Respuesta de Coordinación: ${just.comentariosRevision}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppTheme.mutedGray,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                          if (just.comprobanteUrl != null &&
+                              just.comprobanteUrl!.isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppTheme.mintNeon,
+                                side: const BorderSide(color: AppTheme.mintNeon),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              icon: const Icon(Icons.attachment, size: 16),
+                              label: const Text(
+                                'Ver imagen del justificativo médico',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
+                              onPressed: () => _verComprobanteGrande(just.comprobanteUrl!),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                   );
@@ -677,6 +1128,11 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
   }) {
     return Expanded(
       child: Card(
+        color: AppTheme.anthraciteCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: AppTheme.outlineVariant),
+        ),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
           child: Column(
@@ -707,6 +1163,486 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
     );
   }
 }
+
+class _ModalJustificarAusencia extends StatefulWidget {
+  final StudentCourse curso;
+  final String? initialFecha;
+  final StudentRepository studentRepository;
+  final ImagePicker picker;
+  final VoidCallback onSubmitted;
+
+  const _ModalJustificarAusencia({
+    required this.curso,
+    this.initialFecha,
+    required this.studentRepository,
+    required this.picker,
+    required this.onSubmitted,
+  });
+
+  @override
+  State<_ModalJustificarAusencia> createState() =>
+      _ModalJustificarAusenciaState();
+}
+
+class _ModalJustificarAusenciaState extends State<_ModalJustificarAusencia> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _fechaController;
+  final _motivoController = TextEditingController();
+  Uint8List? _imageBytes;
+  String? _imageExtension;
+  String? _imageName;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final defaultDate = widget.initialFecha ?? Formatters.isoDate(DateTime.now());
+    _fechaController = TextEditingController(text: defaultDate);
+  }
+
+  @override
+  void dispose() {
+    _fechaController.dispose();
+    _motivoController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _seleccionarFecha() async {
+    final hoy = DateTime.now();
+    DateTime parsedInitial;
+    try {
+      parsedInitial = DateTime.parse(_fechaController.text);
+    } catch (_) {
+      parsedInitial = hoy;
+    }
+
+    final seleccionada = await showDatePicker(
+      context: context,
+      initialDate: parsedInitial.isAfter(hoy) ? hoy : parsedInitial,
+      firstDate: DateTime(hoy.year - 1),
+      lastDate: hoy,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: AppTheme.coralFuchsia,
+              surface: AppTheme.anthraciteCard,
+              onSurface: AppTheme.pureWhite,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (seleccionada != null) {
+      setState(() {
+        _fechaController.text = Formatters.isoDate(seleccionada);
+      });
+    }
+  }
+
+  Future<void> _capturarImagen(ImageSource source) async {
+    try {
+      final picked = await widget.picker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 1600,
+      );
+      if (picked == null) return;
+
+      final bytes = await picked.readAsBytes();
+      final ext =
+          picked.name.contains('.') ? picked.name.split('.').last : 'jpg';
+
+      setState(() {
+        _imageBytes = bytes;
+        _imageExtension = ext;
+        _imageName = picked.name;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al capturar la imagen: $e'),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _enviarJustificativo() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_imageBytes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Debes adjuntar la foto o imagen del justificativo médico.',
+          ),
+          backgroundColor: AppTheme.errorRed,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      await widget.studentRepository.submitAbsenceJustification(
+        cursoId: widget.curso.id,
+        fecha: _fechaController.text.trim(),
+        motivo: _motivoController.text.trim(),
+        imageBytes: _imageBytes,
+        fileExtension: _imageExtension,
+      );
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              '¡Justificativo médico registrado! En espera de revisión por el docente o coordinación.',
+            ),
+            backgroundColor: AppTheme.mintNeon,
+          ),
+        );
+        widget.onSubmitted();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al enviar justificativo: $e'),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppTheme.anthraciteCard,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border(
+          top: BorderSide(color: AppTheme.outlineVariant),
+          left: BorderSide(color: AppTheme.outlineVariant),
+          right: BorderSide(color: AppTheme.outlineVariant),
+        ),
+      ),
+      padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomInset),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.88,
+      ),
+      child: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Barra superior de agarre
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppTheme.outline,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Cabecera del modal
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.coralFuchsia.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.medical_services_rounded,
+                      color: AppTheme.coralFuchsia,
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Justificar Ausencia Médica',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.pureWhite,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Curso: ${widget.curso.nombre}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.mutedGray,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: AppTheme.mutedGray),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Selector de Fecha
+              const Text(
+                'Fecha de la Falta / Ausencia',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.pureWhite,
+                ),
+              ),
+              const SizedBox(height: 6),
+              TextFormField(
+                controller: _fechaController,
+                readOnly: true,
+                style: const TextStyle(color: AppTheme.pureWhite, fontSize: 14),
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.calendar_today, size: 18),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.edit_calendar_outlined),
+                    onPressed: _seleccionarFecha,
+                  ),
+                  hintText: 'YYYY-MM-DD',
+                ),
+                onTap: _seleccionarFecha,
+              ),
+              const SizedBox(height: 16),
+
+              // Argumento / Motivo de la Ausencia
+              const Text(
+                'Motivo y Argumento de la Ausencia',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.pureWhite,
+                ),
+              ),
+              const SizedBox(height: 6),
+              TextFormField(
+                controller: _motivoController,
+                maxLines: 4,
+                style: const TextStyle(color: AppTheme.pureWhite, fontSize: 14),
+                decoration: const InputDecoration(
+                  hintText:
+                      'Explica detalladamente la causa médica (ej. Reposo médico por cuadro viral certificado por el Dr. Pérez, consulta de emergencia...)',
+                ),
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) {
+                    return 'Ingresa el motivo de tu ausencia médica';
+                  }
+                  if (val.trim().length < 8) {
+                    return 'El argumento debe contener al menos 8 caracteres explicativos';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 18),
+
+              // Imagen del Justificativo Médico
+              const Text(
+                'Soporte Médico (Foto del Justificativo / Reposo)',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.pureWhite,
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              if (_imageBytes == null) ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.anthraciteElevated,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppTheme.outlineVariant,
+                      style: BorderStyle.solid,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      const Icon(
+                        Icons.add_photo_alternate_outlined,
+                        size: 38,
+                        color: AppTheme.coralFuchsia,
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Adjunta la foto legible de tu reposo o constancia',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: AppTheme.mutedGray,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppTheme.pureWhite,
+                                side: const BorderSide(color: AppTheme.outline),
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                              ),
+                              icon: const Icon(Icons.camera_alt_outlined, size: 18),
+                              label: const Text('Cámara', style: TextStyle(fontSize: 12)),
+                              onPressed: () => _capturarImagen(ImageSource.camera),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppTheme.pureWhite,
+                                side: const BorderSide(color: AppTheme.outline),
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                              ),
+                              icon: const Icon(Icons.photo_library_outlined, size: 18),
+                              label: const Text('Galería', style: TextStyle(fontSize: 12)),
+                              onPressed: () => _capturarImagen(ImageSource.gallery),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ] else ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.anthraciteElevated,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.mintNeon.withValues(alpha: 0.5)),
+                  ),
+                  child: Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.memory(
+                          _imageBytes!,
+                          width: 58,
+                          height: 58,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Comprobante adjuntado',
+                              style: TextStyle(
+                                color: AppTheme.mintNeon,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _imageName ?? 'comprobante.jpg',
+                              style: const TextStyle(
+                                color: AppTheme.mutedGray,
+                                fontSize: 11,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              '${(_imageBytes!.lengthInBytes / 1024).toStringAsFixed(1)} KB',
+                              style: const TextStyle(
+                                color: AppTheme.mutedGray,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: AppTheme.errorRed),
+                        tooltip: 'Eliminar imagen',
+                        onPressed: () {
+                          setState(() {
+                            _imageBytes = null;
+                            _imageExtension = null;
+                            _imageName = null;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 24),
+
+              // Botón de Envío
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.coralFuchsia,
+                  foregroundColor: AppTheme.pureWhite,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: _isSubmitting ? null : _enviarJustificativo,
+                icon: _isSubmitting
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppTheme.pureWhite,
+                        ),
+                      )
+                    : const Icon(Icons.send_rounded, size: 20),
+                label: Text(
+                  _isSubmitting ? 'Enviando a Coordinación...' : 'Enviar Justificativo',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 
 /// -------------------------------------------------------------
 /// TAB 3: ENCUESTAS Y APORTES (Confirmación + Comprobante)
