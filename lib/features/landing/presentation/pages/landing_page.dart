@@ -329,6 +329,7 @@ class _FormationCarouselState extends State<_FormationCarousel> {
       tag: 'LIDERAZGO',
       icon: Icons.workspace_premium_rounded,
       color: AppTheme.primary,
+      imagePath: 'assets/images/cejas.jpg',
     ),
     _Formation(
       area: 'Área 2 · Tecnología',
@@ -337,6 +338,7 @@ class _FormationCarouselState extends State<_FormationCarousel> {
       tag: 'CODING LAB',
       icon: Icons.code_rounded,
       color: AppTheme.tertiary,
+      imagePath: 'assets/images/panaderia.jpg',
     ),
     _Formation(
       area: 'Área 3 · Diseño textil y modas',
@@ -345,6 +347,7 @@ class _FormationCarouselState extends State<_FormationCarousel> {
       tag: 'TALLER DE MODA',
       icon: Icons.checkroom_rounded,
       color: AppTheme.secondary,
+      imagePath: 'assets/images/reposteria.jpg',
     ),
     _Formation(
       area: 'Área 4 · Repostería artesanal',
@@ -353,6 +356,7 @@ class _FormationCarouselState extends State<_FormationCarousel> {
       tag: 'PASTELERÍA',
       icon: Icons.cake_rounded,
       color: AppTheme.warningOrange,
+      imagePath: 'assets/images/reposteria.jpg',
     ),
   ];
 
@@ -522,8 +526,8 @@ class _FormationCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 1),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        image: const DecorationImage(
-          image: AssetImage('assets/images/formaciones_inmujer.png'),
+        image: DecorationImage(
+          image: AssetImage(formation.imagePath),
           fit: BoxFit.cover,
           alignment: Alignment.center,
         ),
@@ -646,6 +650,7 @@ class _Formation {
     required this.tag,
     required this.icon,
     required this.color,
+    required this.imagePath,
   });
 
   final String area;
@@ -654,5 +659,6 @@ class _Formation {
   final String tag;
   final IconData icon;
   final Color color;
+  final String imagePath;
 }
 
