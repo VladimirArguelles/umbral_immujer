@@ -1645,7 +1645,7 @@ class _ModalJustificarAusenciaState extends State<_ModalJustificarAusencia> {
 
 
 /// -------------------------------------------------------------
-/// TAB 3: ENCUESTAS Y APORTES (Filtro de Selección: Disponibles, Historial y Pagos)
+/// TAB 3: ENCUESTAS Y APORTES (Filtro de Selección, Card de Insumos y Capture)
 /// -------------------------------------------------------------
 class _EncuestasAportesTab extends StatefulWidget {
   final StudentRepository studentRepository;
@@ -1730,7 +1730,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              '¡Comprobante subido exitosamente! En espera de verificación docente.',
+              '¡Capture del pago subido exitosamente! En espera de verificación docente.',
             ),
             backgroundColor: AppTheme.successGreen,
           ),
@@ -1770,7 +1770,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                 Icons.photo_library,
                 color: AppTheme.secondary,
               ),
-              title: const Text('Seleccionar de la Galería'),
+              title: const Text('Seleccionar capture de la Galería'),
               onTap: () {
                 Navigator.of(ctx).pop();
                 _seleccionarYSubirComprobante(surveyId, ImageSource.gallery);
@@ -2039,7 +2039,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
     }
   }
 
-  /// OPCIÓN 0: ENCUESTAS DISPONIBLES (Monto de cuota a cancelar + Confirmación + Comprobante)
+  /// OPCIÓN 0: ENCUESTAS DISPONIBLES (Card de Monto de Insumos + Botón de Capture de Pago)
   Widget _buildEncuestasDisponiblesView() {
     return FutureBuilder<List<StudentSurvey>>(
       key: const ValueKey('encuestas_disponibles'),
@@ -2090,25 +2090,49 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
             itemCount: encuestas.length,
             itemBuilder: (context, idx) {
               final enc = encuestas[idx];
+
               return Card(
-                margin: const EdgeInsets.only(bottom: 16),
+                margin: const EdgeInsets.only(bottom: 18),
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: AppTheme.secondary.withValues(alpha: 0.35),
+                    width: 1.2,
+                  ),
+                ),
+                color: AppTheme.surfaceContainerLow,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Encabezado de Encuesta
+                      // Encabezado de la Encuesta y Próxima Clase
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Expanded(
-                            child: Text(
-                              enc.cursoNombre,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.onSurface,
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  enc.cursoNombre,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.onSurface,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Próxima Clase Práctica: ${enc.fechaClase}',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.secondary,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           Container(
@@ -2135,14 +2159,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Fecha de Clase Práctica: ${enc.fechaClase}',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      const SizedBox(height: 6),
                       Text(
                         'Límite de Confirmación: ${Formatters.dateTime(enc.fechaLimite)}',
                         style: const TextStyle(
@@ -2152,7 +2169,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                       ),
                       const SizedBox(height: 14),
 
-                      // TARJETA DESTACADA: MONTO DE LA CUOTA A CANCELAR
+                      // WIDGET CARD: MONTO DEL APORTE COLOCADO POR EL PROFESOR PARA INSUMOS
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(14),
@@ -2160,7 +2177,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                           color: AppTheme.secondary.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: AppTheme.secondary.withValues(alpha: 0.35),
+                            color: AppTheme.secondary.withValues(alpha: 0.4),
                             width: 1.5,
                           ),
                         ),
@@ -2173,23 +2190,23 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
                                     color: AppTheme.secondary
-                                        .withValues(alpha: 0.15),
+                                        .withValues(alpha: 0.18),
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(
-                                    Icons.account_balance_wallet_outlined,
+                                    Icons.shopping_bag_outlined,
                                     color: AppTheme.secondary,
                                     size: 22,
                                   ),
                                 ),
                                 const SizedBox(width: 10),
-                                Expanded(
+                                const Expanded(
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      const Text(
-                                        'MONTO DE LA CUOTA A CANCELAR',
+                                      Text(
+                                        'APORTE PARA COMPRA DE INSUMOS',
                                         style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.bold,
@@ -2198,79 +2215,86 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                         ),
                                       ),
                                       Text(
-                                        enc.cuotaACancelar > 0
-                                            ? Formatters.currency(
-                                                enc.cuotaACancelar)
-                                            : r'$0.00',
-                                        style: const TextStyle(
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.w900,
-                                          color: AppTheme.onSurface,
+                                        'Monto fijado por el docente para la próxima clase',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: AppTheme.onSurfaceVariant,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
-                                OutlinedButton.icon(
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: AppTheme.secondary,
-                                    side: const BorderSide(
-                                        color: AppTheme.secondary),
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 6),
-                                  ),
-                                  onPressed: () =>
-                                      setState(() => _selectedFilter = 2),
-                                  icon: const Icon(Icons.receipt_long,
-                                      size: 16),
-                                  label: const Text(
-                                    'Ver Pagos',
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                ),
                               ],
                             ),
-                            const SizedBox(height: 10),
-                            const Divider(height: 1, thickness: 0.5),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 12),
                             Row(
                               mainAxisAlignment:
                                   MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                Text(
-                                  'Presupuesto Total: ${Formatters.currency(enc.costoTotalInsumos)}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppTheme.onSurfaceVariant,
-                                  ),
+                                Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Monto de tu cuota a cancelar:',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppTheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                    Text(
+                                      enc.cuotaACancelar > 0
+                                          ? Formatters.currency(
+                                              enc.cuotaACancelar)
+                                          : r'$0.00',
+                                      style: const TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w900,
+                                        color: AppTheme.onSurface,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                Text(
-                                  'Confirmadas: ${enc.totalConfirmados} alumnas',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppTheme.primary,
-                                  ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      'Costo Total Insumos: ${Formatters.currency(enc.costoTotalInsumos)}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppTheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${enc.totalConfirmados} alumnas confirmadas',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppTheme.primary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
 
-                      // PREGUNTA DE CONFIRMACIÓN DE ASISTENCIA
+                      // PREGUNTA DE PARTICIPACIÓN / CONFIRMACIÓN
                       if (enc.respondio != true) ...[
                         const Text(
-                          '¿Asistirás a la próxima clase y compartirás el costo de insumos?',
+                          '¿Asistirás a la próxima clase práctica?',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 13,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
                         Row(
                           children: [
                             Expanded(
@@ -2281,7 +2305,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                 child: const Text('No Asistiré'),
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 10),
                             Expanded(
                               child: ElevatedButton(
                                 onPressed: enc.estaVencida
@@ -2292,14 +2316,16 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                             ),
                           ],
                         ),
+                        const SizedBox(height: 14),
                       ] else ...[
                         Container(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
                             color: enc.asistira == true
                                 ? AppTheme.tertiary.withValues(alpha: 0.12)
                                 : AppTheme.surfaceBright,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
                             children: [
@@ -2307,6 +2333,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                 enc.asistira == true
                                     ? Icons.check_circle
                                     : Icons.cancel,
+                                size: 18,
                                 color: enc.asistira == true
                                     ? AppTheme.successGreen
                                     : AppTheme.onSurfaceVariant,
@@ -2315,9 +2342,10 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                               Expanded(
                                 child: Text(
                                   enc.asistira == true
-                                      ? 'Has confirmado que ASISTIRÁS a esta clase'
-                                      : 'Has indicado que NO ASISTIRÁS',
+                                      ? 'Has confirmado tu asistencia para esta clase'
+                                      : 'Has indicado que no asistirás a esta clase',
                                   style: TextStyle(
+                                    fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                     color: enc.asistira == true
                                         ? AppTheme.successGreen
@@ -2328,172 +2356,132 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 14),
+                      ],
 
-                        // SECCIÓN DE SUBIDA O ESTADO DE COMPROBANTE DE PAGO
-                        if (enc.asistira == true) ...[
-                          if (enc.comprobanteUrl == null ||
-                              enc.comprobanteUrl!.isEmpty) ...[
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: AppTheme.warningOrange.withValues(
-                                  alpha: 0.12,
-                                ),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: AppTheme.warningOrange,
-                                ),
+                      // BOTÓN PARA SUBIR LA IMAGEN DEL CAPTURE DEL PAGO REALIZADO
+                      if (enc.comprobanteUrl == null ||
+                          enc.comprobanteUrl!.isEmpty) ...[
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.secondary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 12,
+                                horizontal: 16,
                               ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.info_outline,
-                                    color: AppTheme.warningOrange,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      'Capture pendiente: Recuerda adjuntar la imagen de tu pago por ${Formatters.currency(enc.cuotaACancelar)} para que el profesor verifique tu aporte.',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppTheme.warningOrange,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
                               ),
                             ),
-                            const SizedBox(height: 10),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
+                            onPressed: _isUploading
+                                ? null
+                                : () => _mostrarSelectorComprobante(enc.id),
+                            icon: _isUploading
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.add_photo_alternate_rounded),
+                            label: Text(
+                              _isUploading
+                                  ? 'Subiendo capture...'
+                                  : 'Subir Imagen del Capture de Pago Realizado',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ] else ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.surfaceBright,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppTheme.outlineVariant),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.image_rounded,
+                                color: AppTheme.primary,
+                                size: 22,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Capture de Pago Adjuntado',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Estado: ${(enc.estadoPago ?? "pendiente").toUpperCase()}',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: enc.estadoPago == 'verificado'
+                                            ? AppTheme.successGreen
+                                            : enc.estadoPago == 'rechazado'
+                                                ? AppTheme.errorRed
+                                                : AppTheme.warningOrange,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                ),
+                                onPressed: () => _mostrarModalComprobante(
+                                  context,
+                                  url: enc.comprobanteUrl!,
+                                  curso: enc.cursoNombre,
+                                  fecha: enc.fechaClase,
+                                  estadoPago: enc.estadoPago ?? 'pendiente',
+                                ),
+                                icon: const Icon(Icons.visibility_outlined,
+                                    size: 14),
+                                label: const Text('Ver Capture',
+                                    style: TextStyle(fontSize: 11)),
+                              ),
+                              const SizedBox(width: 6),
+                              ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppTheme.secondary,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
                                 ),
                                 onPressed: _isUploading
                                     ? null
                                     : () => _mostrarSelectorComprobante(enc.id),
-                                icon: const Icon(Icons.upload_file),
-                                label: _isUploading
-                                    ? const SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(
-                                          color: AppTheme.onSurface,
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : const Text(
-                                        'Subir Comprobante de Pago',
-                                      ),
+                                icon: const Icon(Icons.sync, size: 14),
+                                label: const Text('Cambiar',
+                                    style: TextStyle(fontSize: 11)),
                               ),
-                            ),
-                          ] else ...[
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: AppTheme.surfaceContainerLow,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: AppTheme.outlineVariant,
-                                ),
-                              ),
-                              child: Column(
-                                children: [
-                                  Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.receipt_long,
-                                        color: AppTheme.primary,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      const Expanded(
-                                        child: Text(
-                                          'Comprobante enviado',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w600),
-                                        ),
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: enc.estadoPago == 'verificado'
-                                              ? AppTheme.tertiary.withValues(
-                                                  alpha: 0.15,
-                                                )
-                                              : enc.estadoPago == 'rechazado'
-                                                  ? AppTheme.errorRed
-                                                      .withValues(alpha: 0.15)
-                                                  : AppTheme.warningOrange
-                                                      .withValues(
-                                                      alpha: 0.15,
-                                                    ),
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                        ),
-                                        child: Text(
-                                          enc.estadoPago?.toUpperCase() ??
-                                              'PENDIENTE',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            color: enc.estadoPago ==
-                                                    'verificado'
-                                                ? AppTheme.successGreen
-                                                : enc.estadoPago == 'rechazado'
-                                                    ? AppTheme.errorRed
-                                                    : AppTheme.warningOrange,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: OutlinedButton.icon(
-                                          onPressed: () =>
-                                              _mostrarModalComprobante(
-                                            context,
-                                            url: enc.comprobanteUrl!,
-                                            curso: enc.cursoNombre,
-                                            fecha: enc.fechaClase,
-                                            estadoPago: enc.estadoPago ??
-                                                'pendiente',
-                                          ),
-                                          icon: const Icon(
-                                              Icons.visibility_outlined,
-                                              size: 16),
-                                          label: const Text('Ver Capture'),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      if (enc.estadoPago != 'verificado')
-                                        Expanded(
-                                          child: TextButton.icon(
-                                            onPressed: _isUploading
-                                                ? null
-                                                : () =>
-                                                    _mostrarSelectorComprobante(
-                                                        enc.id),
-                                            icon: const Icon(Icons.sync,
-                                                size: 16),
-                                            label: const Text('Actualizar'),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ],
+                            ],
+                          ),
+                        ),
                       ],
                     ],
                   ),
@@ -3076,7 +3064,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                   ),
                                   label: Text(
                                     pago.comprobanteUrl != null
-                                        ? 'Actualizar'
+                                        ? 'Actualizar Capture'
                                         : 'Subir Capture',
                                   ),
                                 ),
