@@ -17,19 +17,17 @@ class StudentCourse {
 
   factory StudentCourse.fromJson(Map<String, dynamic> json) {
     String? profName;
-    final pMap = (json['cursos'] is Map ? (json['cursos']['perfiles'] ?? json['cursos']['profiles']) : null) ?? json['perfiles'] ?? json['profiles'];
+    final pMap = (json['cursos'] is Map
+            ? (json['cursos']['perfiles'] ?? json['cursos']['profiles'])
+            : null) ??
+        json['perfiles'] ??
+        json['profiles'];
     if (pMap is Map) {
       profName = pMap['nombre_completo'] as String?;
     }
 
-
-
-
-
-
-    final cursoMap = json['cursos'] is Map<String, dynamic>
-        ? json['cursos']
-        : json;
+    final cursoMap =
+        json['cursos'] is Map<String, dynamic> ? json['cursos'] : json;
 
     return StudentCourse(
       id: (cursoMap['id'] ?? '') as String,
@@ -95,13 +93,15 @@ class StudentSurvey {
   final DateTime fechaLimite;
   final double montoIndividual;
   final int totalConfirmados;
-  final String estadoEncuesta; // 'activa' | 'cerrada'
+  final String estadoEncuesta; // 'activa' | 'cerrada' | 'cancelada'
 
   // Datos de la respuesta del alumno si ya respondió
   final bool? respondio;
   final bool? asistira;
   final String? comprobanteUrl;
   final String? estadoPago; // 'pendiente' | 'verificado' | 'rechazado'
+  final double? montoAsignado;
+  final DateTime? comprobanteSubidoAt;
 
   StudentSurvey({
     required this.id,
@@ -117,13 +117,55 @@ class StudentSurvey {
     this.asistira,
     this.comprobanteUrl,
     this.estadoPago,
+    this.montoAsignado,
+    this.comprobanteSubidoAt,
   });
 
   bool get estaVencida => DateTime.now().isAfter(fechaLimite);
   bool get tieneCapturePendiente =>
       (asistira == true) && (comprobanteUrl == null || comprobanteUrl!.isEmpty);
+
+  /// Monto de la cuota a cancelar por la alumna
+  double get cuotaACancelar {
+    if (montoAsignado != null && montoAsignado! > 0) {
+      return montoAsignado!;
+    }
+    return montoIndividual;
+  }
 }
 
+/// Registro del Historial de Pagos Realizados por la Alumna
+class StudentPaymentRecord {
+  final String id;
+  final String encuestaId;
+  final String cursoId;
+  final String cursoNombre;
+  final String fechaClase;
+  final double montoCancelado;
+  final String? comprobanteUrl;
+  final String estadoPago; // 'pendiente' | 'verificado' | 'rechazado'
+  final DateTime? comprobanteSubidoAt;
+  final DateTime? fechaRespuesta;
+  final bool asistira;
+
+  StudentPaymentRecord({
+    required this.id,
+    required this.encuestaId,
+    required this.cursoId,
+    required this.cursoNombre,
+    required this.fechaClase,
+    required this.montoCancelado,
+    this.comprobanteUrl,
+    required this.estadoPago,
+    this.comprobanteSubidoAt,
+    this.fechaRespuesta,
+    required this.asistira,
+  });
+
+  bool get isVerificado => estadoPago.toLowerCase() == 'verificado';
+  bool get isPendiente => estadoPago.toLowerCase() == 'pendiente';
+  bool get isRechazado => estadoPago.toLowerCase() == 'rechazado';
+}
 
 class JustificativoAsistencia {
   final String id;

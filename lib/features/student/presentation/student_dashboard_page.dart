@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -1645,7 +1645,7 @@ class _ModalJustificarAusenciaState extends State<_ModalJustificarAusencia> {
 
 
 /// -------------------------------------------------------------
-/// TAB 3: ENCUESTAS Y APORTES (Confirmación + Comprobante)
+/// TAB 3: ENCUESTAS Y APORTES (Encuesta Disponible, Historial y Pagos)
 /// -------------------------------------------------------------
 class _EncuestasAportesTab extends StatefulWidget {
   final StudentRepository studentRepository;
@@ -1656,19 +1656,27 @@ class _EncuestasAportesTab extends StatefulWidget {
 }
 
 class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
-  late Future<List<StudentSurvey>> _encuestasFuture;
+  // 0: Encuesta Disponible, 1: Historial de Encuestas, 2: Historial de Pagos
+  int _selectedView = 0;
+
+  late Future<List<StudentSurvey>> _encuestasDisponiblesFuture;
+  late Future<List<StudentSurvey>> _historialEncuestasFuture;
+  late Future<List<StudentPaymentRecord>> _historialPagosFuture;
+
   final ImagePicker _picker = ImagePicker();
   bool _isUploading = false;
 
   @override
   void initState() {
     super.initState();
-    _loadEncuestas();
+    _loadAll();
   }
 
-  void _loadEncuestas() {
+  void _loadAll() {
     setState(() {
-      _encuestasFuture = widget.studentRepository.getActiveSurveys();
+      _encuestasDisponiblesFuture = widget.studentRepository.getActiveSurveys();
+      _historialEncuestasFuture = widget.studentRepository.getSurveysHistory();
+      _historialPagosFuture = widget.studentRepository.getPaymentHistory();
     });
   }
 
@@ -1691,7 +1699,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                 : AppTheme.surfaceContainerHigh,
           ),
         );
-        _loadEncuestas();
+        _loadAll();
       }
     } catch (e) {
       if (mounted) {
@@ -1706,7 +1714,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
   }
 
   Future<void> _seleccionarYSubirComprobante(
-    StudentSurvey enc,
+    String surveyId,
     ImageSource source,
   ) async {
     final picked = await _picker.pickImage(source: source, imageQuality: 80);
@@ -1715,7 +1723,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
     setState(() => _isUploading = true);
     try {
       await widget.studentRepository.uploadPaymentProof(
-        surveyId: enc.id,
+        surveyId: surveyId,
         imageFile: File(picked.path),
       );
       if (mounted) {
@@ -1727,7 +1735,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
             backgroundColor: AppTheme.successGreen,
           ),
         );
-        _loadEncuestas();
+        _loadAll();
       }
     } catch (e) {
       if (mounted) {
@@ -1743,7 +1751,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
     }
   }
 
-  void _mostrarSelectorComprobante(StudentSurvey enc) {
+  void _mostrarSelectorComprobante(String surveyId) {
     showModalBottomSheet(
       context: context,
       builder: (ctx) => SafeArea(
@@ -1754,7 +1762,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
               title: const Text('Tomar foto con la Cámara'),
               onTap: () {
                 Navigator.of(ctx).pop();
-                _seleccionarYSubirComprobante(enc, ImageSource.camera);
+                _seleccionarYSubirComprobante(surveyId, ImageSource.camera);
               },
             ),
             ListTile(
@@ -1765,7 +1773,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
               title: const Text('Seleccionar de la Galería'),
               onTap: () {
                 Navigator.of(ctx).pop();
-                _seleccionarYSubirComprobante(enc, ImageSource.gallery);
+                _seleccionarYSubirComprobante(surveyId, ImageSource.gallery);
               },
             ),
           ],
@@ -1774,35 +1782,271 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
     );
   }
 
+  void _mostrarModalComprobante(
+    BuildContext context, {
+    required String url,
+    required String curso,
+    required String fecha,
+    required String estadoPago,
+  }) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        clipBehavior: Clip.antiAlias,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                color: AppTheme.surfaceContainerLow,
+                child: Row(
+                  children: [
+                    const Icon(Icons.receipt_long, color: AppTheme.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            curso,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          Text(
+                            'Clase: $fecha • Estado: ${estadoPago.toUpperCase()}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+              ),
+              Flexible(
+                child: Container(
+                  color: Colors.black87,
+                  child: InteractiveViewer(
+                    minScale: 0.8,
+                    maxScale: 4.0,
+                    child: Center(
+                      child: Image.network(
+                        url,
+                        loadingBuilder: (context, child, progress) {
+                          if (progress == null) return child;
+                          return const Center(
+                            child:
+                                CircularProgressIndicator(color: Colors.white),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Padding(
+                          padding: EdgeInsets.all(32.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.broken_image,
+                                  size: 48, color: Colors.white70),
+                              SizedBox(height: 8),
+                              Text(
+                                'No se pudo cargar la imagen del comprobante',
+                                style: TextStyle(color: Colors.white70),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Barra superior con botones de navegación del módulo de Encuestas
+        _buildTopNavigation(),
+        // Contenido según vista seleccionada
+        Expanded(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: _buildCurrentView(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTopNavigation() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceContainerLow,
+        border: const Border(
+          bottom: BorderSide(
+            color: AppTheme.outlineVariant,
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _buildNavButton(
+              index: 0,
+              icon: Icons.assignment_outlined,
+              label: 'Encuestas Disponibles',
+            ),
+            const SizedBox(width: 8),
+            _buildNavButton(
+              index: 1,
+              icon: Icons.history_rounded,
+              label: 'Historial de Encuestas',
+            ),
+            const SizedBox(width: 8),
+            _buildNavButton(
+              index: 2,
+              icon: Icons.receipt_long_rounded,
+              label: 'Historial de Pagos',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavButton({
+    required int index,
+    required IconData icon,
+    required String label,
+  }) {
+    final isSelected = _selectedView == index;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => setState(() => _selectedView = index),
+        borderRadius: BorderRadius.circular(10),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? AppTheme.primary
+                : AppTheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected ? AppTheme.primary : AppTheme.outlineVariant,
+              width: 1,
+            ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: AppTheme.primary.withValues(alpha: 0.25),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color:
+                    isSelected ? AppTheme.onPrimary : AppTheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: isSelected
+                      ? AppTheme.onPrimary
+                      : AppTheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCurrentView() {
+    switch (_selectedView) {
+      case 0:
+        return _buildEncuestasDisponiblesView();
+      case 1:
+        return _buildHistorialEncuestasView();
+      case 2:
+        return _buildHistorialPagosView();
+      default:
+        return _buildEncuestasDisponiblesView();
+    }
+  }
+
+  /// VISTA 0: ENCUESTAS DISPONIBLES (Monto de cuota a cancelar + Confirmación + Comprobante)
+  Widget _buildEncuestasDisponiblesView() {
     return FutureBuilder<List<StudentSurvey>>(
-      future: _encuestasFuture,
+      key: const ValueKey('encuestas_disponibles'),
+      future: _encuestasDisponiblesFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
         final encuestas = snapshot.data ?? [];
         if (encuestas.isEmpty) {
-          return const Center(
+          return Center(
             child: Padding(
-              padding: EdgeInsets.all(24.0),
+              padding: const EdgeInsets.all(24.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.inventory_2_outlined,
                     size: 64,
                     color: AppTheme.onSurfaceVariant,
                   ),
-                  SizedBox(height: 12),
-                  Text(
+                  const SizedBox(height: 12),
+                  const Text(
                     'No hay encuestas de insumos activas en este momento.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 15,
                       color: AppTheme.onSurfaceVariant,
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: () => setState(() => _selectedView = 1),
+                    icon: const Icon(Icons.history_rounded),
+                    label: const Text('Ver Historial de Encuestas'),
                   ),
                 ],
               ),
@@ -1811,7 +2055,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
         }
 
         return RefreshIndicator(
-          onRefresh: () async => _loadEncuestas(),
+          onRefresh: () async => _loadAll(),
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: encuestas.length,
@@ -1877,78 +2121,118 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                           color: AppTheme.onSurfaceVariant,
                         ),
                       ),
-                      const Divider(height: 24),
+                      const SizedBox(height: 14),
 
-                      // Montos y Cálculos Dinámicos
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          Column(
-                            children: [
-                              const Text(
-                                'Presupuesto Total',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppTheme.onSurfaceVariant,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                Formatters.currency(enc.costoTotalInsumos),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
+                      // TARJETA DESTACADA: MONTO DE LA CUOTA A CANCELAR
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppTheme.secondary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppTheme.secondary.withValues(alpha: 0.35),
+                            width: 1.5,
                           ),
-                          Column(
-                            children: [
-                              const Text(
-                                'Confirmados',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppTheme.onSurfaceVariant,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.secondary
+                                        .withValues(alpha: 0.15),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.account_balance_wallet_outlined,
+                                    color: AppTheme.secondary,
+                                    size: 22,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '${enc.totalConfirmados}',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.primary,
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'MONTO DE LA CUOTA A CANCELAR',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 0.5,
+                                          color: AppTheme.secondary,
+                                        ),
+                                      ),
+                                      Text(
+                                        enc.cuotaACancelar > 0
+                                            ? Formatters.currency(
+                                                enc.cuotaACancelar)
+                                            : r'$0.00',
+                                        style: const TextStyle(
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w900,
+                                          color: AppTheme.onSurface,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          Column(
-                            children: [
-                              const Text(
-                                'Tu Aporte Aprox.',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppTheme.onSurfaceVariant,
+                                OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppTheme.secondary,
+                                    side: const BorderSide(
+                                        color: AppTheme.secondary),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 6),
+                                  ),
+                                  onPressed: () =>
+                                      setState(() => _selectedView = 2),
+                                  icon: const Icon(Icons.receipt_long,
+                                      size: 16),
+                                  label: const Text(
+                                    'Ver Pagos',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold),
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                enc.montoIndividual > 0
-                                    ? Formatters.currency(enc.montoIndividual)
-                                    : r'$0.00',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.secondary,
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            const Divider(height: 1, thickness: 0.5),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Presupuesto Total: ${Formatters.currency(enc.costoTotalInsumos)}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppTheme.onSurfaceVariant,
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
+                                Text(
+                                  'Confirmadas: ${enc.totalConfirmados} alumnas',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 16),
 
-                      // PREGUNTA DE CONFIRMACIÓN
+                      // PREGUNTA DE CONFIRMACIÓN DE ASISTENCIA
                       if (enc.respondio != true) ...[
                         const Text(
                           '¿Asistirás a la próxima clase y compartirás el costo de insumos?',
@@ -2017,7 +2301,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                         ),
                         const SizedBox(height: 12),
 
-                        // SUBIR COMPROBANTE DE PAGO
+                        // SECCIÓN DE SUBIDA O ESTADO DE COMPROBANTE DE PAGO
                         if (enc.asistira == true) ...[
                           if (enc.comprobanteUrl == null ||
                               enc.comprobanteUrl!.isEmpty) ...[
@@ -2032,17 +2316,17 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                   color: AppTheme.warningOrange,
                                 ),
                               ),
-                              child: const Row(
+                              child: Row(
                                 children: [
-                                  Icon(
+                                  const Icon(
                                     Icons.info_outline,
                                     color: AppTheme.warningOrange,
                                   ),
-                                  SizedBox(width: 8),
+                                  const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      'Capture pendiente: Recuerda adjuntar la imagen de tu pago para que el profesor verifique tu aporte.',
-                                      style: TextStyle(
+                                      'Capture pendiente: Recuerda adjuntar la imagen de tu pago por ${Formatters.currency(enc.cuotaACancelar)} para que el profesor verifique tu aporte.',
+                                      style: const TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
                                         color: AppTheme.warningOrange,
@@ -2053,66 +2337,131 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                               ),
                             ),
                             const SizedBox(height: 10),
-                            ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.secondary,
-                              ),
-                              onPressed: _isUploading
-                                  ? null
-                                  : () => _mostrarSelectorComprobante(enc),
-                              icon: const Icon(Icons.upload_file),
-                              label: _isUploading
-                                  ? const SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        color: AppTheme.onSurface,
-                                        strokeWidth: 2,
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.secondary,
+                                ),
+                                onPressed: _isUploading
+                                    ? null
+                                    : () => _mostrarSelectorComprobante(enc.id),
+                                icon: const Icon(Icons.upload_file),
+                                label: _isUploading
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          color: AppTheme.onSurface,
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Text(
+                                        'Subir Comprobante de Pago',
                                       ),
-                                    )
-                                  : const Text('Subir Comprobante de Pago'),
+                              ),
                             ),
                           ] else ...[
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.receipt_long,
-                                  color: AppTheme.primary,
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppTheme.surfaceContainerLow,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: AppTheme.outlineVariant,
                                 ),
-                                const SizedBox(width: 8),
-                                const Text(
-                                  'Comprobante enviado',
-                                  style: TextStyle(fontWeight: FontWeight.w600),
-                                ),
-                                const Spacer(),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: enc.estadoPago == 'verificado'
-                                        ? AppTheme.tertiary.withValues(
-                                            alpha: 0.15,
-                                          )
-                                        : AppTheme.warningOrange.withValues(
-                                            alpha: 0.15,
+                              ),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.receipt_long,
+                                        color: AppTheme.primary,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Expanded(
+                                        child: Text(
+                                          'Comprobante enviado',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: enc.estadoPago == 'verificado'
+                                              ? AppTheme.tertiary.withValues(
+                                                  alpha: 0.15,
+                                                )
+                                              : enc.estadoPago == 'rechazado'
+                                                  ? AppTheme.errorRed
+                                                      .withValues(alpha: 0.15)
+                                                  : AppTheme.warningOrange
+                                                      .withValues(
+                                                      alpha: 0.15,
+                                                    ),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          enc.estadoPago?.toUpperCase() ??
+                                              'PENDIENTE',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: enc.estadoPago ==
+                                                    'verificado'
+                                                ? AppTheme.successGreen
+                                                : enc.estadoPago == 'rechazado'
+                                                    ? AppTheme.errorRed
+                                                    : AppTheme.warningOrange,
                                           ),
-                                    borderRadius: BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  child: Text(
-                                    enc.estadoPago?.toUpperCase() ??
-                                        'PENDIENTE',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: enc.estadoPago == 'verificado'
-                                          ? AppTheme.successGreen
-                                          : AppTheme.warningOrange,
-                                    ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: OutlinedButton.icon(
+                                          onPressed: () =>
+                                              _mostrarModalComprobante(
+                                            context,
+                                            url: enc.comprobanteUrl!,
+                                            curso: enc.cursoNombre,
+                                            fecha: enc.fechaClase,
+                                            estadoPago: enc.estadoPago ??
+                                                'pendiente',
+                                          ),
+                                          icon: const Icon(
+                                              Icons.visibility_outlined,
+                                              size: 16),
+                                          label: const Text('Ver Capture'),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      if (enc.estadoPago != 'verificado')
+                                        Expanded(
+                                          child: TextButton.icon(
+                                            onPressed: _isUploading
+                                                ? null
+                                                : () =>
+                                                    _mostrarSelectorComprobante(
+                                                        enc.id),
+                                            icon: const Icon(Icons.sync,
+                                                size: 16),
+                                            label: const Text('Actualizar'),
+                                          ),
+                                        ),
+                                    ],
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ],
                         ],
@@ -2127,4 +2476,620 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
       },
     );
   }
+
+  /// VISTA 1: HISTORIAL DE ENCUESTAS (Encuestas Pasadas/Cerradas)
+  Widget _buildHistorialEncuestasView() {
+    return FutureBuilder<List<StudentSurvey>>(
+      key: const ValueKey('historial_encuestas'),
+      future: _historialEncuestasFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final encuestas = snapshot.data ?? [];
+        if (encuestas.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.history_toggle_off,
+                    size: 64,
+                    color: AppTheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'No hay encuestas anteriores o finalizadas registradas en el historial.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: AppTheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () => setState(() => _selectedView = 0),
+                    icon: const Icon(Icons.assignment_outlined),
+                    label: const Text('Ver Encuestas Disponibles'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: () async => _loadAll(),
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: encuestas.length,
+            itemBuilder: (context, idx) {
+              final enc = encuestas[idx];
+              return Card(
+                margin: const EdgeInsets.only(bottom: 14),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Encabezado
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              enc.cursoNombre,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.onSurface,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              'FINALIZADA',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Fecha de Clase: ${enc.fechaClase}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        'Cerrada el: ${Formatters.dateTime(enc.fechaLimite)}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const Divider(height: 20),
+
+                      // Desglose de montos finales
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          Column(
+                            children: [
+                              const Text(
+                                'Costo Total Insumos',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppTheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                Formatters.currency(enc.costoTotalInsumos),
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Column(
+                            children: [
+                              const Text(
+                                'Confirmadas',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppTheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${enc.totalConfirmados}',
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Column(
+                            children: [
+                              const Text(
+                                'Cuota Final',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppTheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                Formatters.currency(enc.cuotaACancelar),
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.secondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Estado de participación del alumno
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: enc.asistira == true
+                              ? AppTheme.tertiary.withValues(alpha: 0.1)
+                              : AppTheme.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: enc.asistira == true
+                                ? AppTheme.tertiary.withValues(alpha: 0.3)
+                                : AppTheme.outlineVariant,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              enc.asistira == true
+                                  ? Icons.check_circle_outline
+                                  : Icons.cancel_outlined,
+                              size: 18,
+                              color: enc.asistira == true
+                                  ? AppTheme.successGreen
+                                  : AppTheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                enc.respondio != true
+                                    ? 'No participaste en esta encuesta'
+                                    : (enc.asistira == true
+                                        ? 'Asististe • Aporte: ${Formatters.currency(enc.cuotaACancelar)} (${enc.estadoPago?.toUpperCase() ?? "SIN PAGO"})'
+                                        : 'Marcaste que no asistirías'),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: enc.asistira == true
+                                      ? AppTheme.successGreen
+                                      : AppTheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                            if (enc.comprobanteUrl != null &&
+                                enc.comprobanteUrl!.isNotEmpty)
+                              InkWell(
+                                onTap: () => _mostrarModalComprobante(
+                                  context,
+                                  url: enc.comprobanteUrl!,
+                                  curso: enc.cursoNombre,
+                                  fecha: enc.fechaClase,
+                                  estadoPago: enc.estadoPago ?? 'pendiente',
+                                ),
+                                child: const Padding(
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.receipt_long,
+                                          size: 14, color: AppTheme.primary),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Ver Capture',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: AppTheme.primary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  /// VISTA 2: HISTORIAL DE PAGOS REALIZADOS
+  Widget _buildHistorialPagosView() {
+    return FutureBuilder<List<StudentPaymentRecord>>(
+      key: const ValueKey('historial_pagos'),
+      future: _historialPagosFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final pagos = snapshot.data ?? [];
+
+        if (pagos.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.receipt_long_outlined,
+                    size: 64,
+                    color: AppTheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'No tienes pagos realizados registrados aún.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Cuando confirmes asistencia a una clase práctica y subas tu comprobante de aporte para insumos, se mostrará aquí.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppTheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton.icon(
+                    onPressed: () => setState(() => _selectedView = 0),
+                    icon: const Icon(Icons.assignment_outlined),
+                    label: const Text('Ir a Encuestas Disponibles'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final verificados = pagos.where((p) => p.isVerificado).length;
+        final pendientes = pagos.where((p) => p.isPendiente).length;
+
+        return RefreshIndicator(
+          onRefresh: () async => _loadAll(),
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              // Tarjeta Resumen Superior de Pagos
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppTheme.outlineVariant),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildMetricCol(
+                      label: 'Total Pagos',
+                      value: '${pagos.length}',
+                      color: AppTheme.primary,
+                    ),
+                    Container(
+                      width: 1,
+                      height: 36,
+                      color: AppTheme.outlineVariant,
+                    ),
+                    _buildMetricCol(
+                      label: 'Verificados',
+                      value: '$verificados',
+                      color: AppTheme.successGreen,
+                    ),
+                    Container(
+                      width: 1,
+                      height: 36,
+                      color: AppTheme.outlineVariant,
+                    ),
+                    _buildMetricCol(
+                      label: 'Pendientes',
+                      value: '$pendientes',
+                      color: AppTheme.warningOrange,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              const Text(
+                'Listado de Comprobantes y Aportes',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // Lista de Pagos Realizados
+              ...pagos.map((pago) {
+                Color statusBg;
+                Color statusText;
+                String statusLabel;
+                IconData statusIcon;
+
+                if (pago.isVerificado) {
+                  statusBg = AppTheme.tertiary.withValues(alpha: 0.15);
+                  statusText = AppTheme.successGreen;
+                  statusLabel = 'VERIFICADO';
+                  statusIcon = Icons.check_circle_outline;
+                } else if (pago.isRechazado) {
+                  statusBg = AppTheme.errorRed.withValues(alpha: 0.15);
+                  statusText = AppTheme.errorRed;
+                  statusLabel = 'RECHAZADO';
+                  statusIcon = Icons.cancel_outlined;
+                } else {
+                  statusBg = AppTheme.warningOrange.withValues(alpha: 0.15);
+                  statusText = AppTheme.warningOrange;
+                  statusLabel = 'PENDIENTE';
+                  statusIcon = Icons.hourglass_top_outlined;
+                }
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Encabezado del pago
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color:
+                                    AppTheme.primary.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.school_outlined,
+                                size: 18,
+                                color: AppTheme.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                pago.cursoNombre,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.onSurface,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: statusBg,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(statusIcon,
+                                      size: 13, color: statusText),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    statusLabel,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: statusText,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Monto y Fecha
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Cuota Cancelada',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppTheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  Formatters.currency(pago.montoCancelado),
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w900,
+                                    color: AppTheme.secondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                const Text(
+                                  'Clase Práctica',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppTheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  pago.fechaClase,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+
+                        if (pago.comprobanteSubidoAt != null) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            'Comprobante cargado el: ${Formatters.dateTime(pago.comprobanteSubidoAt!)}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 14),
+
+                        // Acciones: Ver o Actualizar Comprobante
+                        Row(
+                          children: [
+                            if (pago.comprobanteUrl != null &&
+                                pago.comprobanteUrl!.isNotEmpty) ...[
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => _mostrarModalComprobante(
+                                    context,
+                                    url: pago.comprobanteUrl!,
+                                    curso: pago.cursoNombre,
+                                    fecha: pago.fechaClase,
+                                    estadoPago: pago.estadoPago,
+                                  ),
+                                  icon: const Icon(
+                                      Icons.visibility_outlined,
+                                      size: 16),
+                                  label: const Text('Ver Comprobante'),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+                            if (!pago.isVerificado)
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: pago.comprobanteUrl != null
+                                        ? AppTheme.surfaceContainerHighest
+                                        : AppTheme.secondary,
+                                    foregroundColor: pago.comprobanteUrl != null
+                                        ? AppTheme.onSurface
+                                        : AppTheme.onSecondary,
+                                  ),
+                                  onPressed: _isUploading
+                                      ? null
+                                      : () => _mostrarSelectorComprobante(
+                                          pago.encuestaId),
+                                  icon: Icon(
+                                    pago.comprobanteUrl != null
+                                        ? Icons.sync
+                                        : Icons.upload_file,
+                                    size: 16,
+                                  ),
+                                  label: Text(
+                                    pago.comprobanteUrl != null
+                                        ? 'Actualizar'
+                                        : 'Subir Capture',
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMetricCol({
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: AppTheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
 }
+

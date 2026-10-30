@@ -288,11 +288,176 @@ class StudentRepository {
           asistira: respData?['asistira'] as bool?,
           comprobanteUrl: respData?['comprobante_url'] as String?,
           estadoPago: respData?['estado_pago'] as String?,
+          montoAsignado: (respData?['monto_asignado'] as num?)?.toDouble(),
+          comprobanteSubidoAt: respData?['comprobante_subido_at'] != null
+              ? DateTime.tryParse(respData!['comprobante_subido_at'] as String)
+              : null,
         ),
       );
     }
 
     return resultado;
+  }
+
+  /// Obtiene el historial de encuestas (cerradas, finalizadas o pasadas) de los cursos del alumno
+  Future<List<StudentSurvey>> getSurveysHistory() async {
+    final alumno = await getAlumnoRecord();
+    if (alumno == null) return [];
+
+    final inscripciones = await _supabase
+        .from('inscripciones')
+        .select('curso_id')
+        .eq('alumno_id', alumno['id'])
+        .isFilter('deleted_at', null);
+
+    final cursoIds = (inscripciones as List)
+        .map((i) => i['curso_id'] as String)
+        .toList();
+    if (cursoIds.isEmpty) return [];
+
+    final encuestasData = await _supabase
+        .from('encuestas_participacion')
+        .select('''
+          id,
+          curso_id,
+          fecha_clase,
+          costo_total_insumos,
+          fecha_limite,
+          monto_individual_calculado,
+          total_confirmados,
+          estado,
+          cursos:curso_id (
+            nombre
+          )
+        ''')
+        .inFilter('curso_id', cursoIds)
+        .order('fecha_clase', ascending: false);
+
+    final List<StudentSurvey> resultado = [];
+
+    for (final enc in (encuestasData as List)) {
+      final estado = enc['estado'] as String? ?? 'activa';
+      final fechaLimite =
+          DateTime.tryParse(enc['fecha_limite'] as String? ?? '') ??
+              DateTime.now();
+      final esPasada = estado != 'activa' || DateTime.now().isAfter(fechaLimite);
+
+      // Si aún está activa y vigente, se consulta en encuestas disponibles
+      if (!esPasada) continue;
+
+      final encuestaId = enc['id'] as String;
+
+      final respData = await _supabase
+          .from('respuestas_encuesta')
+          .select()
+          .eq('encuesta_id', encuestaId)
+          .eq('alumno_id', alumno['id'])
+          .maybeSingle();
+
+      final cursoMap = enc['cursos'] as Map<String, dynamic>?;
+
+      resultado.add(
+        StudentSurvey(
+          id: encuestaId,
+          cursoId: enc['curso_id'] as String,
+          cursoNombre: cursoMap?['nombre'] ?? 'Curso',
+          fechaClase: enc['fecha_clase']?.toString() ?? '',
+          costoTotalInsumos:
+              (enc['costo_total_insumos'] as num?)?.toDouble() ?? 0.0,
+          fechaLimite: fechaLimite,
+          montoIndividual:
+              (enc['monto_individual_calculado'] as num?)?.toDouble() ?? 0.0,
+          totalConfirmados: (enc['total_confirmados'] as num?)?.toInt() ?? 0,
+          estadoEncuesta: estado,
+          respondio: respData != null,
+          asistira: respData?['asistira'] as bool?,
+          comprobanteUrl: respData?['comprobante_url'] as String?,
+          estadoPago: respData?['estado_pago'] as String?,
+          montoAsignado: (respData?['monto_asignado'] as num?)?.toDouble(),
+          comprobanteSubidoAt: respData?['comprobante_subido_at'] != null
+              ? DateTime.tryParse(respData!['comprobante_subido_at'] as String)
+              : null,
+        ),
+      );
+    }
+
+    return resultado;
+  }
+
+  /// Obtiene el historial de pagos realizados / comprobantes registrados por el alumno
+  Future<List<StudentPaymentRecord>> getPaymentHistory() async {
+    final alumno = await getAlumnoRecord();
+    if (alumno == null) return [];
+
+    final data = await _supabase
+        .from('respuestas_encuesta')
+        .select('''
+          id,
+          encuesta_id,
+          alumno_id,
+          asistira,
+          monto_asignado,
+          comprobante_url,
+          estado_pago,
+          comprobante_subido_at,
+          created_at,
+          encuestas_participacion:encuesta_id (
+            id,
+            curso_id,
+            fecha_clase,
+            costo_total_insumos,
+            monto_individual_calculado,
+            estado,
+            cursos:curso_id (
+              id,
+              nombre
+            )
+          )
+        ''')
+        .eq('alumno_id', alumno['id'])
+        .order('created_at', ascending: false);
+
+    final List<StudentPaymentRecord> records = [];
+
+    for (final item in (data as List)) {
+      final asistira = item['asistira'] as bool? ?? false;
+      final comprobanteUrl = item['comprobante_url'] as String?;
+
+      // Considerar registros donde asistirá o donde ya cargó comprobante
+      if (!asistira && (comprobanteUrl == null || comprobanteUrl.isEmpty)) {
+        continue;
+      }
+
+      final encMap = item['encuestas_participacion'] as Map<String, dynamic>?;
+      final cursoMap = encMap?['cursos'] as Map<String, dynamic>?;
+      final montoAsignado =
+          (item['monto_asignado'] as num?)?.toDouble() ?? 0.0;
+      final montoCalculado =
+          (encMap?['monto_individual_calculado'] as num?)?.toDouble() ?? 0.0;
+      final montoFinal = montoAsignado > 0 ? montoAsignado : montoCalculado;
+
+      records.add(
+        StudentPaymentRecord(
+          id: item['id'] as String,
+          encuestaId: item['encuesta_id'] as String,
+          cursoId: encMap?['curso_id'] as String? ?? '',
+          cursoNombre: cursoMap?['nombre'] ?? 'Curso',
+          fechaClase: encMap?['fecha_clase']?.toString() ?? '',
+          montoCancelado: montoFinal,
+          comprobanteUrl: comprobanteUrl,
+          estadoPago: (item['estado_pago'] as String?) ?? 'pendiente',
+          comprobanteSubidoAt: item['comprobante_subido_at'] != null
+              ? DateTime.tryParse(item['comprobante_subido_at'] as String)
+              : null,
+          fechaRespuesta: item['created_at'] != null
+              ? DateTime.tryParse(item['created_at'] as String)
+              : null,
+          asistira: asistira,
+        ),
+      );
+    }
+
+    return records;
   }
 
   /// Responder a la encuesta (¿Asistirás a la próxima clase?)
