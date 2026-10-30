@@ -1645,7 +1645,7 @@ class _ModalJustificarAusenciaState extends State<_ModalJustificarAusencia> {
 
 
 /// -------------------------------------------------------------
-/// TAB 3: ENCUESTAS Y APORTES (Encuesta Disponible, Historial y Pagos)
+/// TAB 3: ENCUESTAS Y APORTES (Buscador con Filtros: Disponibles, Historial y Pagos)
 /// -------------------------------------------------------------
 class _EncuestasAportesTab extends StatefulWidget {
   final StudentRepository studentRepository;
@@ -1656,8 +1656,10 @@ class _EncuestasAportesTab extends StatefulWidget {
 }
 
 class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
-  // 0: Encuesta Disponible, 1: Historial de Encuestas, 2: Historial de Pagos
-  int _selectedView = 0;
+  // Filtros: 0 = Encuestas Disponibles, 1 = Historial de Encuestas, 2 = Historial de Pagos
+  int _selectedFilter = 0;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   late Future<List<StudentSurvey>> _encuestasDisponiblesFuture;
   late Future<List<StudentSurvey>> _historialEncuestasFuture;
@@ -1672,12 +1674,31 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
     _loadAll();
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   void _loadAll() {
     setState(() {
       _encuestasDisponiblesFuture = widget.studentRepository.getActiveSurveys();
       _historialEncuestasFuture = widget.studentRepository.getSurveysHistory();
       _historialPagosFuture = widget.studentRepository.getPaymentHistory();
     });
+  }
+
+  String _getSearchHint() {
+    switch (_selectedFilter) {
+      case 0:
+        return 'Buscar encuesta disponible (ej. Confección, Repostería)...';
+      case 1:
+        return 'Buscar en historial de encuestas por curso o fecha...';
+      case 2:
+        return 'Buscar pagos realizados por curso, fecha o estado...';
+      default:
+        return 'Buscar por curso, fecha o estado...';
+    }
   }
 
   Future<void> _responder(StudentSurvey enc, bool asistira) async {
@@ -1885,23 +1906,23 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Barra superior con botones de navegación del módulo de Encuestas
-        _buildTopNavigation(),
-        // Contenido según vista seleccionada
+        // Buscador superior con los 3 filtros
+        _buildSearchBarWithFilters(),
+        // Contenido según el filtro activo
         Expanded(
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 200),
-            child: _buildCurrentView(),
+            child: _buildCurrentFilteredView(),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildTopNavigation() {
+  Widget _buildSearchBarWithFilters() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       decoration: BoxDecoration(
         color: AppTheme.surfaceContainerLow,
         border: const Border(
@@ -1911,52 +1932,107 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
           ),
         ),
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            _buildNavButton(
-              index: 0,
-              icon: Icons.assignment_outlined,
-              label: 'Encuestas Disponibles',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Campo de búsqueda en tiempo real
+          TextField(
+            controller: _searchController,
+            onChanged: (val) {
+              setState(() {
+                _searchQuery = val.trim().toLowerCase();
+              });
+            },
+            decoration: InputDecoration(
+              hintText: _getSearchHint(),
+              hintStyle: const TextStyle(
+                fontSize: 13,
+                color: AppTheme.onSurfaceVariant,
+              ),
+              prefixIcon: const Icon(Icons.search, size: 20, color: AppTheme.primary),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      tooltip: 'Limpiar búsqueda',
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _searchQuery = '');
+                      },
+                    )
+                  : null,
+              filled: true,
+              fillColor: AppTheme.surfaceBright,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppTheme.outlineVariant),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppTheme.outlineVariant),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppTheme.primary, width: 1.5),
+              ),
             ),
-            const SizedBox(width: 8),
-            _buildNavButton(
-              index: 1,
-              icon: Icons.history_rounded,
-              label: 'Historial de Encuestas',
+          ),
+          const SizedBox(height: 10),
+
+          // 3 Filtros: Encuestas Disponibles, Historial de Encuestas, Historial de Pagos
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildFilterChip(
+                  label: 'Encuestas Disponibles',
+                  filterIndex: 0,
+                  icon: Icons.assignment_outlined,
+                ),
+                const SizedBox(width: 8),
+                _buildFilterChip(
+                  label: 'Historial de Encuestas',
+                  filterIndex: 1,
+                  icon: Icons.history_rounded,
+                ),
+                const SizedBox(width: 8),
+                _buildFilterChip(
+                  label: 'Historial de Pagos',
+                  filterIndex: 2,
+                  icon: Icons.receipt_long_rounded,
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            _buildNavButton(
-              index: 2,
-              icon: Icons.receipt_long_rounded,
-              label: 'Historial de Pagos',
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildNavButton({
-    required int index,
-    required IconData icon,
+  Widget _buildFilterChip({
     required String label,
+    required int filterIndex,
+    required IconData icon,
   }) {
-    final isSelected = _selectedView == index;
+    final isSelected = _selectedFilter == filterIndex;
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => setState(() => _selectedView = index),
-        borderRadius: BorderRadius.circular(10),
+        onTap: () {
+          setState(() {
+            _selectedFilter = filterIndex;
+          });
+        },
+        borderRadius: BorderRadius.circular(20),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: isSelected
                 ? AppTheme.primary
-                : AppTheme.surfaceContainerHighest.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(10),
+                : AppTheme.surfaceBright,
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: isSelected ? AppTheme.primary : AppTheme.outlineVariant,
               width: 1,
@@ -1964,7 +2040,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: AppTheme.primary.withValues(alpha: 0.25),
+                      color: AppTheme.primary.withValues(alpha: 0.2),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -1976,15 +2052,15 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
             children: [
               Icon(
                 icon,
-                size: 18,
+                size: 15,
                 color:
                     isSelected ? AppTheme.onPrimary : AppTheme.onSurfaceVariant,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 12,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                   color: isSelected
                       ? AppTheme.onPrimary
@@ -1998,8 +2074,8 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
     );
   }
 
-  Widget _buildCurrentView() {
-    switch (_selectedView) {
+  Widget _buildCurrentFilteredView() {
+    switch (_selectedFilter) {
       case 0:
         return _buildEncuestasDisponiblesView();
       case 1:
@@ -2011,7 +2087,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
     }
   }
 
-  /// VISTA 0: ENCUESTAS DISPONIBLES (Monto de cuota a cancelar + Confirmación + Comprobante)
+  /// FILTRO 0: ENCUESTAS DISPONIBLES (Monto de cuota a cancelar + Confirmación + Comprobante)
   Widget _buildEncuestasDisponiblesView() {
     return FutureBuilder<List<StudentSurvey>>(
       key: const ValueKey('encuestas_disponibles'),
@@ -2020,7 +2096,14 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        final encuestas = snapshot.data ?? [];
+        final allEncuestas = snapshot.data ?? [];
+        final encuestas = allEncuestas.where((e) {
+          if (_searchQuery.isEmpty) return true;
+          return e.cursoNombre.toLowerCase().contains(_searchQuery) ||
+              e.fechaClase.toLowerCase().contains(_searchQuery) ||
+              e.estadoEncuesta.toLowerCase().contains(_searchQuery);
+        }).toList();
+
         if (encuestas.isEmpty) {
           return Center(
             child: Padding(
@@ -2028,26 +2111,40 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.inventory_2_outlined,
+                  Icon(
+                    _searchQuery.isNotEmpty
+                        ? Icons.search_off
+                        : Icons.inventory_2_outlined,
                     size: 64,
                     color: AppTheme.onSurfaceVariant,
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'No hay encuestas de insumos activas en este momento.',
+                  Text(
+                    _searchQuery.isNotEmpty
+                        ? 'No se encontraron encuestas disponibles que coincidan con "$_searchQuery".'
+                        : 'No hay encuestas de insumos activas en este momento.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 15,
                       color: AppTheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: () => setState(() => _selectedView = 1),
-                    icon: const Icon(Icons.history_rounded),
-                    label: const Text('Ver Historial de Encuestas'),
-                  ),
+                  if (_searchQuery.isNotEmpty)
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _searchQuery = '');
+                      },
+                      icon: const Icon(Icons.clear),
+                      label: const Text('Limpiar Búsqueda'),
+                    )
+                  else
+                    OutlinedButton.icon(
+                      onPressed: () => setState(() => _selectedFilter = 1),
+                      icon: const Icon(Icons.history_rounded),
+                      label: const Text('Ver Historial de Encuestas'),
+                    ),
                 ],
               ),
             ),
@@ -2191,7 +2288,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                         horizontal: 10, vertical: 6),
                                   ),
                                   onPressed: () =>
-                                      setState(() => _selectedView = 2),
+                                      setState(() => _selectedFilter = 2),
                                   icon: const Icon(Icons.receipt_long,
                                       size: 16),
                                   label: const Text(
@@ -2477,7 +2574,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
     );
   }
 
-  /// VISTA 1: HISTORIAL DE ENCUESTAS (Encuestas Pasadas/Cerradas)
+  /// FILTRO 1: HISTORIAL DE ENCUESTAS (Encuestas Pasadas/Cerradas)
   Widget _buildHistorialEncuestasView() {
     return FutureBuilder<List<StudentSurvey>>(
       key: const ValueKey('historial_encuestas'),
@@ -2486,7 +2583,14 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        final encuestas = snapshot.data ?? [];
+        final allEncuestas = snapshot.data ?? [];
+        final encuestas = allEncuestas.where((e) {
+          if (_searchQuery.isEmpty) return true;
+          return e.cursoNombre.toLowerCase().contains(_searchQuery) ||
+              e.fechaClase.toLowerCase().contains(_searchQuery) ||
+              (e.estadoPago?.toLowerCase().contains(_searchQuery) ?? false);
+        }).toList();
+
         if (encuestas.isEmpty) {
           return Center(
             child: Padding(
@@ -2494,26 +2598,40 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.history_toggle_off,
+                  Icon(
+                    _searchQuery.isNotEmpty
+                        ? Icons.search_off
+                        : Icons.history_toggle_off,
                     size: 64,
                     color: AppTheme.onSurfaceVariant,
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'No hay encuestas anteriores o finalizadas registradas en el historial.',
+                  Text(
+                    _searchQuery.isNotEmpty
+                        ? 'No se encontraron encuestas en el historial para "$_searchQuery".'
+                        : 'No hay encuestas anteriores o finalizadas registradas en el historial.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 15,
                       color: AppTheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: () => setState(() => _selectedView = 0),
-                    icon: const Icon(Icons.assignment_outlined),
-                    label: const Text('Ver Encuestas Disponibles'),
-                  ),
+                  if (_searchQuery.isNotEmpty)
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _searchQuery = '');
+                      },
+                      icon: const Icon(Icons.clear),
+                      label: const Text('Limpiar Búsqueda'),
+                    )
+                  else
+                    ElevatedButton.icon(
+                      onPressed: () => setState(() => _selectedFilter = 0),
+                      icon: const Icon(Icons.assignment_outlined),
+                      label: const Text('Ver Encuestas Disponibles'),
+                    ),
                 ],
               ),
             ),
@@ -2740,7 +2858,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
     );
   }
 
-  /// VISTA 2: HISTORIAL DE PAGOS REALIZADOS
+  /// FILTRO 2: HISTORIAL DE PAGOS REALIZADOS
   Widget _buildHistorialPagosView() {
     return FutureBuilder<List<StudentPaymentRecord>>(
       key: const ValueKey('historial_pagos'),
@@ -2749,7 +2867,14 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        final pagos = snapshot.data ?? [];
+        final allPagos = snapshot.data ?? [];
+        final pagos = allPagos.where((p) {
+          if (_searchQuery.isEmpty) return true;
+          return p.cursoNombre.toLowerCase().contains(_searchQuery) ||
+              p.fechaClase.toLowerCase().contains(_searchQuery) ||
+              p.estadoPago.toLowerCase().contains(_searchQuery) ||
+              p.montoCancelado.toString().contains(_searchQuery);
+        }).toList();
 
         if (pagos.isEmpty) {
           return Center(
@@ -2758,36 +2883,51 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.receipt_long_outlined,
+                  Icon(
+                    _searchQuery.isNotEmpty
+                        ? Icons.search_off
+                        : Icons.receipt_long_outlined,
                     size: 64,
                     color: AppTheme.onSurfaceVariant,
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'No tienes pagos realizados registrados aún.',
+                  Text(
+                    _searchQuery.isNotEmpty
+                        ? 'No se encontraron pagos registrados para "$_searchQuery".'
+                        : 'No tienes pagos realizados registrados aún.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: AppTheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
-                    'Cuando confirmes asistencia a una clase práctica y subas tu comprobante de aporte para insumos, se mostrará aquí.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppTheme.onSurfaceVariant,
+                  if (_searchQuery.isEmpty)
+                    const Text(
+                      'Cuando confirmes asistencia a una clase práctica y subas tu comprobante de aporte para insumos, se mostrará aquí.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.onSurfaceVariant,
+                      ),
                     ),
-                  ),
                   const SizedBox(height: 20),
-                  ElevatedButton.icon(
-                    onPressed: () => setState(() => _selectedView = 0),
-                    icon: const Icon(Icons.assignment_outlined),
-                    label: const Text('Ir a Encuestas Disponibles'),
-                  ),
+                  if (_searchQuery.isNotEmpty)
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _searchQuery = '');
+                      },
+                      icon: const Icon(Icons.clear),
+                      label: const Text('Limpiar Búsqueda'),
+                    )
+                  else
+                    ElevatedButton.icon(
+                      onPressed: () => setState(() => _selectedFilter = 0),
+                      icon: const Icon(Icons.assignment_outlined),
+                      label: const Text('Ir a Encuestas Disponibles'),
+                    ),
                 ],
               ),
             ),
