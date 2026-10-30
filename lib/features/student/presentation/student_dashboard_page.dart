@@ -2195,56 +2195,54 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                               ],
                             ),
                             const SizedBox(height: 12),
+                            const Text(
+                              'Monto de tu cuota a cancelar:',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              enc.cuotaACancelar > 0
+                                  ? Formatters.currency(enc.cuotaACancelar)
+                                  : r'$0.00',
+                              style: const TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.w900,
+                                color: AppTheme.successGreen,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            const Divider(
+                              height: 1,
+                              thickness: 0.5,
+                              color: AppTheme.outlineVariant,
+                            ),
+                            const SizedBox(height: 8),
                             Row(
                               mainAxisAlignment:
                                   MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Monto de tu cuota a cancelar:',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: AppTheme.onSurfaceVariant,
-                                      ),
+                                Expanded(
+                                  child: Text(
+                                    'Costo Total Insumos: ${Formatters.currency(enc.costoTotalInsumos)}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppTheme.onSurfaceVariant,
                                     ),
-                                    Text(
-                                      enc.cuotaACancelar > 0
-                                          ? Formatters.currency(
-                                              enc.cuotaACancelar)
-                                          : r'$0.00',
-                                      style: const TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.w900,
-                                        color: AppTheme.onSurface,
-                                      ),
-                                    ),
-                                  ],
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      'Costo Total Insumos: ${Formatters.currency(enc.costoTotalInsumos)}',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppTheme.onSurfaceVariant,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '${enc.totalConfirmados} alumnas confirmadas',
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        color: AppTheme.primary,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
+                                const SizedBox(width: 8),
+                                Text(
+                                  '${enc.totalConfirmados} alumnos confirmados',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppTheme.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ],
                             ),
@@ -2260,14 +2258,14 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                           width: double.infinity,
                           child: ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.secondary,
-                              foregroundColor: Colors.white,
+                              backgroundColor: AppTheme.primary,
+                              foregroundColor: AppTheme.onPrimary,
                               padding: const EdgeInsets.symmetric(
-                                vertical: 12,
+                                vertical: 14,
                                 horizontal: 16,
                               ),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(12),
                               ),
                             ),
                             onPressed: _isUploading
@@ -2941,10 +2939,10 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: pago.comprobanteUrl != null
                                         ? AppTheme.surfaceContainerHighest
-                                        : AppTheme.secondary,
+                                        : AppTheme.primary,
                                     foregroundColor: pago.comprobanteUrl != null
                                         ? AppTheme.onSurface
-                                        : AppTheme.onSecondary,
+                                        : AppTheme.onPrimary,
                                   ),
                                   onPressed: _isUploading
                                       ? null

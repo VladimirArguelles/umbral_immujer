@@ -555,7 +555,7 @@ class _CrearEncuestaTabState extends State<_CrearEncuestaTab> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              '¡Encuesta creada con éxito! Disponible para las alumnas del curso.',
+              '¡Encuesta creada con éxito! Disponible para los alumnos del curso.',
             ),
             backgroundColor: AppTheme.successGreen,
           ),
@@ -595,7 +595,7 @@ class _CrearEncuestaTabState extends State<_CrearEncuestaTab> {
             ),
             const SizedBox(height: 6),
             const Text(
-              'Crea una encuesta para que las alumnas confirmen su asistencia y el costo de los insumos se divida automáticamente.',
+              'Crea una encuesta para que los alumnos confirmen su asistencia y el costo de los insumos se divida automáticamente.',
               style: TextStyle(fontSize: 13, color: AppTheme.onSurfaceVariant),
             ),
             const SizedBox(height: 20),
@@ -726,7 +726,7 @@ class _CrearEncuestaTabState extends State<_CrearEncuestaTab> {
                         strokeWidth: 2,
                       ),
                     )
-                  : const Text('Publicar Encuesta a las Alumnas'),
+                  : const Text('Publicar Encuesta a los Alumnos'),
             ),
           ],
         ),
@@ -915,7 +915,7 @@ class _AuditoriaRecaudacionTabState extends State<_AuditoriaRecaudacionTab> {
               : _recaudacion.isEmpty
               ? const Center(
                   child: Text(
-                    'Aún no hay respuestas de alumnas confirmadas para esta práctica.',
+                    'Aún no hay respuestas de alumnos confirmados para esta práctica.',
                   ),
                 )
               : ListView.builder(

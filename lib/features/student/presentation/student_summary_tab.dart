@@ -121,7 +121,7 @@ class _FormationCarouselState extends State<_FormationCarousel> {
       area: 'Área 1 · Estética y Belleza',
       title: 'Diseño y Estética de Cejas',
       description: 'Visagismo, micropigmentación y técnicas de cuidado facial.',
-      tag: 'BELLEZA',
+      tag: 'CEJAS',
       icon: Icons.face_retouching_natural_rounded,
       color: AppTheme.primary,
       imagePath: 'assets/images/cejas.png',
