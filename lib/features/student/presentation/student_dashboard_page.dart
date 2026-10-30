@@ -1680,38 +1680,6 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
     });
   }
 
-  Future<void> _responder(StudentSurvey enc, bool asistira) async {
-    try {
-      await widget.studentRepository.respondToSurvey(
-        surveyId: enc.id,
-        willAttend: asistira,
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              asistira
-                  ? '¡Participación confirmada!'
-                  : 'Respuesta registrada: No asistirás.',
-            ),
-            backgroundColor: asistira
-                ? AppTheme.successGreen
-                : AppTheme.surfaceContainerHigh,
-          ),
-        );
-        _loadAll();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: AppTheme.errorRed,
-          ),
-        );
-      }
-    }
-  }
 
   Future<void> _seleccionarYSubirComprobante(
     String surveyId,
@@ -2284,80 +2252,6 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                         ),
                       ),
                       const SizedBox(height: 14),
-
-                      // PREGUNTA DE PARTICIPACIÓN / CONFIRMACIÓN
-                      if (enc.respondio != true) ...[
-                        const Text(
-                          '¿Asistirás a la próxima clase práctica?',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: enc.estaVencida
-                                    ? null
-                                    : () => _responder(enc, false),
-                                child: const Text('No Asistiré'),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: enc.estaVencida
-                                    ? null
-                                    : () => _responder(enc, true),
-                                child: const Text('Confirmar Asistencia'),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                      ] else ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: enc.asistira == true
-                                ? AppTheme.tertiary.withValues(alpha: 0.12)
-                                : AppTheme.surfaceBright,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                enc.asistira == true
-                                    ? Icons.check_circle
-                                    : Icons.cancel,
-                                size: 18,
-                                color: enc.asistira == true
-                                    ? AppTheme.successGreen
-                                    : AppTheme.onSurfaceVariant,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  enc.asistira == true
-                                      ? 'Has confirmado tu asistencia para esta clase'
-                                      : 'Has indicado que no asistirás a esta clase',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: enc.asistira == true
-                                        ? AppTheme.successGreen
-                                        : AppTheme.onSurface,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                      ],
 
                       // BOTÓN PARA SUBIR LA IMAGEN DEL CAPTURE DEL PAGO REALIZADO
                       if (enc.comprobanteUrl == null ||
@@ -3110,4 +3004,3 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
     );
   }
 }
-

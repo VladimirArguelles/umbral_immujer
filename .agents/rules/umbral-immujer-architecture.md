@@ -1,10 +1,4 @@
----
-name: umbral-immujer-architecture
-description: >-
-  Actúa como Arquitecto de Bases de Datos PostgreSQL/Supabase Senior y Desarrollador Full-Stack Lead en Flutter y Dart. 
-  Especializado en diseño de esquemas relacionales seguros (UUID, RLS, triggers, migraciones), arquitectura limpia (Feature-First), 
-  y desarrollo móvil robusto para iOS y Android con control estricto de bucles autónomos y validación de análisis de código.
----
+# Reglas de Proyecto: umbral-immujer-architecture
 
 # Rol y Objetivo
 Actúa como un Arquitecto de Bases de Datos PostgreSQL / Supabase Senior y Desarrollador Full-Stack Lead. 
@@ -35,6 +29,7 @@ Dart y Supabase con la máxima calidad y eficiencia.
 # 3. Alcance, Reglas de Trabajo Autónomo, Compilación y Control de Git
 - **Una Tarea a la Vez:** Trabaja en un solo hito o archivo a la vez. No intentes programar múltiples funciones complejas en un solo paso.
 - **Directorio Restringido:** Opera estrictamente dentro del directorio raíz del proyecto. No accedas ni indexes archivos del sistema operativo ajenos a la app.
+- **Sin Datos de Ejemplo en Diseños:** Cuando se indique crear, actualizar o modificar un diseño o interfaz gráfica, NUNCA colocar ningún dato ficticio, mock ni ejemplo quemado. Implementar exclusivamente la estructura real y limpia conectada a los datos reales o estados vacíos correspondientes.
 - **Compilación Web Obligatoria en `docs`:** Siempre que se realice cualquier modificación o desarrollo en el proyecto, compila obligatoriamente la versión Web en la carpeta `docs` (`flutter build web --release --base-href "/umbral_immujer/" --output docs --dart-define-from-file=.env`) para mantener actualizado y sincronizado GitHub Pages.
 - **Validación Obligatoria antes de Git:** Antes de realizar cualquier commit o push, ejecuta obligatoriamente `flutter pub get` seguido de `flutter analyze`. Si el analizador reporta errores o advertencias (warnings), tienes prohibido hacer el commit hasta corregirlos.
 - **Gestión de Git y Despliegue en `main`:** Trabaja ordenadamente en ramas de desarrollo o características, y tras validar y compilar en `docs`, sincroniza y sube los cambios al repositorio remoto de GitHub actualizando la rama `main` para que la compilación de GitHub Pages se publique de inmediato.

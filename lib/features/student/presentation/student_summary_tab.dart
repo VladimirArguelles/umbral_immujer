@@ -324,8 +324,8 @@ class _FormationCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 1),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        image: const DecorationImage(
-          image: AssetImage('assets/images/formaciones_inmujer.png'),
+        image: DecorationImage(
+          image: AssetImage(formation.imagePath),
           fit: BoxFit.cover,
           alignment: Alignment.center,
         ),
