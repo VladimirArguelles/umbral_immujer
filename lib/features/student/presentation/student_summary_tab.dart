@@ -118,36 +118,31 @@ class _FormationCarousel extends StatefulWidget {
 class _FormationCarouselState extends State<_FormationCarousel> {
   static const _formations = [
     _Formation(
-      area: 'Área 1 · Liderazgo y graduación',
-      title: 'Empoderamiento y liderazgo femenino',
-      description: 'Gestión de proyectos y desarrollo de habilidades.',
-      tag: 'LIDERAZGO',
-      icon: Icons.workspace_premium_rounded,
+      area: 'Área 1 · Estética y Belleza',
+      title: 'Diseño y Estética de Cejas',
+      description: 'Visagismo, micropigmentación y técnicas de cuidado facial.',
+      tag: 'BELLEZA',
+      icon: Icons.face_retouching_natural_rounded,
       color: AppTheme.primary,
+      imagePath: 'assets/images/cejas.png',
     ),
     _Formation(
-      area: 'Área 2 · Tecnología',
-      title: 'Programación y diseño web',
-      description: 'Desarrollo web, tecnología y diseño de interfaces.',
-      tag: 'CODING LAB',
-      icon: Icons.code_rounded,
-      color: AppTheme.tertiary,
-    ),
-    _Formation(
-      area: 'Área 3 · Diseño textil y modas',
-      title: 'Confección y artesanía sostenible',
-      description: 'Patronaje, costura y desarrollo de marca.',
-      tag: 'TALLER DE MODA',
-      icon: Icons.checkroom_rounded,
-      color: AppTheme.secondary,
-    ),
-    _Formation(
-      area: 'Área 4 · Repostería artesanal',
-      title: 'Repostería y panadería artesanal',
-      description: 'Técnicas de pastelería, decoración y costos.',
-      tag: 'PASTELERÍA',
-      icon: Icons.cake_rounded,
+      area: 'Área 2 · Gastronomía Tradicional',
+      title: 'Panadería y Masas Artesanales',
+      description: 'Panificación tradicional, fermentación, amasado y horneado.',
+      tag: 'PANADERÍA',
+      icon: Icons.bakery_dining_rounded,
       color: AppTheme.warningOrange,
+      imagePath: 'assets/images/panaderia.png',
+    ),
+    _Formation(
+      area: 'Área 3 · Pastelería y Dulces',
+      title: 'Repostería y Decoración Artística',
+      description: 'Técnicas de pastelería comercial, masas dulces y decoración.',
+      tag: 'REPOSTERÍA',
+      icon: Icons.cake_rounded,
+      color: AppTheme.secondary,
+      imagePath: 'assets/images/reposteria.png',
     ),
   ];
 
@@ -627,6 +622,7 @@ class _Formation {
     required this.tag,
     required this.icon,
     required this.color,
+    required this.imagePath,
   });
 
   final String area;
@@ -635,4 +631,5 @@ class _Formation {
   final String tag;
   final IconData icon;
   final Color color;
+  final String imagePath;
 }

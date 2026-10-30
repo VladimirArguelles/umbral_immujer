@@ -20,12 +20,12 @@ void main() {
 
     expect(find.text('Hola, María'), findsOneWidget);
     expect(find.text('FORMACIONES IMMUJER'), findsOneWidget);
-    expect(find.text('Empoderamiento y liderazgo femenino'), findsOneWidget);
+    expect(find.text('Diseño y Estética de Cejas'), findsOneWidget);
     expect(find.text('MIS CURSOS'), findsOneWidget);
 
     await tester.drag(find.byType(PageView), const Offset(-320, 0));
     await tester.pumpAndSettle();
-    expect(find.text('Programación y diseño web'), findsOneWidget);
+    expect(find.text('Panadería y Masas Artesanales'), findsOneWidget);
 
     await tester.drag(find.byType(ListView), const Offset(0, -900));
     await tester.pumpAndSettle();
