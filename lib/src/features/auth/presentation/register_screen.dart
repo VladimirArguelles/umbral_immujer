@@ -97,15 +97,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
           email: _emailController.text.trim().isNotEmpty
               ? _emailController.text.trim()
               : null,
+          telefono: _telefonoController.text.trim().isNotEmpty
+              ? _telefonoController.text.trim()
+              : null,
         );
         if (data != null) {
           setState(() {
             _cedulaValidated = true;
-            _nombreController.text = data['nombre_completo'] ?? '';
-            _telefonoController.text = data['telefono'] ?? '';
-            if (data['correo'] != null &&
-                data['correo'].toString().isNotEmpty) {
-              _emailController.text = data['correo'];
+            _nombreController.text =
+                data['nombre_completo'] ?? data['full_name'] ?? '';
+            _telefonoController.text =
+                data['telefono'] ?? data['phone'] ?? '';
+            final existingEmail = data['correo'] ?? data['email'];
+            if (existingEmail != null &&
+                existingEmail.toString().isNotEmpty) {
+              _emailController.text = existingEmail.toString();
             }
             _validationMessage = '¡Identidad docente verificada!';
           });

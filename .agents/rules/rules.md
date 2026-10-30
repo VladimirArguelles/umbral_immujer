@@ -1,4 +1,6 @@
 # Reglas de Proyecto: umbral-immujer-architecture
+## ORQUESTACIÓN Y SELECCIÓN DE AGENTES
+- **Modo Autónomo:** Por defecto, Antigravity debe actuar a través del `orchestrator-agent.md` para analizar la intención del usuario y seleccionar automáticamente el rol especializado necesario en cada mensaje, sin requerir menciones explícitas.
 
 # Rol y Objetivo
 Actúa como un Arquitecto de Bases de Datos PostgreSQL / Supabase Senior y Desarrollador Full-Stack Lead. 

@@ -107,12 +107,43 @@ class CoordinatorRepository {
     }).toList();
   }
 
+  /// Pre-registro manual de un profesor por parte del coordinador durante inscripciones.
+  /// Campos obligatorios: nombre completo, cédula, teléfono y rol ('profesor' o 'teacher').
+  /// El campo email/correo es opcional (permite NULL) durante esta fase inicial.
+  Future<Map<String, dynamic>> preRegisterTeacher({
+    required String nombreCompleto,
+    required String cedula,
+    required String telefono,
+    String? email,
+  }) async {
+    final cleanCedula = cedula.trim().replaceAll(RegExp(r'[^0-9a-zA-Z]'), '');
+    final cleanEmail =
+        (email != null && email.trim().isNotEmpty) ? email.trim() : null;
+
+    final data = {
+      'nombre_completo': nombreCompleto.trim(),
+      'cedula': cleanCedula,
+      'telefono': telefono.trim(),
+      'correo': cleanEmail,
+      'email': cleanEmail,
+      'rol': 'profesor',
+    };
+
+    final result = await _supabase
+        .from('perfiles')
+        .insert(data)
+        .select()
+        .single();
+
+    return result;
+  }
+
   /// Lista de profesores registrados para asignación
   Future<List<AvailableTeacher>> getRegisteredTeachers() async {
     final profs = await _supabase
         .from('perfiles')
         .select('id, nombre_completo, cedula, telefono, correo')
-        .eq('rol', 'profesor');
+        .inFilter('rol', ['profesor', 'teacher']);
 
     final List<AvailableTeacher> list = [];
     for (final p in (profs as List)) {

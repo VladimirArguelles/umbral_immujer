@@ -100,7 +100,8 @@ class AuthRepository {
         foundInAlumnos: true,
         hasActiveInscripcion: false,
         data: alumnoData,
-        errorMessage: 'Acceso denegado: El alumno figura en el padrón, pero no cuenta con una inscripción activa en ningún curso. Debe formalizar su inscripción primero.',
+        errorMessage:
+            'Acceso denegado: El alumno figura en el padrón, pero no cuenta con una inscripción activa en ningún curso. Debe formalizar su inscripción primero.',
       );
     }
 
@@ -126,14 +127,76 @@ class AuthRepository {
     return result.data;
   }
 
-  /// Valida si la cédula o correo existe en el padrón de Profesores autorizados
+  /// Valida si la cédula, teléfono o correo existe en el padrón de Profesores autorizados (perfiles o profesores)
   Future<Map<String, dynamic>?> checkProfesorPreRegistered({
     required String cedula,
     String? email,
+    String? telefono,
   }) async {
     final cleanCedula = cedula.trim().replaceAll(RegExp(r'[^0-9a-zA-Z]'), '');
     final numericCedula = cedula.trim().replaceAll(RegExp(r'[^0-9]'), '');
+    final cleanPhone =
+        telefono?.trim().replaceAll(RegExp(r'[^0-9]'), '') ?? '';
 
+    // 1. Buscar en perfiles (profesores pre-registrados en profiles/perfiles)
+    Map<String, dynamic>? profile;
+    if (numericCedula.isNotEmpty) {
+      profile = await _supabase
+          .from('perfiles')
+          .select()
+          .inFilter('rol', ['profesor', 'teacher'])
+          .eq('cedula', numericCedula)
+          .maybeSingle();
+    }
+
+    profile ??= await _supabase
+        .from('perfiles')
+        .select()
+        .inFilter('rol', ['profesor', 'teacher'])
+        .eq('cedula', cleanCedula)
+        .maybeSingle();
+
+    if (profile == null && numericCedula.isNotEmpty) {
+      profile = await _supabase
+          .from('perfiles')
+          .select()
+          .inFilter('rol', ['profesor', 'teacher'])
+          .ilike('cedula', '%$numericCedula%')
+          .maybeSingle();
+    }
+
+    // Búsqueda por teléfono si no se localizó por cédula
+    if (profile == null && cleanPhone.length >= 7) {
+      profile = await _supabase
+          .from('perfiles')
+          .select()
+          .inFilter('rol', ['profesor', 'teacher'])
+          .ilike('telefono', '%$cleanPhone%')
+          .maybeSingle();
+    }
+
+    // Búsqueda por correo si fue provisto
+    if (profile == null && email != null && email.trim().isNotEmpty) {
+      profile = await _supabase
+          .from('perfiles')
+          .select()
+          .inFilter('rol', ['profesor', 'teacher'])
+          .ilike('correo', email.trim())
+          .maybeSingle();
+    }
+
+    // Si se encuentra en perfiles y califica como registro disponible para primer ingreso
+    if (profile != null) {
+      final isAlreadyLinked = profile['user_id'] != null;
+      if (!isAlreadyLinked ||
+          profile['correo'] == null ||
+          (profile['correo'] as String).isEmpty) {
+        return profile;
+      }
+      return null;
+    }
+
+    // 2. Retrocompatibilidad: buscar en la tabla 'profesores'
     Map<String, dynamic>? res;
     if (numericCedula.isNotEmpty) {
       res = await _supabase
@@ -157,6 +220,14 @@ class AuthRepository {
           .maybeSingle();
     }
 
+    if (res == null && cleanPhone.length >= 7) {
+      res = await _supabase
+          .from('profesores')
+          .select()
+          .ilike('telefono', '%$cleanPhone%')
+          .maybeSingle();
+    }
+
     if (res != null && res['user_id'] == null) return res;
 
     if (email != null && email.isNotEmpty) {
@@ -171,7 +242,7 @@ class AuthRepository {
     return null;
   }
 
-  /// Registro de usuario con validación estricta de pertenencia al padrón
+  /// Registro de usuario con validación estricta y vinculación automática sin duplicidad
   Future<UserProfile> registerUser({
     required String email,
     required String password,
@@ -190,7 +261,8 @@ class AuthRepository {
       );
       if (!alumnoCheck.isValid) {
         throw Exception(
-          alumnoCheck.errorMessage ?? 'Acceso denegado: Solo alumnos registrados e inscritos en IMMUJER pueden registrarse.',
+          alumnoCheck.errorMessage ??
+              'Acceso denegado: Solo alumnos registrados e inscritos en IMMUJER pueden registrarse.',
         );
       }
       rosterId = alumnoCheck.data?['id'];
@@ -198,16 +270,20 @@ class AuthRepository {
       final profesorData = await checkProfesorPreRegistered(
         cedula: cleanCedula,
         email: email,
+        telefono: telefono,
       );
       if (profesorData == null) {
         throw Exception(
-          'Acceso denegado: La cédula $cedula no figura en el registro de profesores autorizados de IMMUJER.',
+          'Acceso denegado: El docente no figura en el registro oficial de profesores de IMMUJER.',
         );
       }
       rosterId = profesorData['id'];
     }
 
-    // Registro en Supabase Auth
+    // 1. Registro en Supabase Auth
+    // Al insertarse el usuario en auth.users, el trigger PostgreSQL handle_new_user()
+    // enlaza atómicamente el perfil existente en 'perfiles' (o 'profesores')
+    // actualizando su ID y asignando su email sin violar restricciones UNIQUE.
     final response = await _supabase.auth.signUp(
       email: email.trim(),
       password: password,
@@ -224,33 +300,35 @@ class AuthRepository {
       throw Exception('No se pudo completar el registro.');
     }
 
-    // El trigger en PostgreSQL (handle_new_user) inserta el perfil en 'perfiles'
-    // y vincula automáticamente 'user_id' en 'alumnos' o 'profesores' mediante SECURITY DEFINER.
+    // 2. Actualización segura e idempotente sobre el perfil vinculado por el trigger
+    // Usamos update por id = user.id en vez de un insert a ciegas para evitar colisiones
     try {
-      await _supabase.from('perfiles').upsert({
-        'id': user.id,
+      await _supabase.from('perfiles').update({
+        'user_id': user.id,
         'nombre_completo': nombreCompleto.trim(),
         'cedula': cleanCedula,
         'telefono': telefono.trim(),
         'correo': email.trim(),
+        'email': email.trim(),
         'rol': role.toDbString(),
-      }, onConflict: 'id');
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      }).eq('id', user.id);
     } catch (_) {
-      // El perfil ya fue generado de forma atómica por el trigger de base de datos
+      // El perfil ya fue generado y sincronizado de forma atómica por el trigger
     }
 
-    // Vinculación complementaria de resguardo
+    // 3. Vinculación complementaria de resguardo para tablas auxiliares
     try {
       if (role == UserRole.alumno && rosterId is String) {
         await _supabase
             .from('alumnos')
-            .update({'user_id': user.id})
+            .update({'user_id': user.id, 'correo': email.trim()})
             .eq('id', rosterId)
             .isFilter('user_id', null);
       } else if (role == UserRole.profesor && rosterId is String) {
         await _supabase
             .from('profesores')
-            .update({'user_id': user.id})
+            .update({'user_id': user.id, 'correo': email.trim()})
             .eq('id', rosterId)
             .isFilter('user_id', null);
       }
