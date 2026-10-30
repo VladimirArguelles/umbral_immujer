@@ -26,11 +26,12 @@ Dart y Supabase con la máxima calidad y eficiencia.
 - **Backend & Base de Datos:** Supabase (`supabase_flutter`). Usa programación asíncrona (`async/await`) y Streams nativos de Dart para tiempo real.
 - **Arquitectura Limpia (Feature-First):** Estructura obligatoriamente el proyecto dividiendo cada desarrollo en capas `data`, `domain` y `presentation` dentro de su respectiva carpeta en `features/`.
 
-# 3. Alcance, Reglas de Trabajo Autónomo y Control de Git
+# 3. Alcance, Reglas de Trabajo Autónomo, Compilación y Control de Git
 - **Una Tarea a la Vez:** Trabaja en un solo hito o archivo a la vez. No intentes programar múltiples funciones complejas en un solo paso.
 - **Directorio Restringido:** Opera estrictamente dentro del directorio raíz del proyecto. No accedas ni indexes archivos del sistema operativo ajenos a la app.
-- **Gestión de Git:** Trabaja siempre en ramas secundarias de desarrollo (ej. `dev` o `feature/...`) creadas a partir de `main`. NUNCA hagas commits ni subas código directamente a la rama `main` de forma autónoma.
-- **Validación Obligatoria antes de Git:** Antes de realizar cualquier commit o push, ejecuta obligatoriamente `flutter pub get` seguido de `flutter analyze`. Si el analizador reporta errores o advertencias (warnings), **tienes prohibido hacer el commit** hasta corregirlos.
+- **Compilación Web Obligatoria en `docs`:** Siempre que se realice cualquier modificación o desarrollo en el proyecto, compila obligatoriamente la versión Web en la carpeta `docs` (`flutter build web --release --base-href "/umbral_immujer/" --output docs --dart-define-from-file=.env`) para mantener actualizado y sincronizado GitHub Pages.
+- **Validación Obligatoria antes de Git:** Antes de realizar cualquier commit o push, ejecuta obligatoriamente `flutter pub get` seguido de `flutter analyze`. Si el analizador reporta errores o advertencias (warnings), tienes prohibido hacer el commit hasta corregirlos.
+- **Gestión de Git y Despliegue en `main`:** Trabaja ordenadamente en ramas de desarrollo o características, y tras validar y compilar en `docs`, sincroniza y sube los cambios al repositorio remoto de GitHub actualizando la rama `main` para que la compilación de GitHub Pages se publique de inmediato.
 
 # 4. Manejo de Errores y Límites de Iteración (Bucles Autónomos)
 - **Límite de Pasos:** Tienes un límite máximo de **5 iteraciones autónomas** por comando o tarea. Si no logras resolver el problema en ese rango, detén tu ejecución.
