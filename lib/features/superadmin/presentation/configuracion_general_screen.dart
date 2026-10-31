@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:umbral_immujer/features/superadmin/data/bcv_rate_service.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 
@@ -24,6 +26,10 @@ class _ConfiguracionGeneralScreenState
   bool _isLoading = true;
   bool _isSaving = false;
   String? _errorMessage;
+
+  // Estado de sincronización automática de tasa BCV
+  bool _isSyncingBcv = false;
+  BcvRateResult? _lastBcvResult;
 
   // Valores originales cargados desde la base de datos
   final Map<String, dynamic> _initialValues = {};
@@ -231,6 +237,58 @@ class _ConfiguracionGeneralScreenState
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  /// Sincroniza automáticamente la tasa de cambio oficial del BCV vía API pública
+  Future<void> _syncBcvRate({bool saveImmediately = false}) async {
+    if (_isSyncingBcv) return;
+
+    setState(() {
+      _isSyncingBcv = true;
+    });
+
+    try {
+      final result = await BcvRateService.fetchOfficialRate();
+      final formattedRate = result.rate.toStringAsFixed(2);
+
+      setState(() {
+        _lastBcvResult = result;
+        _currentValues['tasa_cambio_oficial'] = result.rate;
+        if (_controllers.containsKey('tasa_cambio_oficial')) {
+          _controllers['tasa_cambio_oficial']!.text = formattedRate;
+        }
+      });
+
+      if (saveImmediately) {
+        final now = DateTime.now().toIso8601String();
+        await _supabase.from('configuracion_general').upsert({
+          'clave': 'tasa_cambio_oficial',
+          'valor': result.rate,
+          'actualizado_en': now,
+        }, onConflict: 'clave');
+        _initialValues['tasa_cambio_oficial'] = result.rate;
+      }
+
+      if (mounted) {
+        _showToast(
+          'Tasa BCV obtenida exitosamente: Bs. $formattedRate / USD${saveImmediately ? ' (guardada)' : ''}',
+          isSuccess: true,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        _showToast(
+          'Error al consultar tasa BCV: $e',
+          isError: true,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSyncingBcv = false;
+        });
       }
     }
   }
@@ -537,62 +595,85 @@ class _ConfiguracionGeneralScreenState
           }
         },
       ),
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      titleSpacing: 0,
+      title: LayoutBuilder(
+        builder: (context, constraints) {
+          final isSmall = MediaQuery.of(context).size.width < 500;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                'Configuración General',
-                style: GoogleFonts.plusJakartaSans(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 17,
-                  color: cTextMain,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: cPrimary.withAlpha(40),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: cPrimary.withAlpha(80)),
-                ),
-                child: const Text(
-                  'SUPER ADMIN',
-                  style: TextStyle(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w800,
-                    color: cPrimary,
-                    letterSpacing: 0.5,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      'Configuración General',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w800,
+                        fontSize: isSmall ? 15 : 17,
+                        color: cTextMain,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
+                  if (!isSmall) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: cPrimary.withAlpha(40),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: cPrimary.withAlpha(80)),
+                      ),
+                      child: const Text(
+                        'SUPER ADMIN',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          color: cPrimary,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              Text(
+                isSmall
+                    ? 'Parámetros y auditoría de UMBRAL'
+                    : 'Control de parámetros, auditoría, automatizaciones e integraciones de UMBRAL',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 10.5,
+                  color: cTextMuted,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
-          ),
-          Text(
-            'Control de parámetros, auditoría, automatizaciones e integraciones de UMBRAL',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 11,
-              color: cTextMuted,
-            ),
-          ),
-        ],
+          );
+        },
       ),
       actions: [
-        TextButton.icon(
-          onPressed: _isLoading || _isSaving ? null : _confirmResetValues,
-          icon: const Icon(Symbols.restart_alt, size: 18, color: cTextMuted),
-          label: Text(
-            'Restablecer',
-            style: GoogleFonts.plusJakartaSans(
-              color: cTextMuted,
-              fontWeight: FontWeight.w700,
-              fontSize: 12,
+        Padding(
+          padding: const EdgeInsets.only(right: 8.0),
+          child: TextButton.icon(
+            onPressed: _isLoading || _isSaving ? null : _confirmResetValues,
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              minimumSize: const Size(0, 36),
+            ),
+            icon: const Icon(Symbols.restart_alt, size: 17, color: cTextMuted),
+            label: Text(
+              'Restablecer',
+              style: GoogleFonts.plusJakartaSans(
+                color: cTextMuted,
+                fontWeight: FontWeight.w700,
+                fontSize: 11.5,
+              ),
             ),
           ),
         ),
-        const SizedBox(width: 8),
       ],
       bottom: const PreferredSize(
         preferredSize: Size.fromHeight(1),
@@ -664,21 +745,27 @@ class _ConfiguracionGeneralScreenState
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Row(
-                  children: [
-                    const Icon(Symbols.percent, size: 18, color: cTextMuted),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Porcentaje Mínimo de Asistencia para Aprobación',
-                      style: GoogleFonts.plusJakartaSans(
-                        color: cTextMain,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
+                Expanded(
+                  child: Row(
+                    children: [
+                      const Icon(Symbols.percent, size: 18, color: cTextMuted),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Porcentaje Mínimo de Asistencia para Aprobación',
+                          style: GoogleFonts.plusJakartaSans(
+                            color: cTextMain,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 10),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                   decoration: BoxDecoration(
@@ -1032,7 +1119,130 @@ class _ConfiguracionGeneralScreenState
             setState(() {});
           },
         ),
+        const SizedBox(height: 12),
+        _buildBcvSyncWidget(),
       ],
+    );
+  }
+
+  /// Widget dedicado a la sincronización en vivo de la tasa del Banco Central de Venezuela (BCV)
+  Widget _buildBcvSyncWidget() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cCardInner,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: _lastBcvResult != null ? cEmerald.withAlpha(90) : cBorder,
+          width: 1.2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          _lastBcvResult != null
+                              ? Symbols.verified
+                              : Symbols.account_balance,
+                          size: 18,
+                          color: _lastBcvResult != null ? cEmerald : cSky,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Sincronización BCV en Tiempo Real',
+                          style: GoogleFonts.plusJakartaSans(
+                            color: cTextMain,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Consulta la cotización oficial del Banco Central de Venezuela vía API pública.',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: cTextMuted,
+                        fontSize: 11.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      _isSyncingBcv ? cBorder : cSky.withAlpha(40),
+                  foregroundColor: _isSyncingBcv ? cTextMuted : cSky,
+                  elevation: 0,
+                  side: BorderSide(
+                    color: _isSyncingBcv ? cBorder : cSky.withAlpha(120),
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                onPressed: _isSyncingBcv ? null : () => _syncBcvRate(),
+                icon: _isSyncingBcv
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: cSky,
+                        ),
+                      )
+                    : const Icon(Symbols.sync, size: 18),
+                label: Text(
+                  _isSyncingBcv ? 'Consultando...' : 'Sincronizar Tasa BCV',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (_lastBcvResult != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: cEmerald.withAlpha(25),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: cEmerald.withAlpha(80)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Symbols.price_check, size: 18, color: cEmerald),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Tasa BCV obtenida: ${_lastBcvResult!.rate.toStringAsFixed(2)} VES  •  Actualizado: ${DateFormat('dd/MM/yyyy hh:mm a').format(_lastBcvResult!.updatedAt)}',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: cEmerald,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
