@@ -1,4 +1,4 @@
-﻿class StudentCourse {
+class StudentCourse {
   final String id;
   final String nombre;
   final String? descripcion;
@@ -87,6 +87,7 @@ class StudentSurvey {
   final String id;
   final String cursoId;
   final String cursoNombre;
+  final String? profesorNombre;
   final String fechaClase;
   final double costoTotalInsumos;
   final DateTime fechaLimite;
@@ -94,7 +95,7 @@ class StudentSurvey {
   final int totalConfirmados;
   final String estadoEncuesta; // 'activa' | 'cerrada' | 'cancelada'
 
-  // Datos de la respuesta del alumno si ya respondiÃ³
+  // Datos de la respuesta del alumno si ya respondió
   final bool? respondio;
   final bool? asistira;
   final String? comprobanteUrl;
@@ -106,6 +107,7 @@ class StudentSurvey {
     required this.id,
     required this.cursoId,
     required this.cursoNombre,
+    this.profesorNombre,
     required this.fechaClase,
     required this.costoTotalInsumos,
     required this.fechaLimite,

@@ -2061,44 +2061,95 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 18),
-                elevation: 2,
+                elevation: 3,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                   side: BorderSide(
-                    color: AppTheme.secondary.withValues(alpha: 0.35),
+                    color: AppTheme.mintNeon.withValues(alpha: 0.35),
                     width: 1.2,
                   ),
                 ),
                 color: AppTheme.surfaceContainerLow,
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(18.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Encabezado de la Encuesta y Próxima Clase
+                      // Encabezado del Curso, Próxima Clase y Estado
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  enc.cursoNombre,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppTheme.onSurface,
-                                  ),
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 3,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.primaryContainer.withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: const Text(
+                                        'CURSO ASIGNADO',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppTheme.primary,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        enc.cursoNombre,
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppTheme.onSurface,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Próxima Clase Práctica: ${enc.fechaClase}',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppTheme.secondary,
+                                if (enc.profesorNombre != null && enc.profesorNombre!.isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.person_outline_rounded, size: 14, color: AppTheme.secondary),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Docente: ${enc.profesorNombre}',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                          color: AppTheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ],
                                   ),
+                                ],
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.calendar_today_rounded, size: 13, color: AppTheme.mintNeon),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Próxima Clase Práctica: ${enc.fechaClase}',
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppTheme.mintNeon,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -2106,13 +2157,17 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 10,
-                              vertical: 4,
+                              vertical: 5,
                             ),
                             decoration: BoxDecoration(
                               color: enc.estaVencida
                                   ? AppTheme.errorRed.withValues(alpha: 0.12)
-                                  : AppTheme.tertiary.withValues(alpha: 0.12),
+                                  : AppTheme.tertiary.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: enc.estaVencida ? AppTheme.errorRed : AppTheme.successGreen,
+                                width: 0.8,
+                              ),
                             ),
                             child: Text(
                               enc.estaVencida ? 'CERRADA' : 'ACTIVA',
@@ -2135,19 +2190,26 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                           color: AppTheme.onSurfaceVariant,
                         ),
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 16),
 
                       // WIDGET CARD: MONTO DEL APORTE COLOCADO POR EL PROFESOR PARA INSUMOS
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(14),
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: AppTheme.secondary.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(12),
+                          color: AppTheme.anthraciteElevated,
+                          borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                            color: AppTheme.secondary.withValues(alpha: 0.4),
+                            color: AppTheme.mintNeon.withValues(alpha: 0.4),
                             width: 1.5,
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.mintNeon.withValues(alpha: 0.06),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2157,29 +2219,27 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                 Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: AppTheme.secondary
-                                        .withValues(alpha: 0.18),
+                                    color: AppTheme.mintNeon.withValues(alpha: 0.15),
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(
                                     Icons.shopping_bag_outlined,
-                                    color: AppTheme.secondary,
+                                    color: AppTheme.mintNeon,
                                     size: 22,
                                   ),
                                 ),
                                 const SizedBox(width: 10),
                                 const Expanded(
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'APORTE PARA COMPRA DE INSUMOS',
                                         style: TextStyle(
-                                          fontSize: 11,
+                                          fontSize: 12,
                                           fontWeight: FontWeight.bold,
                                           letterSpacing: 0.5,
-                                          color: AppTheme.secondary,
+                                          color: AppTheme.mintNeon,
                                         ),
                                       ),
                                       Text(
@@ -2194,54 +2254,70 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 14),
                             const Text(
-                              'Monto de tu cuota a cancelar:',
+                              'Monto del aporte individual a cancelar:',
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
                                 color: AppTheme.onSurfaceVariant,
                               ),
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 4),
                             Text(
                               enc.cuotaACancelar > 0
                                   ? Formatters.currency(enc.cuotaACancelar)
                                   : Formatters.currency(0),
                               style: const TextStyle(
-                                fontSize: 26,
+                                fontSize: 32,
                                 fontWeight: FontWeight.w900,
-                                color: AppTheme.successGreen,
+                                color: AppTheme.mintNeon,
+                                letterSpacing: 0.5,
                               ),
                             ),
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 12),
                             const Divider(
                               height: 1,
                               thickness: 0.5,
                               color: AppTheme.outlineVariant,
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 10),
                             Row(
-                              mainAxisAlignment:
-                                  MainAxisAlignment.spaceBetween,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Expanded(
-                                  child: Text(
-                                    'Costo Total Insumos: ${Formatters.currency(enc.costoTotalInsumos)}',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppTheme.onSurfaceVariant,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.receipt_outlined, size: 14, color: AppTheme.secondary),
+                                      const SizedBox(width: 4),
+                                      Expanded(
+                                        child: Text(
+                                          'Presupuesto Total Insumos: ${Formatters.currency(enc.costoTotalInsumos)}',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppTheme.onSurfaceVariant,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                Text(
-                                  '${enc.totalConfirmados} alumnos confirmados',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppTheme.primary,
-                                    fontWeight: FontWeight.bold,
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryContainer.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '${enc.totalConfirmados} confirmados',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppTheme.primary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -2249,19 +2325,19 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 16),
 
                       // BOTÓN PARA SUBIR LA IMAGEN DEL CAPTURE DEL PAGO REALIZADO
-                      if (enc.comprobanteUrl == null ||
-                          enc.comprobanteUrl!.isEmpty) ...[
+                      if (enc.comprobanteUrl == null || enc.comprobanteUrl!.isEmpty) ...[
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primary,
-                              foregroundColor: AppTheme.onPrimary,
+                              backgroundColor: AppTheme.primaryContainer,
+                              foregroundColor: AppTheme.pureWhite,
+                              elevation: 2,
                               padding: const EdgeInsets.symmetric(
-                                vertical: 14,
+                                vertical: 15,
                                 horizontal: 16,
                               ),
                               shape: RoundedRectangleBorder(
@@ -2273,17 +2349,17 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                 : () => _mostrarSelectorComprobante(enc.id),
                             icon: _isUploading
                                 ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
+                                    width: 20,
+                                    height: 20,
                                     child: CircularProgressIndicator(
                                       color: Colors.white,
                                       strokeWidth: 2,
                                     ),
                                   )
-                                : const Icon(Icons.add_photo_alternate_rounded),
+                                : const Icon(Icons.add_photo_alternate_rounded, size: 20),
                             label: Text(
                               _isUploading
-                                  ? 'Subiendo capture...'
+                                  ? 'Subiendo comprobante...'
                                   : 'Subir Imagen del Capture de Pago Realizado',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
@@ -2292,26 +2368,42 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                             ),
                           ),
                         ),
+                        const SizedBox(height: 6),
+                        const Center(
+                          child: Text(
+                            'Comprobantes aceptados: Pago Móvil o Transferencia en Bolívares (Bs.)',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
                       ] else ...[
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: AppTheme.surfaceBright,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: AppTheme.outlineVariant),
                           ),
                           child: Row(
                             children: [
-                              const Icon(
-                                Icons.image_rounded,
-                                color: AppTheme.primary,
-                                size: 22,
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.mintNeon.withValues(alpha: 0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.check_circle_rounded,
+                                  color: AppTheme.mintNeon,
+                                  size: 20,
+                                ),
                               ),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     const Text(
                                       'Capture de Pago Adjuntado',
@@ -2320,6 +2412,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                         fontSize: 13,
                                       ),
                                     ),
+                                    const SizedBox(height: 2),
                                     Text(
                                       'Estado: ${(enc.estadoPago ?? "pendiente").toUpperCase()}',
                                       style: TextStyle(
@@ -2338,8 +2431,8 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                               OutlinedButton.icon(
                                 style: OutlinedButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
+                                    horizontal: 10,
+                                    vertical: 6,
                                   ),
                                 ),
                                 onPressed: () => _mostrarModalComprobante(
@@ -2349,10 +2442,8 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                   fecha: enc.fechaClase,
                                   estadoPago: enc.estadoPago ?? 'pendiente',
                                 ),
-                                icon: const Icon(Icons.visibility_outlined,
-                                    size: 14),
-                                label: const Text('Ver Capture',
-                                    style: TextStyle(fontSize: 11)),
+                                icon: const Icon(Icons.visibility_outlined, size: 14),
+                                label: const Text('Ver Capture', style: TextStyle(fontSize: 11)),
                               ),
                               const SizedBox(width: 6),
                               ElevatedButton.icon(
@@ -2360,16 +2451,15 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                   backgroundColor: AppTheme.secondary,
                                   foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
+                                    horizontal: 10,
+                                    vertical: 6,
                                   ),
                                 ),
                                 onPressed: _isUploading
                                     ? null
                                     : () => _mostrarSelectorComprobante(enc.id),
                                 icon: const Icon(Icons.sync, size: 14),
-                                label: const Text('Cambiar',
-                                    style: TextStyle(fontSize: 11)),
+                                label: const Text('Cambiar', style: TextStyle(fontSize: 11)),
                               ),
                             ],
                           ),
