@@ -110827,8 +110827,7 @@ j=n.a(k.h(l,"inscripciones"))
 if(j==null)j=[]
 j=J.mV(j,new A.abo())
 h=A.W(j,j.$ti.i("K.E"))
-j=k.h(l,"asistencia")
-j=n.a(j==null?k.h(l,"asistencias"):j)
+j=n.a(k.h(l,"asistencia"))
 if(j==null)j=[]
 j=J.mV(j,new A.abp(a))
 g=A.W(j,j.$ti.i("K.E"))

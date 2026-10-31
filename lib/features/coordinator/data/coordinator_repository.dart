@@ -38,7 +38,7 @@ class CoordinatorRepository {
       final inscripciones = (c['inscripciones'] as List? ?? [])
           .where((i) => i['deleted_at'] == null)
           .toList();
-      final asistencias = ((c['asistencia'] ?? c['asistencias']) as List? ?? [])
+      final asistencias = (c['asistencia'] as List? ?? [])
           .where(
             (a) =>
                 a['fecha'] == date &&
