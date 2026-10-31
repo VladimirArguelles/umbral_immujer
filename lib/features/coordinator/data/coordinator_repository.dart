@@ -34,7 +34,7 @@ class CoordinatorRepository {
     final List<CourseDashboardItem> lista = [];
 
     for (final c in (cursosData as List)) {
-      final prof = (c['perfiles'] ?? c['profiles']) as Map<String, dynamic>?;
+      final prof = c['perfiles'] as Map<String, dynamic>?;
       final inscripciones = (c['inscripciones'] as List? ?? [])
           .where((i) => i['deleted_at'] == null)
           .toList();

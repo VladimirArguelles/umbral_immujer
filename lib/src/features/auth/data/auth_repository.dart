@@ -138,7 +138,7 @@ class AuthRepository {
     final cleanPhone =
         telefono?.trim().replaceAll(RegExp(r'[^0-9]'), '') ?? '';
 
-    // 1. Buscar en perfiles (profesores pre-registrados en profiles/perfiles)
+    // 1. Buscar en perfiles (profesores pre-registrados en perfiles)
     Map<String, dynamic>? profile;
     if (numericCedula.isNotEmpty) {
       profile = await _supabase

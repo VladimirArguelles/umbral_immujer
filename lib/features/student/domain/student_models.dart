@@ -1,4 +1,4 @@
-class StudentCourse {
+﻿class StudentCourse {
   final String id;
   final String nombre;
   final String? descripcion;
@@ -18,10 +18,9 @@ class StudentCourse {
   factory StudentCourse.fromJson(Map<String, dynamic> json) {
     String? profName;
     final pMap = (json['cursos'] is Map
-            ? (json['cursos']['perfiles'] ?? json['cursos']['profiles'])
+            ? json['cursos']['perfiles']
             : null) ??
-        json['perfiles'] ??
-        json['profiles'];
+        json['perfiles'];
     if (pMap is Map) {
       profName = pMap['nombre_completo'] as String?;
     }
@@ -95,7 +94,7 @@ class StudentSurvey {
   final int totalConfirmados;
   final String estadoEncuesta; // 'activa' | 'cerrada' | 'cancelada'
 
-  // Datos de la respuesta del alumno si ya respondió
+  // Datos de la respuesta del alumno si ya respondiÃ³
   final bool? respondio;
   final bool? asistira;
   final String? comprobanteUrl;

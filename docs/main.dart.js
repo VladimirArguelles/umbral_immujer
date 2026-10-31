@@ -110821,23 +110821,22 @@ case 3:c=a1
 b=A.b([],t.F1)
 for(o=J.b7(c),n=t.kc,m=t.d;o.q();){l=o.gN()
 k=J.aJ(l)
-j=k.h(l,"perfiles")
-i=m.a(j==null?k.h(l,"profiles"):j)
-j=n.a(k.h(l,"inscripciones"))
-if(j==null)j=[]
-j=J.mV(j,new A.abo())
-h=A.W(j,j.$ti.i("K.E"))
-j=n.a(k.h(l,"asistencia"))
-if(j==null)j=[]
-j=J.mV(j,new A.abp(a))
-g=A.W(j,j.$ti.i("K.E"))
-j=A.ac(k.h(l,"id"))
+j=m.a(k.h(l,"perfiles"))
+i=n.a(k.h(l,"inscripciones"))
+if(i==null)i=[]
+i=J.mV(i,new A.abo())
+h=A.W(i,i.$ti.i("K.E"))
+i=n.a(k.h(l,"asistencia"))
+if(i==null)i=[]
+i=J.mV(i,new A.abp(a))
+g=A.W(i,i.$ti.i("K.E"))
+i=A.ac(k.h(l,"id"))
 f=A.ac(k.h(l,"nombre"))
 e=A.aS(k.h(l,"horario"))
 k=A.aS(k.h(l,"profesor_id"))
-d=i==null?null:i.h(0,"nombre_completo")
+d=j==null?null:j.h(0,"nombre_completo")
 if(d==null)d="Sin Profesor Asignado"
-b.push(new A.ph(j,f,e,k,d,h.length,g.length))}q=b
+b.push(new A.ph(i,f,e,k,d,h.length,g.length))}q=b
 s=1
 break
 case 1:return A.q(q,r)}})
@@ -111675,23 +111674,20 @@ break
 case 1:return A.q(q,r)}})
 return A.r($async$wC,r)}}
 A.aw6.prototype={
-$1(a){var s,r,q,p,o,n,m,l,k="cursos",j="perfiles",i="profiles",h=t.f
-if(h.b(a.h(0,k))){s=J.c2(a.h(0,k),j)
-if(s==null)s=J.c2(a.h(0,k),i)}else s=null
-r=s==null?a.h(0,j):s
-if(r==null)r=a.h(0,i)
-q=h.b(r)?A.aS(r.h(0,"nombre_completo")):null
-p=t.a.b(a.h(0,k))?a.h(0,k):a
-h=J.aJ(p)
-s=h.h(p,"id")
-s=A.ac(s==null?"":s)
-o=h.h(p,"nombre")
-o=A.ac(o==null?"Curso":o)
-n=A.aS(h.h(p,"descripcion"))
-m=A.aS(h.h(p,"horario"))
-l=a.h(0,"estado")
-h=l==null?h.h(p,"estado"):l
-return new A.f8(s,o,n,m,q,A.ac(h==null?"activo":h))},
+$1(a){var s,r,q,p,o,n,m,l="cursos",k="perfiles",j=t.f,i=j.b(a.h(0,l))?J.c2(a.h(0,l),k):null
+if(i==null)i=a.h(0,k)
+s=j.b(i)?A.aS(i.h(0,"nombre_completo")):null
+r=t.a.b(a.h(0,l))?a.h(0,l):a
+j=J.aJ(r)
+q=j.h(r,"id")
+q=A.ac(q==null?"":q)
+p=j.h(r,"nombre")
+p=A.ac(p==null?"Curso":p)
+o=A.aS(j.h(r,"descripcion"))
+n=A.aS(j.h(r,"horario"))
+m=a.h(0,"estado")
+j=m==null?j.h(r,"estado"):m
+return new A.f8(q,p,o,n,s,A.ac(j==null?"activo":j))},
 $S:757}
 A.aw2.prototype={
 $1(a){var s,r="created_at",q=a.h(0,"id")
