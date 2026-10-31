@@ -285,6 +285,61 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                       setState(() => _maintenanceMode = val);
                     },
                   ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: cCardInner,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: cBorder),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.blueAccent.withAlpha(30),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Symbols.currency_exchange,
+                            color: Colors.blueAccent,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Tasa Oficial BCV en Tiempo Real',
+                                style: TextStyle(
+                                  color: cTextMain,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              Text(
+                                'Sincronización vía API y auditoría en Bs.',
+                                style: TextStyle(
+                                  color: cTextMuted,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            context.go('/superadmin/configuracion');
+                          },
+                          child: const Text('Ir a Tasa BCV'),
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,

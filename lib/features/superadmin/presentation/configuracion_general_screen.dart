@@ -560,6 +560,7 @@ class _ConfiguracionGeneralScreenState
                           padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
                           children: [
                             if (modifiedCount > 0) _buildPendingChangesBanner(modifiedCount),
+                            _buildBcvQuickHeaderCard(),
                             _buildAcademicSection(),
                             const SizedBox(height: 20),
                             _buildAutomationSection(),
@@ -655,6 +656,17 @@ class _ConfiguracionGeneralScreenState
         },
       ),
       actions: [
+        IconButton(
+          tooltip: 'Sincronizar Tasa Oficial BCV',
+          onPressed: _isLoading || _isSaving || _isSyncingBcv ? null : () => _syncBcvRate(),
+          icon: _isSyncingBcv
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: cSky),
+                )
+              : const Icon(Symbols.currency_exchange, size: 20, color: cSky),
+        ),
         Padding(
           padding: const EdgeInsets.only(right: 8.0),
           child: TextButton.icon(
@@ -702,6 +714,117 @@ class _ConfiguracionGeneralScreenState
                 color: cTextMain,
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Tarjeta de acceso rápido superior para la Tasa Oficial BCV
+  Widget _buildBcvQuickHeaderCard() {
+    final tasa = _currentValues['tasa_cambio_oficial'];
+    final tasaStr = (tasa is num)
+        ? tasa.toStringAsFixed(2)
+        : (tasa?.toString() ?? '36.50');
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: cCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _lastBcvResult != null
+              ? cEmerald.withAlpha(90)
+              : cSky.withAlpha(70),
+          width: 1.2,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x22000000),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: cSky.withAlpha(30),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Symbols.currency_exchange, color: cSky, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'Tasa Oficial BCV: ',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: cTextMuted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      'Bs. $tasaStr / USD',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: cEmerald,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  _lastBcvResult != null
+                      ? 'Actualizado: ${DateFormat('dd/MM/yyyy hh:mm a').format(_lastBcvResult!.updatedAt)}'
+                      : 'Referencia en tiempo real para cálculos y comprobantes en bolívares.',
+                  style: GoogleFonts.plusJakartaSans(
+                    color: cTextDim,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor:
+                  _isSyncingBcv ? cBorder : cSky.withAlpha(40),
+              foregroundColor: _isSyncingBcv ? cTextMuted : cSky,
+              elevation: 0,
+              side: BorderSide(
+                color: _isSyncingBcv ? cBorder : cSky.withAlpha(120),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: _isSyncingBcv ? null : () => _syncBcvRate(),
+            icon: _isSyncingBcv
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child:
+                        CircularProgressIndicator(strokeWidth: 2, color: cSky),
+                  )
+                : const Icon(Symbols.sync, size: 16),
+            label: Text(
+              _isSyncingBcv ? '...' : 'Sincronizar BCV',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w700,
+                fontSize: 11.5,
               ),
             ),
           ),
