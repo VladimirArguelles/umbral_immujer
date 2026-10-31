@@ -1,4 +1,4 @@
-﻿import 'package:google_fonts/google_fonts.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
@@ -75,27 +75,92 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
               ? IconButton(
                   icon: const Icon(Icons.arrow_back_rounded),
                   tooltip: _currentIndex != 0
-                      ? 'Regresar a la pantalla inicial del módulo'
+                      ? 'Regresar al inicio del módulo'
                       : 'Volver a Super Admin',
                   onPressed: _handleBackNavigation,
                 )
               : null,
           title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                isSuperAdmin ? 'UMBRAL • Docente (Super Admin)' : 'UMBRAL • Docente',
-                style: const TextStyle(fontSize: 16),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Módulo Docente',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  if (isSuperAdmin) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryContainer.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: AppTheme.primary,
+                          width: 0.8,
+                        ),
+                      ),
+                      child: const Text(
+                        'SUPER ADMIN',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.primary,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
               Text(
                 widget.profile.fullName,
                 style: const TextStyle(
-                  fontSize: 12,
+                  fontSize: 11.5,
+                  color: AppTheme.onSurfaceVariant,
                   fontWeight: FontWeight.normal,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
           actions: [
+            if (isSuperAdmin)
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: TextButton.icon(
+                  style: TextButton.styleFrom(
+                    backgroundColor:
+                        AppTheme.primaryContainer.withValues(alpha: 0.25),
+                    foregroundColor: AppTheme.primary,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    minimumSize: const Size(0, 34),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: BorderSide(
+                        color: AppTheme.primary.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.arrow_back_rounded, size: 14),
+                  label: const Text(
+                    'Super Admin',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  onPressed: () => context.go('/superadmin'),
+                ),
+              ),
             IconButton(
               icon: const Icon(Icons.logout),
               tooltip: 'Cerrar Sesión',
@@ -103,108 +168,53 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
             ),
           ],
         ),
-        body: Column(
-          children: [
-            if (isSuperAdmin)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryContainer.withValues(alpha: 0.25),
-                  border: const Border(
-                    bottom: BorderSide(
-                      color: AppTheme.outlineVariant,
-                      width: 0.5,
-                    ),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.admin_panel_settings_outlined,
-                      size: 18,
-                      color: AppTheme.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text(
-                        'Modo Super Admin • Módulo Profesores',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.onSurface,
-                        ),
-                      ),
-                    ),
-                    InkWell(
-                      onTap: () => context.go('/superadmin'),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primary,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.arrow_back_rounded,
-                              size: 14,
-                              color: AppTheme.onPrimary,
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              'Volver a Super Admin',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.onPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+        body: tabs[_currentIndex],
+        bottomNavigationBar: NavigationBarTheme(
+          data: NavigationBarThemeData(
+            height: 64,
+            labelTextStyle: WidgetStateProperty.resolveWith((states) {
+              final isSelected = states.contains(WidgetState.selected);
+              return TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected
+                    ? AppTheme.primary
+                    : AppTheme.onSurfaceVariant,
+              );
+            }),
+          ),
+          child: NavigationBar(
+            selectedIndex: _currentIndex,
+            onDestinationSelected: (idx) => setState(() => _currentIndex = idx),
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.dashboard_outlined),
+                selectedIcon: Icon(Icons.dashboard),
+                label: 'Inicio',
               ),
-            Expanded(child: tabs[_currentIndex]),
-          ],
-        ),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: _currentIndex,
-          onDestinationSelected: (idx) => setState(() => _currentIndex = idx),
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.dashboard_outlined),
-              selectedIcon: Icon(Icons.dashboard),
-              label: 'Inicio',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.playlist_add_check_circle_outlined),
-              selectedIcon: Icon(Icons.playlist_add_check_circle),
-              label: 'Asistencia',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.add_chart_outlined),
-              selectedIcon: Icon(Icons.add_chart),
-              label: 'Crear Encuesta',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.payments_outlined),
-              selectedIcon: Icon(Icons.payments),
-              label: 'Recaudación',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.people_alt_outlined),
-              selectedIcon: Icon(Icons.people_alt),
-              label: 'Alumnos & Papelera',
-            ),
-          ],
+              NavigationDestination(
+                icon: Icon(Icons.playlist_add_check_circle_outlined),
+                selectedIcon: Icon(Icons.playlist_add_check_circle),
+                label: 'Asistencia',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.add_chart_outlined),
+                selectedIcon: Icon(Icons.add_chart),
+                label: 'Encuestas',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.payments_outlined),
+                selectedIcon: Icon(Icons.payments),
+                label: 'Recaudación',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.people_alt_outlined),
+                selectedIcon: Icon(Icons.people_alt),
+                label: 'Alumnas',
+              ),
+            ],
+          ),
         ),
       ),
     );
