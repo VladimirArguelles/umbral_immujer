@@ -268,22 +268,35 @@ class StudentRepository {
           .maybeSingle();
 
       final cursoMap = enc['cursos'] as Map<String, dynamic>?;
+      final fechaLimite =
+          DateTime.tryParse(enc['fecha_limite'] as String? ?? '') ??
+          DateTime.now();
+      final estado = enc['estado'] as String? ?? 'activa';
+
+      // Filtrar estrictamente: solo encuestas activas que no hayan vencido su fecha límite
+      if (estado != 'activa' || DateTime.now().isAfter(fechaLimite)) {
+        continue;
+      }
+
+      String? profName;
+      if (cursoMap != null && cursoMap['perfiles'] is Map) {
+        profName = cursoMap['perfiles']['nombre_completo'] as String?;
+      }
 
       resultado.add(
         StudentSurvey(
           id: encuestaId,
           cursoId: enc['curso_id'] as String,
           cursoNombre: cursoMap?['nombre'] ?? 'Curso',
+          profesorNombre: profName,
           fechaClase: enc['fecha_clase']?.toString() ?? '',
           costoTotalInsumos:
               (enc['costo_total_insumos'] as num?)?.toDouble() ?? 0.0,
-          fechaLimite:
-              DateTime.tryParse(enc['fecha_limite'] as String? ?? '') ??
-              DateTime.now(),
+          fechaLimite: fechaLimite,
           montoIndividual:
               (enc['monto_individual_calculado'] as num?)?.toDouble() ?? 0.0,
           totalConfirmados: (enc['total_confirmados'] as num?)?.toInt() ?? 0,
-          estadoEncuesta: enc['estado'] as String? ?? 'activa',
+          estadoEncuesta: estado,
           respondio: respData != null,
           asistira: respData?['asistira'] as bool?,
           comprobanteUrl: respData?['comprobante_url'] as String?,

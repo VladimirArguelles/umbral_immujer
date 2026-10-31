@@ -2016,7 +2016,8 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        final encuestas = snapshot.data ?? [];
+        final rawData = snapshot.data ?? [];
+        final encuestas = rawData.where((e) => e.estadoEncuesta == 'activa' && !e.estaVencida).toList();
 
         if (encuestas.isEmpty) {
           return Center(
