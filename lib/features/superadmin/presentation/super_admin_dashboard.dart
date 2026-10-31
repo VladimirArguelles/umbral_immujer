@@ -288,6 +288,29 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: cAccent,
+                        foregroundColor: AppTheme.onPrimaryContainer,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        context.go('/superadmin/configuracion');
+                      },
+                      icon: const Icon(Symbols.tune),
+                      label: const Text(
+                        'Abrir Configuración General Completa',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         foregroundColor: cAccent,
@@ -461,7 +484,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     } else if (index == 3) {
       context.go('/coordinator');
     } else if (index == 4) {
-      _showSettingsModal();
+      context.go('/superadmin/configuracion');
     }
   }
 
@@ -820,6 +843,12 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                   child: CircularProgressIndicator(strokeWidth: 2, color: cMintBright),
                 )
               : const Icon(Symbols.refresh, color: cTextMuted),
+        ),
+        const SizedBox(width: 4),
+        IconButton(
+          onPressed: _showSettingsModal,
+          tooltip: 'Ajustes rápidos',
+          icon: const Icon(Symbols.tune, color: cTextMuted),
         ),
       ],
     );
