@@ -11,6 +11,7 @@ import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
 import 'package:umbral_immujer/src/features/auth/presentation/login_screen.dart';
 import 'package:umbral_immujer/src/features/auth/presentation/register_screen.dart';
 import 'package:umbral_immujer/features/coordinator/presentation/coordinator_dashboard_page.dart';
+import 'package:umbral_immujer/features/superadmin/presentation/gestion_profesores_page.dart';
 import 'package:umbral_immujer/features/superadmin/presentation/super_admin_dashboard.dart';
 import 'package:umbral_immujer/features/teacher/presentation/teacher_dashboard_page.dart';
 
@@ -111,6 +112,16 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => _AuthenticatedDashboardPage(
         builder: (profile) => SuperAdminDashboardPage(profile: profile),
       ),
+    ),
+    GoRoute(
+      path: '/superadmin/profesores',
+      builder: (context, state) => _AuthenticatedDashboardPage(
+        builder: (profile) => const GestionProfesoresPage(),
+      ),
+    ),
+    GoRoute(
+      path: '/gestion-profesores',
+      redirect: (context, state) => '/superadmin/profesores',
     ),
     GoRoute(path: '/coordinador', redirect: (context, state) => '/coordinator'),
   ],

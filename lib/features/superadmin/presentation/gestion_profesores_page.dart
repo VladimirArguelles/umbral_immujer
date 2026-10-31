@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -508,6 +509,17 @@ class _GestionProfesoresPageState extends State<GestionProfesoresPage> {
       appBar: AppBar(
         backgroundColor: AppTheme.surfaceContainerLow,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          tooltip: 'Volver a Super Admin',
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/superadmin');
+            }
+          },
+        ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

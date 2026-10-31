@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -457,7 +457,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     if (index == 1) {
       context.go('/student');
     } else if (index == 2) {
-      context.go('/teacher');
+      context.go('/superadmin/profesores');
     } else if (index == 3) {
       context.go('/coordinator');
     } else if (index == 4) {
@@ -912,7 +912,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                   ],
                 ),
                 isPrimaryAction: false,
-                onEnter: () => context.go('/teacher'),
+                onEnter: () => context.go('/superadmin/profesores'),
               ),
             ),
             const SizedBox(width: 16),
@@ -1276,7 +1276,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
             ],
           ),
           isPrimaryAction: false,
-          onEnter: () => context.go('/teacher'),
+          onEnter: () => context.go('/superadmin/profesores'),
         ),
         const SizedBox(height: 14),
 
@@ -1629,161 +1629,168 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     required bool isPrimaryAction,
     required VoidCallback onEnter,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cCard,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onEnter,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: cBorder.withValues(alpha: 0.8)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x59000000),
-            blurRadius: 18,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Icon Frame
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: cCardInner,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: cBorder),
-                ),
-                child: Icon(icon, color: iconColor, size: 24),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: cCard,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: cBorder.withValues(alpha: 0.8)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x59000000),
+                blurRadius: 18,
+                offset: Offset(0, 4),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+            ],
+          ),
+          child: Column(
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Icon Frame
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: cCardInner,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: cBorder),
+                    ),
+                    child: Icon(icon, color: iconColor, size: 24),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Flexible(
-                          child: Text(
-                            title,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: cTextMain,
-                              letterSpacing: -0.2,
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                title,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: cTextMain,
+                                  letterSpacing: -0.2,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: badgeBg,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: AppTheme.secondary.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Text(
+                                badgeText,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: badgeTextColor,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
+                        const SizedBox(height: 4),
+                        Text(
+                          subtitle,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w500,
+                            color: cTextMuted,
                           ),
-                          decoration: BoxDecoration(
-                            color: badgeBg,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: AppTheme.secondary.withValues(alpha: 0.3),
-                            ),
-                          ),
-                          child: Text(
-                            badgeText,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.bold,
-                              color: badgeTextColor,
-                            ),
-                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w500,
-                        color: cTextMuted,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Flexible(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: bottomLeftWidget,
                     ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Flexible(
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: bottomLeftWidget,
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Botón Entrar al Módulo
-              InkWell(
-                onTap: onEnter,
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
                   ),
-                  decoration: BoxDecoration(
-                    gradient: isPrimaryAction
-                        ? const LinearGradient(
-                            colors: [cAccent, AppTheme.primary],
-                          )
-                        : null,
-                    color: isPrimaryAction ? null : cCardInner,
+                  const SizedBox(width: 8),
+                  // Botón Entrar / Seleccionar Módulo
+                  InkWell(
+                    onTap: onEnter,
                     borderRadius: BorderRadius.circular(12),
-                    border: isPrimaryAction ? null : Border.all(color: cBorder),
-                    boxShadow: isPrimaryAction
-                        ? const [
-                            BoxShadow(
-                              color: cAccentGlow,
-                              blurRadius: 12,
-                              offset: Offset(0, 3),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: isPrimaryAction
+                            ? const LinearGradient(
+                                colors: [cAccent, AppTheme.primary],
+                              )
+                            : null,
+                        color: isPrimaryAction ? null : cCardInner,
+                        borderRadius: BorderRadius.circular(12),
+                        border: isPrimaryAction ? null : Border.all(color: cBorder),
+                        boxShadow: isPrimaryAction
+                            ? const [
+                                BoxShadow(
+                                  color: cAccentGlow,
+                                  blurRadius: 12,
+                                  offset: Offset(0, 3),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            isPrimaryAction ? 'ENTRAR' : 'SELECCIONAR',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: isPrimaryAction
+                                  ? AppTheme.onPrimaryContainer
+                                  : cTextMain,
+                              letterSpacing: 0.5,
                             ),
-                          ]
-                        : null,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'ENTRAR',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: isPrimaryAction
-                              ? AppTheme.onPrimaryContainer
-                              : cTextMain,
-                          letterSpacing: 0.5,
-                        ),
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(
+                            Icons.arrow_forward,
+                            size: 13,
+                            color: isPrimaryAction
+                                ? AppTheme.onPrimaryContainer
+                                : cTextMuted,
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 6),
-                      Icon(
-                        Icons.arrow_forward,
-                        size: 13,
-                        color: isPrimaryAction
-                            ? AppTheme.onPrimaryContainer
-                            : cTextMuted,
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }

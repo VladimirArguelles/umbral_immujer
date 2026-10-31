@@ -1,4 +1,4 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+﻿import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../domain/teacher_models.dart';
 
@@ -10,11 +10,11 @@ class TeacherRepository {
   String? get currentUserId => _supabase.auth.currentUser?.id;
 
   /// Cursos asignados al profesor actual
-  Future<List<TeacherCourse>> getMyCourses() async {
+  Future<List<TeacherCourse>> getMyCourses({bool isSuperAdmin = false}) async {
     final uid = currentUserId;
     if (uid == null) return [];
 
-    final cursosData = await _supabase
+    dynamic query = _supabase
         .from('cursos')
         .select('''
           id,
@@ -28,8 +28,11 @@ class TeacherRepository {
             deleted_at
           )
         ''')
-        .eq('profesor_id', uid)
         .eq('estado', 'activo');
+    if (!isSuperAdmin) {
+      query = query.eq('profesor_id', uid);
+    }
+    final cursosData = await query;
 
     final List<TeacherCourse> list = [];
     for (final item in (cursosData as List)) {
