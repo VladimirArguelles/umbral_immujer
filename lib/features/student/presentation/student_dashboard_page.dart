@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -2206,7 +2206,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                             Text(
                               enc.cuotaACancelar > 0
                                   ? Formatters.currency(enc.cuotaACancelar)
-                                  : r'$0.00',
+                                  : Formatters.currency(0),
                               style: const TextStyle(
                                 fontSize: 26,
                                 fontWeight: FontWeight.w900,

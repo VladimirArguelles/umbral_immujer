@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 class Formatters {
   static final NumberFormat _currencyFormat = NumberFormat.currency(
     locale: 'es_VE',
-    symbol: r'$',
+    symbol: 'Bs. ',
     decimalDigits: 2,
   );
 

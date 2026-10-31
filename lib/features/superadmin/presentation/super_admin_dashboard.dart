@@ -1,10 +1,13 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
+import 'gestion_alumnos_page.dart';
+import 'gestion_cursos_page.dart';
+import 'gestion_profesores_page.dart';
 
 // ─── Responsive breakpoints ───────────────────────────────────────────────────
 // < 600 px  → mobile  : bottom-nav + single column
@@ -317,47 +320,115 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
       builder: (ctx) => AlertDialog(
         backgroundColor: cCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'Acción Rápida',
-          style: GoogleFonts.plusJakartaSans(
-            color: cTextMain,
-            fontWeight: FontWeight.bold,
-          ),
+        title: Row(
+          children: [
+            const Icon(Symbols.bolt, color: cAccent, size: 24),
+            const SizedBox(width: 8),
+            Text(
+              'Acciones Rápidas',
+              style: GoogleFonts.plusJakartaSans(
+                color: cTextMain,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Symbols.school, color: cAccent),
-              title: const Text(
-                'Nuevo Alumno',
-                style: TextStyle(color: cTextMain),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: cAccent.withAlpha(40),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Symbols.school, color: cAccent, size: 22),
               ),
+              title: Text(
+                'Gestión de Alumnos',
+                style: GoogleFonts.plusJakartaSans(
+                  color: cTextMain,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+              subtitle: const Text(
+                'Filtrar por curso, editar, añadir y eliminar alumnas',
+                style: TextStyle(color: cTextMuted, fontSize: 12),
+              ),
+              trailing: const Icon(Symbols.chevron_right, color: cTextDim, size: 20),
               onTap: () {
                 Navigator.pop(ctx);
-                context.go('/student');
+                Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (_) => const GestionAlumnosPage()))
+                    .then((_) => _loadMetrics());
               },
             ),
+            const SizedBox(height: 6),
             ListTile(
-              leading: const Icon(Symbols.menu_book, color: cAccent),
-              title: const Text(
-                'Nuevo Curso/Taller',
-                style: TextStyle(color: cTextMain),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: cMintBright.withAlpha(40),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Symbols.badge, color: cMintBright, size: 22),
               ),
+              title: Text(
+                'Gestión Profesores',
+                style: GoogleFonts.plusJakartaSans(
+                  color: cTextMain,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+              subtitle: const Text(
+                'Filtrar por curso, asignar, editar y registrar docentes',
+                style: TextStyle(color: cTextMuted, fontSize: 12),
+              ),
+              trailing: const Icon(Symbols.chevron_right, color: cTextDim, size: 20),
               onTap: () {
                 Navigator.pop(ctx);
-                context.go('/coordinator');
+                Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (_) => const GestionProfesoresPage()))
+                    .then((_) => _loadMetrics());
               },
             ),
+            const SizedBox(height: 6),
             ListTile(
-              leading: const Icon(Symbols.badge, color: cAccent),
-              title: const Text(
-                'Nuevo Profesor',
-                style: TextStyle(color: cTextMain),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryContainer.withAlpha(40),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Symbols.menu_book, color: AppTheme.primary, size: 22),
               ),
+              title: Text(
+                'Gestión Curso',
+                style: GoogleFonts.plusJakartaSans(
+                  color: cTextMain,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+              subtitle: const Text(
+                'Seleccionar curso, editar, añadir, eliminar y ver temas',
+                style: TextStyle(color: cTextMuted, fontSize: 12),
+              ),
+              trailing: const Icon(Symbols.chevron_right, color: cTextDim, size: 20),
               onTap: () {
                 Navigator.pop(ctx);
-                context.go('/teacher');
+                Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (_) => const GestionCursosPage()))
+                    .then((_) => _loadMetrics());
               },
             ),
           ],
