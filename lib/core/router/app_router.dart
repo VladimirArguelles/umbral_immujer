@@ -96,9 +96,36 @@ final GoRouter appRouter = GoRouter(
     GoRoute(path: '/alumnos', redirect: (context, state) => '/student'),
     GoRoute(
       path: '/teacher',
-      builder: (context, state) => _AuthenticatedDashboardPage(
-        builder: (profile) => TeacherDashboardPage(profile: profile),
-      ),
+      pageBuilder: (context, state) {
+        final tab = state.uri.queryParameters['tab'];
+        final legacyTabIndex = int.tryParse(tab ?? '');
+        final tabIndex = switch (tab) {
+          'attendance' || 'asistencia' => 1,
+          'surveys' || 'encuestas' => 2,
+          'revenue' || 'recaudacion' => 3,
+          'students' || 'alumnos' => 4,
+          _ => legacyTabIndex == null ? 0 : legacyTabIndex.clamp(0, 4),
+        };
+        return CustomTransitionPage<void>(
+          key: state.pageKey,
+          transitionDuration: const Duration(milliseconds: 300),
+          reverseTransitionDuration: const Duration(milliseconds: 300),
+          child: _AuthenticatedDashboardPage(
+            builder: (profile) =>
+                TeacherDashboardPage(profile: profile, initialIndex: tabIndex),
+          ),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            final slide = Tween<Offset>(
+              begin: const Offset(0.04, 0),
+              end: Offset.zero,
+            ).animate(animation);
+            return FadeTransition(
+              opacity: animation,
+              child: SlideTransition(position: slide, child: child),
+            );
+          },
+        );
+      },
     ),
     GoRoute(path: '/profesor', redirect: (context, state) => '/teacher'),
     GoRoute(

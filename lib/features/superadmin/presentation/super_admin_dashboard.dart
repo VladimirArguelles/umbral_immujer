@@ -457,7 +457,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     if (index == 1) {
       context.go('/student');
     } else if (index == 2) {
-      context.go('/superadmin/profesores');
+      context.go('/teacher');
     } else if (index == 3) {
       context.go('/coordinator');
     } else if (index == 4) {
@@ -912,7 +912,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                   ],
                 ),
                 isPrimaryAction: false,
-                onEnter: () => context.go('/superadmin/profesores'),
+                onEnter: () => context.go('/teacher'),
               ),
             ),
             const SizedBox(width: 16),
@@ -1276,7 +1276,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
             ],
           ),
           isPrimaryAction: false,
-          onEnter: () => context.go('/superadmin/profesores'),
+          onEnter: () => context.go('/teacher'),
         ),
         const SizedBox(height: 14),
 

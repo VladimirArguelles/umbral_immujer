@@ -1,3 +1,4 @@
+﻿import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
@@ -9,20 +10,34 @@ import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
 
 class TeacherDashboardPage extends StatefulWidget {
   final UserProfile profile;
-  const TeacherDashboardPage({super.key, required this.profile});
+  final int initialIndex;
+  const TeacherDashboardPage({
+    super.key,
+    required this.profile,
+    this.initialIndex = 0,
+  });
 
   @override
   State<TeacherDashboardPage> createState() => _TeacherDashboardPageState();
 }
 
 class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
-  int _currentIndex = 0;
+  late int _currentIndex;
   late final TeacherRepository _teacherRepository;
 
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialIndex.clamp(0, 4);
     _teacherRepository = TeacherRepository(SupabaseConfig.client);
+  }
+
+  void _handleBackNavigation() {
+    if (_currentIndex != 0) {
+      setState(() => _currentIndex = 0);
+    } else if (widget.profile.role == UserRole.superAdmin) {
+      context.go('/superadmin');
+    }
   }
 
   void _handleSignOut() async {
@@ -34,142 +49,392 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    final tabs = [
-      _PaseListaTab(teacherRepository: _teacherRepository),
-      _CrearEncuestaTab(teacherRepository: _teacherRepository),
-      _AuditoriaRecaudacionTab(teacherRepository: _teacherRepository),
-      _GestionAlumnosTab(teacherRepository: _teacherRepository),
-    ];
-
     final isSuperAdmin = widget.profile.role == UserRole.superAdmin;
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: isSuperAdmin
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back_rounded),
-                tooltip: 'Volver a Super Admin',
-                onPressed: () => context.go('/superadmin'),
-              )
-            : null,
-        title: Column(
-          children: [
-            Text(
-              isSuperAdmin ? 'UMBRAL • Docente (Super Admin)' : 'UMBRAL • Docente',
-              style: const TextStyle(fontSize: 16),
-            ),
-            Text(
-              widget.profile.fullName,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.normal,
+    final tabs = [
+      _TeacherSummaryTab(
+        teacherName: widget.profile.fullName,
+        isSuperAdmin: isSuperAdmin,
+        onNavigate: (idx) => setState(() => _currentIndex = idx),
+      ),
+      _PaseListaTab(teacherRepository: _teacherRepository, isSuperAdmin: isSuperAdmin),
+      _CrearEncuestaTab(teacherRepository: _teacherRepository, isSuperAdmin: isSuperAdmin),
+      _AuditoriaRecaudacionTab(teacherRepository: _teacherRepository, isSuperAdmin: isSuperAdmin),
+      _GestionAlumnosTab(teacherRepository: _teacherRepository, isSuperAdmin: isSuperAdmin),
+    ];
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBackNavigation();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: (isSuperAdmin || _currentIndex != 0)
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  tooltip: _currentIndex != 0
+                      ? 'Regresar a la pantalla inicial del módulo'
+                      : 'Volver a Super Admin',
+                  onPressed: _handleBackNavigation,
+                )
+              : null,
+          title: Column(
+            children: [
+              Text(
+                isSuperAdmin ? 'UMBRAL • Docente (Super Admin)' : 'UMBRAL • Docente',
+                style: const TextStyle(fontSize: 16),
               ),
+              Text(
+                widget.profile.fullName,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout),
+              tooltip: 'Cerrar Sesión',
+              onPressed: _handleSignOut,
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Cerrar Sesión',
-            onPressed: _handleSignOut,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          if (isSuperAdmin)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryContainer.withValues(alpha: 0.25),
-                border: const Border(
-                  bottom: BorderSide(
-                    color: AppTheme.outlineVariant,
-                    width: 0.5,
+        body: Column(
+          children: [
+            if (isSuperAdmin)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryContainer.withValues(alpha: 0.25),
+                  border: const Border(
+                    bottom: BorderSide(
+                      color: AppTheme.outlineVariant,
+                      width: 0.5,
+                    ),
                   ),
                 ),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.admin_panel_settings_outlined,
-                    size: 18,
-                    color: AppTheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text(
-                      'Modo Super Admin • Módulo Profesores',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.onSurface,
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.admin_panel_settings_outlined,
+                      size: 18,
+                      color: AppTheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Modo Super Admin • Módulo Profesores',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.onSurface,
+                        ),
                       ),
                     ),
-                  ),
-                  InkWell(
-                    onTap: () => context.go('/superadmin'),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.arrow_back_rounded,
-                            size: 14,
-                            color: AppTheme.onPrimary,
-                          ),
-                          SizedBox(width: 4),
-                          Text(
-                            'Volver al Panel',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
+                    InkWell(
+                      onTap: () => context.go('/superadmin'),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.arrow_back_rounded,
+                              size: 14,
                               color: AppTheme.onPrimary,
                             ),
-                          ),
-                        ],
+                            SizedBox(width: 4),
+                            Text(
+                              'Volver a Super Admin',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.onPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+            Expanded(child: tabs[_currentIndex]),
+          ],
+        ),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _currentIndex,
+          onDestinationSelected: (idx) => setState(() => _currentIndex = idx),
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.dashboard_outlined),
+              selectedIcon: Icon(Icons.dashboard),
+              label: 'Inicio',
             ),
-          Expanded(child: tabs[_currentIndex]),
+            NavigationDestination(
+              icon: Icon(Icons.playlist_add_check_circle_outlined),
+              selectedIcon: Icon(Icons.playlist_add_check_circle),
+              label: 'Asistencia',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.add_chart_outlined),
+              selectedIcon: Icon(Icons.add_chart),
+              label: 'Crear Encuesta',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.payments_outlined),
+              selectedIcon: Icon(Icons.payments),
+              label: 'Recaudación',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.people_alt_outlined),
+              selectedIcon: Icon(Icons.people_alt),
+              label: 'Alumnos & Papelera',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// -------------------------------------------------------------
+
+/// -------------------------------------------------------------
+/// TAB 0: PANTALLA INICIAL / RESUMEN DEL MÓDULO PROFESOR
+/// -------------------------------------------------------------
+class _TeacherSummaryTab extends StatelessWidget {
+  final String teacherName;
+  final bool isSuperAdmin;
+  final ValueChanged<int> onNavigate;
+
+  const _TeacherSummaryTab({
+    required this.teacherName,
+    required this.isSuperAdmin,
+    required this.onNavigate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: AppTheme.background,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryContainer.withAlpha(50),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.school, color: AppTheme.primary, size: 26),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Hola, $teacherName',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: AppTheme.onSurface,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isSuperAdmin
+                          ? 'Supervisión de docencia, asistencias y planeación'
+                          : 'Panel de gestión académica y control de clases',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: AppTheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'HERRAMIENTAS DEL MÓDULO',
+            style: GoogleFonts.plusJakartaSans(
+              color: AppTheme.outline,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.1,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _TeacherActionCard(
+            title: 'PASE DE ASISTENCIA',
+            description: 'Toma asistencia diaria de alumnas, visualiza asistencias y confirmaciones.',
+            icon: Icons.playlist_add_check_circle_rounded,
+            accent: AppTheme.primary,
+            actionLabel: 'IR A ASISTENCIA',
+            onTap: () => onNavigate(1),
+          ),
+          const SizedBox(height: 12),
+          _TeacherActionCard(
+            title: 'CREAR ENCUESTA',
+            description: 'Configura encuestas previas para estimar insumos y confirmar participación.',
+            icon: Icons.add_chart_rounded,
+            accent: AppTheme.secondary,
+            actionLabel: 'IR A ENCUESTAS',
+            onTap: () => onNavigate(2),
+          ),
+          const SizedBox(height: 12),
+          _TeacherActionCard(
+            title: 'AUDITORÍA DE RECAUDACIÓN',
+            description: 'Monitorea comprobantes de aportes y saldo de insumos por clase.',
+            icon: Icons.payments_rounded,
+            accent: AppTheme.tertiary,
+            actionLabel: 'IR A RECAUDACIÓN',
+            onTap: () => onNavigate(3),
+          ),
+          const SizedBox(height: 12),
+          _TeacherActionCard(
+            title: 'EXPEDIENTE DE ALUMNOS',
+            description: 'Listado de alumnas matriculadas, desincorporaciones e historial.',
+            icon: Icons.people_alt_rounded,
+            accent: const Color(0xFF00796B),
+            actionLabel: 'IR A ALUMNOS',
+            onTap: () => onNavigate(4),
+          ),
+          if (isSuperAdmin) ...[
+            const SizedBox(height: 12),
+            _TeacherActionCard(
+              title: 'GESTIÓN DE PLANTEL DOCENTE',
+              description: 'Administración institucional de profesores, registro y asignación de cursos.',
+              icon: Icons.badge_rounded,
+              accent: AppTheme.primaryContainer,
+              textColor: AppTheme.onPrimaryContainer,
+              actionLabel: 'GESTIÓN DE PROFESORES',
+              onTap: () => context.go('/superadmin/profesores'),
+            ),
+          ],
         ],
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (idx) => setState(() => _currentIndex = idx),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.playlist_add_check_circle_outlined),
-            selectedIcon: Icon(Icons.playlist_add_check_circle),
-            label: 'Asistencia',
+    );
+  }
+}
+
+class _TeacherActionCard extends StatelessWidget {
+  final String title;
+  final String description;
+  final IconData icon;
+  final Color accent;
+  final Color? textColor;
+  final String actionLabel;
+  final VoidCallback onTap;
+
+  const _TeacherActionCard({
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.accent,
+    this.textColor,
+    required this.actionLabel,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppTheme.outlineVariant),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.add_chart_outlined),
-            selectedIcon: Icon(Icons.add_chart),
-            label: 'Crear Encuesta',
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: accent, size: 24),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.plusJakartaSans(
+                        color: AppTheme.onSurface,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: GoogleFonts.plusJakartaSans(
+                        color: AppTheme.onSurfaceVariant,
+                        fontSize: 11.5,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          NavigationDestination(
-            icon: Icon(Icons.payments_outlined),
-            selectedIcon: Icon(Icons.payments),
-            label: 'Recaudación',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.people_alt_outlined),
-            selectedIcon: Icon(Icons.people_alt),
-            label: 'Alumnos & Papelera',
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: onTap,
+              style: FilledButton.styleFrom(
+                backgroundColor: accent,
+                foregroundColor: textColor ?? Colors.white,
+                minimumSize: const Size.fromHeight(40),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                actionLabel,
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -177,12 +442,15 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   }
 }
 
-/// -------------------------------------------------------------
 /// TAB 1: PASE DE ASISTENCIA (Individual + Lote 'Todos Presentes')
 /// -------------------------------------------------------------
 class _PaseListaTab extends StatefulWidget {
   final TeacherRepository teacherRepository;
-  const _PaseListaTab({required this.teacherRepository});
+  final bool isSuperAdmin;
+  const _PaseListaTab({
+    required this.teacherRepository,
+    this.isSuperAdmin = false,
+  });
 
   @override
   State<_PaseListaTab> createState() => _PaseListaTabState();
@@ -204,7 +472,7 @@ class _PaseListaTabState extends State<_PaseListaTab> {
 
   void _loadCursos() async {
     setState(() => _isLoading = true);
-    final cursos = await widget.teacherRepository.getMyCourses();
+    final cursos = await widget.teacherRepository.getMyCourses(isSuperAdmin: widget.isSuperAdmin);
     if (!mounted) return;
     setState(() {
       _cursos = cursos;
@@ -499,7 +767,11 @@ class _PaseListaTabState extends State<_PaseListaTab> {
 /// -------------------------------------------------------------
 class _CrearEncuestaTab extends StatefulWidget {
   final TeacherRepository teacherRepository;
-  const _CrearEncuestaTab({required this.teacherRepository});
+  final bool isSuperAdmin;
+  const _CrearEncuestaTab({
+    required this.teacherRepository,
+    this.isSuperAdmin = false,
+  });
 
   @override
   State<_CrearEncuestaTab> createState() => _CrearEncuestaTabState();
@@ -521,7 +793,7 @@ class _CrearEncuestaTabState extends State<_CrearEncuestaTab> {
   }
 
   void _loadCursos() async {
-    final cursos = await widget.teacherRepository.getMyCourses();
+    final cursos = await widget.teacherRepository.getMyCourses(isSuperAdmin: widget.isSuperAdmin);
     if (!mounted) return;
     setState(() {
       _cursos = cursos;
@@ -740,7 +1012,11 @@ class _CrearEncuestaTabState extends State<_CrearEncuestaTab> {
 /// -------------------------------------------------------------
 class _AuditoriaRecaudacionTab extends StatefulWidget {
   final TeacherRepository teacherRepository;
-  const _AuditoriaRecaudacionTab({required this.teacherRepository});
+  final bool isSuperAdmin;
+  const _AuditoriaRecaudacionTab({
+    required this.teacherRepository,
+    this.isSuperAdmin = false,
+  });
 
   @override
   State<_AuditoriaRecaudacionTab> createState() =>
@@ -1041,7 +1317,11 @@ class _AuditoriaRecaudacionTabState extends State<_AuditoriaRecaudacionTab> {
 /// -------------------------------------------------------------
 class _GestionAlumnosTab extends StatefulWidget {
   final TeacherRepository teacherRepository;
-  const _GestionAlumnosTab({required this.teacherRepository});
+  final bool isSuperAdmin;
+  const _GestionAlumnosTab({
+    required this.teacherRepository,
+    this.isSuperAdmin = false,
+  });
 
   @override
   State<_GestionAlumnosTab> createState() => _GestionAlumnosTabState();
@@ -1060,7 +1340,7 @@ class _GestionAlumnosTabState extends State<_GestionAlumnosTab> {
   }
 
   void _loadCursos() async {
-    final cursos = await widget.teacherRepository.getMyCourses();
+    final cursos = await widget.teacherRepository.getMyCourses(isSuperAdmin: widget.isSuperAdmin);
     if (!mounted) return;
     setState(() {
       _cursos = cursos;
