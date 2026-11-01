@@ -826,7 +826,7 @@ class _ConfiguracionGeneralScreenState
             ),
             const SizedBox(height: 4),
             Text(
-              'Umbral requerido para emitir certificados y considerar aprobada a la alumna.',
+              'Umbral requerido para emitir certificados y considerar aprobado al alumno.',
               style: GoogleFonts.plusJakartaSans(color: cTextMuted, fontSize: 11.5),
             ),
             const SizedBox(height: 10),
@@ -959,7 +959,7 @@ class _ConfiguracionGeneralScreenState
         _buildTextField(
           keyName: 'max_file_size_mb_comprobante',
           label: 'Tamaño Máximo de Comprobante de Pago',
-          helperText: 'Peso tope permitido al subir imágenes o PDFs desde el portal de la alumna.',
+          helperText: 'Peso tope permitido al subir imágenes o PDFs desde el portal del alumno.',
           suffixText: 'Megabytes (MB)',
           icon: Symbols.inventory_2,
           isNumeric: true,

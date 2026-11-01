@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
+import 'package:umbral_immujer/src/core/widgets/app_carousel_slider.dart';
 import 'package:umbral_immujer/src/core/widgets/super_admin_nav_bar.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
 import 'gestion_alumnos_page.dart';
@@ -257,7 +258,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                       ),
                     ),
                     subtitle: const Text(
-                      'Avisos automáticos a facilitadores y alumnas por WhatsApp/Push.',
+                      'Avisos automáticos a facilitadores y alumnos por WhatsApp/Push.',
                       style: TextStyle(color: cTextMuted, fontSize: 12),
                     ),
                     value: _notificationsEnabled,
@@ -276,7 +277,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                       ),
                     ),
                     subtitle: const Text(
-                      'Suspender temporalmente ingresos al portal de alumnas.',
+                      'Suspender temporalmente ingresos al portal de alumnos.',
                       style: TextStyle(color: cTextMuted, fontSize: 12),
                     ),
                     value: _maintenanceMode,
@@ -435,7 +436,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                 ),
               ),
               subtitle: const Text(
-                'Filtrar por curso, editar, añadir y eliminar alumnas',
+                'Filtrar por curso, editar, añadir y eliminar alumnos',
                 style: TextStyle(color: cTextMuted, fontSize: 12),
               ),
               trailing: const Icon(Symbols.chevron_right, color: cTextDim, size: 20),
@@ -593,7 +594,9 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildDesktopHeader(),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 16),
+                  _buildSuperAdminCarousel(),
+                  const SizedBox(height: 20),
                   _buildDesktopMetricsGrid(),
                   const SizedBox(height: 28),
                   _buildDesktopModulesGrid(),
@@ -918,6 +921,54 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     );
   }
 
+  Widget _buildSuperAdminCarousel() {
+    return AppCarouselSlider(
+      height: 145,
+      items: [
+        CarouselSlideItem(
+          title: 'Sincronización Automatizada BCV',
+          subtitle: 'Cotización oficial sincronizada diariamente vía Edge Function a las 9:00 AM Caracas.',
+          badgeText: 'EDGE FUNCTION',
+          badgeColor: AppTheme.primary,
+          icon: Symbols.currency_exchange,
+          iconColor: AppTheme.primary,
+          onTap: () => context.go('/superadmin/configuracion'),
+        ),
+        CarouselSlideItem(
+          title: 'Centro de Telemetría Institucional',
+          subtitle: 'Monitoreo en vivo de alumnos matriculados, docentes y asistencias registradas.',
+          badgeText: 'TELEMETRÍA EN VIVO',
+          badgeColor: AppTheme.tertiary,
+          icon: Symbols.analytics,
+          iconColor: AppTheme.tertiary,
+          onTap: () => _loadMetrics(),
+        ),
+        CarouselSlideItem(
+          title: 'Gestión Global de Cursos y Temas',
+          subtitle: 'Edición rápida de cursos, días, horarios con calendario y reloj interactivo.',
+          badgeText: 'ACADÉMICO',
+          badgeColor: AppTheme.secondary,
+          icon: Symbols.school,
+          iconColor: AppTheme.secondary,
+          onTap: () {
+            Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => const GestionCursosPage()))
+                .then((_) => _loadMetrics());
+          },
+        ),
+        CarouselSlideItem(
+          title: 'Políticas Institucionales y RLS',
+          subtitle: 'Aislamiento de seguridad multi-rol por sedes institucionales y auditoría en Supabase.',
+          badgeText: 'SEGURIDAD',
+          badgeColor: Colors.blueAccent,
+          icon: Symbols.security,
+          iconColor: Colors.blueAccent,
+          onTap: _showSettingsModal,
+        ),
+      ],
+    );
+  }
+
   // ── Grid de métricas escritorio (4 columnas) ──────────────────────────────
   Widget _buildDesktopMetricsGrid() {
     return Column(
@@ -955,7 +1006,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                 icon: Symbols.school,
                 iconColor: AppTheme.primary,
                 title: 'Módulo Alumnos',
-                badgeText: '${_formatMetric(_totalAlumnos)} alumnas',
+                badgeText: '${_formatMetric(_totalAlumnos)} alumnos',
                 badgeBg: AppTheme.secondaryContainer,
                 badgeTextColor: AppTheme.onSecondaryContainer,
                 subtitle: 'Matrícula y seguimiento de asistencias.',
@@ -1068,7 +1119,9 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildHeaderSection(),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 14),
+                        _buildSuperAdminCarousel(),
+                        const SizedBox(height: 14),
                         _buildKeyMetricsSection(isTablet: isTablet),
                         const SizedBox(height: 20),
                         _buildManagementModulesSection(),
@@ -1316,7 +1369,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           icon: Symbols.school,
           iconColor: AppTheme.primary,
           title: 'Módulo Alumnos',
-          badgeText: '${_formatMetric(_totalAlumnos)} alumnas',
+          badgeText: '${_formatMetric(_totalAlumnos)} alumnos',
           badgeBg: AppTheme.secondaryContainer,
           badgeTextColor: AppTheme.onSecondaryContainer,
           subtitle: 'Matrícula y seguimiento de asistencias.',
@@ -1893,7 +1946,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
         const SizedBox(width: 6),
         Flexible(
           child: Text(
-            '${_formatMetric(_totalAlumnos)} alumnas',
+            '${_formatMetric(_totalAlumnos)} alumnos',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 11,
               fontWeight: FontWeight.w600,

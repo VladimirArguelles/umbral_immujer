@@ -114,7 +114,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
           const PopupMenuItem<dynamic>(
             enabled: false,
             child: Text(
-              'OPCIONES DE ALUMNA/O',
+              'OPCIONES DE ALUMNO',
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
@@ -218,6 +218,14 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     );
   }
 
+  void _handleBackNavigation() {
+    if (_currentIndex != 0) {
+      setState(() => _currentIndex = 0);
+    } else if (widget.profile.role == UserRole.superAdmin) {
+      context.go('/superadmin');
+    }
+  }
+
   void _handleSignOut() async {
     await SupabaseConfig.client.auth.signOut();
     if (mounted) {
@@ -239,20 +247,28 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
 
     final isSuperAdmin = widget.profile.role == UserRole.superAdmin;
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: isSuperAdmin
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back_rounded),
-                tooltip: 'Volver a Super Admin',
-                onPressed: () => context.go('/superadmin'),
-              )
-            : null,
+    return PopScope(
+      canPop: _currentIndex == 0 && !isSuperAdmin,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBackNavigation();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: (_currentIndex != 0 || isSuperAdmin)
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  tooltip: _currentIndex != 0
+                      ? 'Regresar al inicio de Alumnos'
+                      : 'Volver a Super Admin',
+                  onPressed: _handleBackNavigation,
+                )
+              : null,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              isSuperAdmin ? 'UMBRAL • Alumna/o (Super Admin)' : 'UMBRAL • Alumna/o',
+              isSuperAdmin ? 'UMBRAL • Alumno (Super Admin)' : 'UMBRAL • Alumno',
               style: const TextStyle(fontSize: 16),
             ),
             Text(
@@ -348,6 +364,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
       bottomNavigationBar: isSuperAdmin
           ? const SuperAdminBottomNavBar(currentIndex: 1)
           : null,
+      ),
     );
   }
 }

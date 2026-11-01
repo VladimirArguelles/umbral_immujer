@@ -6,6 +6,7 @@ import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/core/utils/formatters.dart';
 import 'package:umbral_immujer/features/teacher/data/teacher_repository.dart';
 import 'package:umbral_immujer/features/teacher/domain/teacher_models.dart';
+import 'package:umbral_immujer/src/core/widgets/app_carousel_slider.dart';
 import 'package:umbral_immujer/src/core/widgets/skeleton_loader.dart';
 import 'package:umbral_immujer/src/core/widgets/super_admin_nav_bar.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
@@ -40,7 +41,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
       'Asistencia',
       'Encuestas',
       'Recaudación',
-      'Alumnas',
+      'Alumnos',
     ];
     const tabIcons = [
       Icons.dashboard_rounded,
@@ -244,7 +245,11 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
       _PaseListaTab(teacherRepository: _teacherRepository, isSuperAdmin: isSuperAdmin),
       _CrearEncuestaTab(teacherRepository: _teacherRepository, isSuperAdmin: isSuperAdmin),
       _AuditoriaRecaudacionTab(teacherRepository: _teacherRepository, isSuperAdmin: isSuperAdmin),
-      _GestionAlumnosTab(teacherRepository: _teacherRepository, isSuperAdmin: isSuperAdmin),
+      _GestionAlumnosTab(
+        teacherRepository: _teacherRepository,
+        isSuperAdmin: isSuperAdmin,
+        teacherName: widget.profile.fullName,
+      ),
     ];
 
     return PopScope(
@@ -395,7 +400,40 @@ class _TeacherSummaryTab extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+          AppCarouselSlider(
+            height: 140,
+            items: [
+              CarouselSlideItem(
+                title: 'Pase de Asistencia Rápido',
+                subtitle: 'Toma asistencia en tiempo real de los alumnos en tus cursos activos.',
+                badgeText: 'ACADÉMICO',
+                badgeColor: AppTheme.primary,
+                icon: Icons.checklist_rounded,
+                iconColor: AppTheme.primary,
+                onTap: () => onNavigate(1),
+              ),
+              CarouselSlideItem(
+                title: 'Cálculo de Aportes en Bs',
+                subtitle: 'Crea encuestas dividiendo el monto en USD entre asistentes con tasa oficial BCV.',
+                badgeText: 'ECONOMÍA',
+                badgeColor: AppTheme.secondary,
+                icon: Icons.currency_exchange_rounded,
+                iconColor: AppTheme.secondary,
+                onTap: () => onNavigate(2),
+              ),
+              CarouselSlideItem(
+                title: 'Gestión de Alumnos y Temas',
+                subtitle: 'Añade y edita alumnos y temas con el nuevo flujo de validación institucional.',
+                badgeText: 'SUPERVISIÓN',
+                badgeColor: AppTheme.tertiary,
+                icon: Icons.assignment_turned_in_outlined,
+                iconColor: AppTheme.tertiary,
+                onTap: () => onNavigate(4),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           Text(
             'HERRAMIENTAS DEL MÓDULO',
             style: GoogleFonts.plusJakartaSans(
@@ -408,7 +446,7 @@ class _TeacherSummaryTab extends StatelessWidget {
           const SizedBox(height: 12),
           _TeacherActionCard(
             title: 'PASE DE ASISTENCIA',
-            description: 'Toma asistencia diaria de alumnas, visualiza asistencias y confirmaciones.',
+            description: 'Toma asistencia diaria de alumnos, visualiza asistencias y confirmaciones.',
             icon: Icons.playlist_add_check_circle_rounded,
             accent: AppTheme.primary,
             actionLabel: 'IR A ASISTENCIA',
@@ -434,11 +472,11 @@ class _TeacherSummaryTab extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _TeacherActionCard(
-            title: 'EXPEDIENTE DE ALUMNOS',
-            description: 'Listado de alumnas matriculadas, desincorporaciones e historial.',
+            title: 'GESTIÓN DE ALUMNOS',
+            description: 'Listado de alumnos matriculados, temas de clase y solicitudes.',
             icon: Icons.people_alt_rounded,
             accent: const Color(0xFF00796B),
-            actionLabel: 'IR A ALUMNOS',
+            actionLabel: 'IR A GESTIÓN DE ALUMNOS',
             onTap: () => onNavigate(4),
           ),
           if (isSuperAdmin) ...[
@@ -1440,9 +1478,11 @@ class _AuditoriaRecaudacionTabState extends State<_AuditoriaRecaudacionTab> {
 class _GestionAlumnosTab extends StatefulWidget {
   final TeacherRepository teacherRepository;
   final bool isSuperAdmin;
+  final String teacherName;
   const _GestionAlumnosTab({
     required this.teacherRepository,
     this.isSuperAdmin = false,
+    required this.teacherName,
   });
 
   @override
@@ -1475,9 +1515,7 @@ class _GestionAlumnosTabState extends State<_GestionAlumnosTab> {
 
   void _loadHistorial(String cursoId) async {
     setState(() => _isLoading = true);
-    final hist = await widget.teacherRepository.getCourseStudentHistory(
-      cursoId,
-    );
+    final hist = await widget.teacherRepository.getCourseStudentHistory(cursoId);
     if (!mounted) return;
     setState(() {
       _historialAlumnos = hist;
@@ -1485,35 +1523,601 @@ class _GestionAlumnosTabState extends State<_GestionAlumnosTab> {
     });
   }
 
-  Future<void> _retirarAlumno(ArchivedStudentEnrollment a) async {
-    await widget.teacherRepository.withdrawStudent(
-      enrollmentId: a.inscripcionId,
-    );
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${a.nombreCompleto} enviado a la papelera/retirado.'),
-        action: SnackBarAction(
-          label: 'Deshacer',
-          onPressed: () => _restaurarAlumno(a),
+  // ─── Modal para Añadir Nuevo Alumno (+) ────────────────────────────────────
+  void _showAddAlumnoModal() {
+    if (_selectedCurso == null) return;
+    final nombreCtrl = TextEditingController();
+    final cedulaCtrl = TextEditingController();
+    final telefonoCtrl = TextEditingController();
+    final correoCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool isSaving = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          backgroundColor: AppTheme.surfaceContainerLow,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryContainer.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.person_add_alt_1_rounded, color: AppTheme.primary),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Añadir Nuevo Alumno', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text('Sujeto a aprobación de Coordinación', style: TextStyle(fontSize: 11, color: AppTheme.onSurfaceVariant)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: nombreCtrl,
+                    decoration: const InputDecoration(labelText: 'Nombre y Apellido *', prefixIcon: Icon(Icons.person_outline)),
+                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Ingresa el nombre completo' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: cedulaCtrl,
+                    decoration: const InputDecoration(labelText: 'Cédula de Identidad *', prefixIcon: Icon(Icons.badge_outlined)),
+                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Ingresa la cédula' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: telefonoCtrl,
+                    decoration: const InputDecoration(labelText: 'Teléfono (Opcional)', prefixIcon: Icon(Icons.phone_outlined)),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: correoCtrl,
+                    decoration: const InputDecoration(labelText: 'Correo (Opcional)', prefixIcon: Icon(Icons.email_outlined)),
+                  ),
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.info_outline, size: 16, color: AppTheme.primary),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'La solicitud quedará en estado pendiente y se aplicará tras ser aprobada por Coordinación.',
+                            style: TextStyle(fontSize: 10.5, color: AppTheme.onSurfaceVariant),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSaving ? null : () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton.icon(
+              onPressed: isSaving
+                  ? null
+                  : () async {
+                      if (!formKey.currentState!.validate()) return;
+                      setModalState(() => isSaving = true);
+                      try {
+                        await widget.teacherRepository.createApprovalRequest(
+                          courseId: _selectedCurso!.id,
+                          courseName: _selectedCurso!.nombre,
+                          requestType: 'crear_alumno',
+                          teacherName: widget.teacherName,
+                          newValues: {
+                            'nombre_completo': nombreCtrl.text.trim(),
+                            'cedula': cedulaCtrl.text.trim(),
+                            'telefono': telefonoCtrl.text.trim(),
+                            'correo': correoCtrl.text.trim(),
+                          },
+                          reason: 'Incorporación de alumno por el docente',
+                        );
+                        if (!context.mounted) return;
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Solicitud de alumno enviada a Coordinación. Quedará activa al ser aprobada.'),
+                            backgroundColor: AppTheme.successGreen,
+                          ),
+                        );
+                      } catch (e) {
+                        setModalState(() => isSaving = false);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.errorRed),
+                        );
+                      }
+                    },
+              icon: isSaving
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.send_rounded, size: 16),
+              label: const Text('Enviar a Coordinación'),
+            ),
+          ],
         ),
       ),
     );
-    if (_selectedCurso != null) _loadHistorial(_selectedCurso!.id);
   }
 
-  Future<void> _restaurarAlumno(ArchivedStudentEnrollment a) async {
-    await widget.teacherRepository.restoreStudent(
-      enrollmentId: a.inscripcionId,
-    );
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${a.nombreCompleto} restaurado al curso exitosamente.'),
-        backgroundColor: AppTheme.successGreen,
+  // ─── Modal para Gestionar Alumno (Editar datos y Eliminar con Guardar cambios) ─
+  void _showGestionAlumnoModal(ArchivedStudentEnrollment al) {
+    if (_selectedCurso == null) return;
+    final nombreCtrl = TextEditingController(text: al.nombreCompleto);
+    final cedulaCtrl = TextEditingController(text: al.cedula);
+    final motivoCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool isSaving = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.surfaceContainerLow,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (sbContext, setModalState) => Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 24,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Gestión de Alumno',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    'Curso: ${_selectedCurso!.nombre}',
+                    style: const TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: nombreCtrl,
+                    decoration: const InputDecoration(labelText: 'Nombre Completo *', prefixIcon: Icon(Icons.person_outline)),
+                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: cedulaCtrl,
+                    decoration: const InputDecoration(labelText: 'Cédula de Identidad *', prefixIcon: Icon(Icons.badge_outlined)),
+                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: motivoCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Motivo del cambio (Opcional)',
+                      hintText: 'Ej. Corrección de datos o desincorporación',
+                      prefixIcon: Icon(Icons.comment_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.tertiary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppTheme.tertiary.withValues(alpha: 0.3)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.shield_outlined, size: 16, color: AppTheme.tertiary),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Regla de negocio: Toda acción de modificación o eliminación queda en estado pendiente y no surtirá efecto hasta recibir la aprobación de Coordinación.',
+                            style: TextStyle(fontSize: 11, color: AppTheme.onSurfaceVariant),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Botón Guardar cambios
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: AppTheme.onPrimary,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: isSaving
+                          ? null
+                          : () async {
+                              if (!formKey.currentState!.validate()) return;
+                              setModalState(() => isSaving = true);
+                              try {
+                                await widget.teacherRepository.createApprovalRequest(
+                                  courseId: _selectedCurso!.id,
+                                  courseName: _selectedCurso!.nombre,
+                                  requestType: 'editar_alumno',
+                                  teacherName: widget.teacherName,
+                                  oldValues: {
+                                    'alumno_id': al.alumnoId,
+                                    'nombre_completo': al.nombreCompleto,
+                                    'cedula': al.cedula,
+                                  },
+                                  newValues: {
+                                    'alumno_id': al.alumnoId,
+                                    'nombre_completo': nombreCtrl.text.trim(),
+                                    'cedula': cedulaCtrl.text.trim(),
+                                  },
+                                  reason: motivoCtrl.text.trim().isNotEmpty ? motivoCtrl.text.trim() : null,
+                                );
+                                if (!ctx.mounted) return;
+                                Navigator.pop(ctx);
+                                if (!mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Modificación enviada a Coordinación. Quedará en estado pendiente.'),
+                                    backgroundColor: AppTheme.successGreen,
+                                  ),
+                                );
+                              } catch (e) {
+                                setModalState(() => isSaving = false);
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.errorRed),
+                                  );
+                                }
+                              }
+                            },
+                      icon: isSaving
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Icon(Icons.save_rounded, size: 18),
+                      label: const Text('Guardar cambios', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Botón Eliminar / Solicitar Desincorporación
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.errorRed,
+                        side: const BorderSide(color: AppTheme.errorRed),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: isSaving
+                          ? null
+                          : () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (c) => AlertDialog(
+                                  title: const Text('¿Solicitar Desincorporación?'),
+                                  content: Text('¿Deseas enviar a Coordinación la solicitud para desincorporar a ${al.nombreCompleto}?'),
+                                  actions: [
+                                    TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
+                                      onPressed: () => Navigator.pop(c, true),
+                                      child: const Text('Sí, Solicitar'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (confirm != true) return;
+
+                              setModalState(() => isSaving = true);
+                              try {
+                                await widget.teacherRepository.createApprovalRequest(
+                                  courseId: _selectedCurso!.id,
+                                  courseName: _selectedCurso!.nombre,
+                                  requestType: 'eliminar_alumno',
+                                  teacherName: widget.teacherName,
+                                  newValues: {
+                                    'alumno_id': al.alumnoId,
+                                    'nombre_completo': al.nombreCompleto,
+                                  },
+                                  reason: motivoCtrl.text.trim().isNotEmpty ? motivoCtrl.text.trim() : 'Desincorporación solicitada por el docente',
+                                );
+                                if (!ctx.mounted) return;
+                                Navigator.pop(ctx);
+                                if (!mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Solicitud de desincorporación enviada a Coordinación.'),
+                                    backgroundColor: AppTheme.tertiary,
+                                  ),
+                                );
+                              } catch (e) {
+                                setModalState(() => isSaving = false);
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.errorRed),
+                                  );
+                                }
+                              }
+                            },
+                      icon: const Icon(Icons.person_remove_outlined, size: 18),
+                      label: const Text('Solicitar Desincorporación / Eliminar'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
-    if (_selectedCurso != null) _loadHistorial(_selectedCurso!.id);
+  }
+
+  // ─── Modal para Gestión de Temas del Curso ────────────────────────────────
+  void _showGestionTemasModal() async {
+    if (_selectedCurso == null) return;
+    List<String> temas = [];
+    bool loadingTemas = true;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          if (loadingTemas) {
+            widget.teacherRepository.getCourseTemas(_selectedCurso!.id).then((list) {
+              setDialogState(() {
+                temas = list;
+                loadingTemas = false;
+              });
+            }).catchError((_) {
+              setDialogState(() => loadingTemas = false);
+            });
+          }
+
+          return AlertDialog(
+            backgroundColor: AppTheme.surfaceContainerLow,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Row(
+              children: [
+                const Icon(Icons.topic_rounded, color: AppTheme.secondary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Gestión de Temas', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text(_selectedCurso!.nombre, style: const TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant)),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add_circle, color: AppTheme.primary),
+                  tooltip: 'Proponer nuevo tema',
+                  onPressed: () => _proponerNuevoTema(ctx, () {
+                    loadingTemas = true;
+                    setDialogState(() {});
+                  }),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: loadingTemas
+                  ? const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
+                  : temas.isEmpty
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20),
+                            child: Text('No hay temas registrados en este curso aún.'),
+                          ),
+                        )
+                      : ListView.separated(
+                          shrinkWrap: true,
+                          itemCount: temas.length,
+                          separatorBuilder: (_, _) => const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final tema = temas[index];
+                            return ListTile(
+                              dense: true,
+                              leading: CircleAvatar(
+                                radius: 14,
+                                backgroundColor: AppTheme.secondary.withValues(alpha: 0.2),
+                                child: Text('${index + 1}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.secondary)),
+                              ),
+                              title: Text(tema, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit_outlined, size: 18),
+                                    tooltip: 'Editar tema',
+                                    onPressed: () => _proponerEditarTema(ctx, tema, () {
+                                      loadingTemas = true;
+                                      setDialogState(() {});
+                                    }),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline, size: 18, color: AppTheme.errorRed),
+                                    tooltip: 'Eliminar tema',
+                                    onPressed: () => _proponerEliminarTema(ctx, tema, () {
+                                      loadingTemas = true;
+                                      setDialogState(() {});
+                                    }),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cerrar'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _proponerNuevoTema(BuildContext parentCtx, VoidCallback onReload) {
+    final ctrl = TextEditingController();
+    showDialog(
+      context: parentCtx,
+      builder: (c) => AlertDialog(
+        title: const Text('Añadir Tema'),
+        content: TextField(
+          controller: ctrl,
+          decoration: const InputDecoration(labelText: 'Título del tema *', hintText: 'Ej. Introducción a Técnicas de Repostería'),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancelar')),
+          ElevatedButton(
+            onPressed: () async {
+              final val = ctrl.text.trim();
+              if (val.isEmpty) return;
+              Navigator.pop(c);
+              try {
+                await widget.teacherRepository.createApprovalRequest(
+                  courseId: _selectedCurso!.id,
+                  courseName: _selectedCurso!.nombre,
+                  requestType: 'crear_tema',
+                  teacherName: widget.teacherName,
+                  newValues: {'tema': val},
+                );
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Solicitud de tema enviada a Coordinación para aprobación.')),
+                );
+                onReload();
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+              }
+            },
+            child: const Text('Enviar a Coordinación'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _proponerEditarTema(BuildContext parentCtx, String oldTema, VoidCallback onReload) {
+    final ctrl = TextEditingController(text: oldTema);
+    showDialog(
+      context: parentCtx,
+      builder: (c) => AlertDialog(
+        title: const Text('Editar Tema'),
+        content: TextField(
+          controller: ctrl,
+          decoration: const InputDecoration(labelText: 'Nuevo título del tema *'),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancelar')),
+          ElevatedButton(
+            onPressed: () async {
+              final val = ctrl.text.trim();
+              if (val.isEmpty || val == oldTema) return;
+              Navigator.pop(c);
+              try {
+                await widget.teacherRepository.createApprovalRequest(
+                  courseId: _selectedCurso!.id,
+                  courseName: _selectedCurso!.nombre,
+                  requestType: 'editar_tema',
+                  teacherName: widget.teacherName,
+                  oldValues: {'tema': oldTema},
+                  newValues: {'tema': val},
+                );
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Modificación de tema enviada a Coordinación para aprobación.')),
+                );
+                onReload();
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+              }
+            },
+            child: const Text('Enviar a Coordinación'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _proponerEliminarTema(BuildContext parentCtx, String tema, VoidCallback onReload) {
+    showDialog(
+      context: parentCtx,
+      builder: (c) => AlertDialog(
+        title: const Text('¿Eliminar Tema?'),
+        content: Text('¿Deseas enviar a Coordinación la solicitud para eliminar el tema "$tema"?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancelar')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
+            onPressed: () async {
+              Navigator.pop(c);
+              try {
+                await widget.teacherRepository.createApprovalRequest(
+                  courseId: _selectedCurso!.id,
+                  courseName: _selectedCurso!.nombre,
+                  requestType: 'eliminar_tema',
+                  teacherName: widget.teacherName,
+                  newValues: {'tema': tema},
+                );
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Solicitud de eliminación de tema enviada a Coordinación.')),
+                );
+                onReload();
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+              }
+            },
+            child: const Text('Solicitar Eliminación'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -1523,111 +2127,162 @@ class _GestionAlumnosTabState extends State<_GestionAlumnosTab> {
         Container(
           padding: const EdgeInsets.all(16),
           color: AppTheme.surfaceContainerLow,
-          child: DropdownButtonFormField<TeacherCourse>(
-            isExpanded: true,
-            initialValue: _selectedCurso,
-            decoration: const InputDecoration(
-              labelText: 'Curso',
-              prefixIcon: Icon(Icons.school_outlined),
-            ),
-            selectedItemBuilder: (BuildContext context) {
-              return _cursos.map((c) {
-                return Text(
-                  c.nombre,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                );
-              }).toList();
-            },
-            items: _cursos
-                .map(
-                  (c) => DropdownMenuItem(
-                    value: c,
-                    child: Text(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              DropdownButtonFormField<TeacherCourse>(
+                isExpanded: true,
+                initialValue: _selectedCurso,
+                decoration: const InputDecoration(
+                  labelText: 'Curso',
+                  prefixIcon: Icon(Icons.school_outlined),
+                ),
+                selectedItemBuilder: (BuildContext context) {
+                  return _cursos.map((c) {
+                    return Text(
                       c.nombre,
-                      style: const TextStyle(fontSize: 13),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
+                    );
+                  }).toList();
+                },
+                items: _cursos
+                    .map(
+                      (c) => DropdownMenuItem(
+                        value: c,
+                        child: Text(
+                          c.nombre,
+                          style: const TextStyle(fontSize: 13),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() => _selectedCurso = val);
+                    _loadHistorial(val.id);
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              // Botones de Acción: Añadir Alumno (+) y Gestión de Temas
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: AppTheme.onPrimary,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: _showAddAlumnoModal,
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Añadir Alumno', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
                     ),
                   ),
-                )
-                .toList(),
-            onChanged: (val) {
-              if (val != null) {
-                setState(() => _selectedCurso = val);
-                _loadHistorial(val.id);
-              }
-            },
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.secondary,
+                        side: const BorderSide(color: AppTheme.secondary),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: _showGestionTemasModal,
+                      icon: const Icon(Icons.topic_outlined, size: 18),
+                      label: const Text('Gestión Temas', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        // Regla institucional banner
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppTheme.secondary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppTheme.secondary.withValues(alpha: 0.25)),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.pending_actions_rounded, size: 16, color: AppTheme.secondary),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Regla de negocio: Toda acción de modificación (alumnos y temas) queda en estado pendiente y no surte efecto hasta recibir aprobación de Coordinación.',
+                  style: TextStyle(fontSize: 10.5, color: AppTheme.onSurfaceVariant),
+                ),
+              ),
+            ],
           ),
         ),
 
         Expanded(
           child: _isLoading
               ? const AttendanceSkeleton()
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _historialAlumnos.length,
-                  itemBuilder: (context, idx) {
-                    final al = _historialAlumnos[idx];
-                    final enPapelera = al.estaEliminado;
+              : _historialAlumnos.isEmpty
+                  ? const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('No hay alumnos inscritos en este curso.')))
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      itemCount: _historialAlumnos.length,
+                      itemBuilder: (context, idx) {
+                        final al = _historialAlumnos[idx];
+                        final enPapelera = al.estaEliminado;
 
-                    return Card(
-                      color: enPapelera
-                          ? AppTheme.surfaceContainerHigh
-                          : AppTheme.surfaceContainerLow,
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: enPapelera
-                              ? AppTheme.onSurfaceVariant
-                              : AppTheme.primary,
-                          child: Icon(
-                            enPapelera ? Icons.delete_outline : Icons.person,
-                            color: AppTheme.onSurface,
-                          ),
-                        ),
-                        title: Text(
-                          al.nombreCompleto,
-                          style: TextStyle(
-                            decoration: enPapelera
-                                ? TextDecoration.lineThrough
-                                : null,
-                            color: enPapelera
-                                ? AppTheme.onSurfaceVariant
-                                : AppTheme.onSurface,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        subtitle: Text(
-                          'C.I: ${al.cedula} • Estado: ${enPapelera ? "En Papelera / Retirado" : "Activo"}',
-                        ),
-                        trailing: enPapelera
-                            ? ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppTheme.successGreen,
-                                ),
-                                onPressed: () => _restaurarAlumno(al),
-                                icon: const Icon(Icons.restore, size: 16),
-                                label: const Text(
-                                  'Restablecer',
-                                  style: TextStyle(fontSize: 12),
-                                ),
-                              )
-                            : IconButton(
-                                icon: const Icon(
-                                  Icons.delete_outline,
-                                  color: AppTheme.errorRed,
-                                ),
-                                tooltip: 'Eliminar del curso',
-                                onPressed: () => _retirarAlumno(al),
+                        return Card(
+                          color: enPapelera
+                              ? AppTheme.surfaceContainerHigh
+                              : AppTheme.surfaceContainerLow,
+                          margin: const EdgeInsets.only(bottom: 8),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: enPapelera
+                                  ? AppTheme.onSurfaceVariant
+                                  : AppTheme.primary,
+                              child: Icon(
+                                enPapelera ? Icons.delete_outline : Icons.person,
+                                color: AppTheme.onSurface,
                               ),
-                      ),
-                    );
-                  },
-                ),
+                            ),
+                            title: Text(
+                              al.nombreCompleto,
+                              style: TextStyle(
+                                decoration: enPapelera
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                                color: enPapelera
+                                    ? AppTheme.onSurfaceVariant
+                                    : AppTheme.onSurface,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            subtitle: Text(
+                              'C.I: ${al.cedula} • Estado: ${enPapelera ? "En Papelera / Retirado" : "Activo"}',
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(
+                                Icons.tune_rounded,
+                                color: AppTheme.primary,
+                              ),
+                              tooltip: 'Gestionar datos del alumno (Editar / Eliminar)',
+                              onPressed: () => _showGestionAlumnoModal(al),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
         ),
       ],
     );

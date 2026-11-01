@@ -52,7 +52,7 @@ class StudentSummaryTab extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      'Módulos de alumna',
+                      'Módulos de alumno',
                       style: GoogleFonts.plusJakartaSans(
                         color: AppTheme.onSurface,
                         fontSize: 17,

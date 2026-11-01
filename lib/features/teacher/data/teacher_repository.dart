@@ -329,4 +329,61 @@ class TeacherRepository {
       );
     }).toList();
   }
+
+  /// Crear solicitud de aprobación para modificación (alumnos o temas)
+  Future<void> createApprovalRequest({
+    required String courseId,
+    required String courseName,
+    required String requestType, // 'crear_alumno' | 'editar_alumno' | 'eliminar_alumno' | 'crear_tema' | 'editar_tema' | 'eliminar_tema'
+    required Map<String, dynamic> newValues,
+    Map<String, dynamic>? oldValues,
+    String? reason,
+    String? teacherName,
+  }) async {
+    final uid = currentUserId;
+    if (uid == null) throw Exception('Usuario no autenticado.');
+
+    await _supabase.from('solicitudes_aprobacion').insert({
+      'profesor_id': uid,
+      'profesor_nombre': teacherName,
+      'curso_id': courseId,
+      'curso_nombre': courseName,
+      'tipo_solicitud': requestType,
+      'estado': 'pendiente',
+      'datos_anteriores': oldValues,
+      'datos_nuevos': newValues,
+      'motivo': reason,
+    });
+  }
+
+  /// Consultar solicitudes de aprobación enviadas por el profesor
+  Future<List<SolicitudAprobacionItem>> getMyApprovalRequests(
+    String courseId,
+  ) async {
+    final uid = currentUserId;
+    if (uid == null) return [];
+
+    final data = await _supabase
+        .from('solicitudes_aprobacion')
+        .select()
+        .eq('curso_id', courseId)
+        .order('created_at', ascending: false);
+
+    return (data as List)
+        .map((j) => SolicitudAprobacionItem.fromJson(j as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Obtener temas actuales del curso
+  Future<List<String>> getCourseTemas(String courseId) async {
+    final res = await _supabase
+        .from('cursos')
+        .select('temas')
+        .eq('id', courseId)
+        .maybeSingle();
+
+    if (res == null) return [];
+    final temasList = res['temas'] as List? ?? [];
+    return temasList.map((e) => e.toString()).toList();
+  }
 }

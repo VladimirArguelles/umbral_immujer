@@ -424,7 +424,7 @@ class _GestionAlumnosPageState extends State<GestionAlumnosPage> {
               ),
             ),
             Text(
-              'Super Admin • Filtrado, edición y registro de alumnas',
+              'Super Admin • Filtrado, edición y registro de alumnos',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12,
                 color: AppTheme.onSurfaceVariant,

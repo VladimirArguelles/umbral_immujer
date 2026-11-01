@@ -88,3 +88,68 @@ class ArchivedStudentEnrollment {
 
   bool get estaEliminado => deletedAt != null || estado == 'retirado';
 }
+
+class SolicitudAprobacionItem {
+  final String id;
+  final String profesorId;
+  final String? profesorNombre;
+  final String cursoId;
+  final String? cursoNombre;
+  final String tipoSolicitud;
+  final String estado; // 'pendiente' | 'aprobado' | 'rechazado'
+  final Map<String, dynamic>? datosAnteriores;
+  final Map<String, dynamic> datosNuevos;
+  final String? motivo;
+  final String? observacionRevision;
+  final DateTime createdAt;
+  final DateTime? fechaRevision;
+
+  SolicitudAprobacionItem({
+    required this.id,
+    required this.profesorId,
+    this.profesorNombre,
+    required this.cursoId,
+    this.cursoNombre,
+    required this.tipoSolicitud,
+    required this.estado,
+    this.datosAnteriores,
+    required this.datosNuevos,
+    this.motivo,
+    this.observacionRevision,
+    required this.createdAt,
+    this.fechaRevision,
+  });
+
+  factory SolicitudAprobacionItem.fromJson(Map<String, dynamic> json) {
+    return SolicitudAprobacionItem(
+      id: json['id'] as String,
+      profesorId: json['profesor_id'] as String,
+      profesorNombre: json['profesor_nombre'] as String?,
+      cursoId: json['curso_id'] as String,
+      cursoNombre: json['curso_nombre'] as String?,
+      tipoSolicitud: json['tipo_solicitud'] as String,
+      estado: json['estado'] as String? ?? 'pendiente',
+      datosAnteriores: json['datos_anteriores'] as Map<String, dynamic>?,
+      datosNuevos: (json['datos_nuevos'] as Map<String, dynamic>?) ?? {},
+      motivo: json['motivo'] as String?,
+      observacionRevision: json['observacion_revision'] as String?,
+      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ??
+          DateTime.now(),
+      fechaRevision: json['fecha_revision'] != null
+          ? DateTime.tryParse(json['fecha_revision'].toString())
+          : null,
+    );
+  }
+
+  String get tipoLabel {
+    return switch (tipoSolicitud) {
+      'crear_alumno' => 'Nuevo Alumno',
+      'editar_alumno' => 'Modificar Alumno',
+      'eliminar_alumno' => 'Desincorporar Alumno',
+      'crear_tema' => 'Nuevo Tema',
+      'editar_tema' => 'Modificar Tema',
+      'eliminar_tema' => 'Eliminar Tema',
+      _ => tipoSolicitud,
+    };
+  }
+}
