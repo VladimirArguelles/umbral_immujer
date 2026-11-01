@@ -243,7 +243,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
         onNavigate: (idx) => setState(() => _currentIndex = idx),
       ),
       _PaseListaTab(teacherRepository: _teacherRepository, isSuperAdmin: isSuperAdmin),
-      _CrearEncuestaTab(teacherRepository: _teacherRepository, isSuperAdmin: isSuperAdmin),
+      _EncuestasDocenteTab(teacherRepository: _teacherRepository, isSuperAdmin: isSuperAdmin),
       _AuditoriaRecaudacionTab(teacherRepository: _teacherRepository, isSuperAdmin: isSuperAdmin),
       _GestionAlumnosTab(
         teacherRepository: _teacherRepository,
@@ -892,246 +892,1225 @@ class _PaseListaTabState extends State<_PaseListaTab> {
 }
 
 /// -------------------------------------------------------------
-/// TAB 2: CREACIÓN DE ENCUESTA DE INSUMOS
+/// TAB 2: GESTIÓN Y HISTORIAL DE ENCUESTAS DE INSUMOS
 /// -------------------------------------------------------------
-class _CrearEncuestaTab extends StatefulWidget {
+class _EncuestasDocenteTab extends StatefulWidget {
   final TeacherRepository teacherRepository;
   final bool isSuperAdmin;
-  const _CrearEncuestaTab({
+  const _EncuestasDocenteTab({
     required this.teacherRepository,
     this.isSuperAdmin = false,
   });
 
   @override
-  State<_CrearEncuestaTab> createState() => _CrearEncuestaTabState();
+  State<_EncuestasDocenteTab> createState() => _EncuestasDocenteTabState();
 }
 
-class _CrearEncuestaTabState extends State<_CrearEncuestaTab> {
-  final _formKey = GlobalKey<FormState>();
-  List<TeacherCourse> _cursos = [];
-  TeacherCourse? _selectedCurso;
-  final _costoController = TextEditingController();
-  DateTime _fechaClase = DateTime.now().add(const Duration(days: 3));
-  DateTime _fechaLimite = DateTime.now().add(const Duration(days: 2));
+class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
+  int _selectedFilter = 0; // 0 = Encuestas Activas, 1 = Historial de Encuestas
   bool _isLoading = false;
+  List<TeacherSurvey> _activeSurveys = [];
+  List<TeacherSurvey> _historySurveys = [];
+  List<TeacherCourse> _cursos = [];
 
   @override
   void initState() {
     super.initState();
-    _loadCursos();
+    _loadAll();
   }
 
-  void _loadCursos() async {
-    final cursos = await widget.teacherRepository.getMyCourses(isSuperAdmin: widget.isSuperAdmin);
-    if (!mounted) return;
-    setState(() {
-      _cursos = cursos;
-      if (cursos.isNotEmpty) _selectedCurso = cursos.first;
-    });
+  Future<void> _loadAll() async {
+    setState(() => _isLoading = true);
+    try {
+      final courses = await widget.teacherRepository.getMyCourses(isSuperAdmin: widget.isSuperAdmin);
+      final actives = await widget.teacherRepository.getTeacherSurveys(
+        activeOnly: true,
+        isSuperAdmin: widget.isSuperAdmin,
+      );
+      final history = await widget.teacherRepository.getTeacherSurveys(
+        activeOnly: false,
+        isSuperAdmin: widget.isSuperAdmin,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _cursos = courses;
+        _activeSurveys = actives;
+        _historySurveys = history;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
-  Future<void> _crearEncuesta() async {
-    if (!_formKey.currentState!.validate() || _selectedCurso == null) return;
-
-    final costo = double.tryParse(_costoController.text.trim()) ?? 0.0;
-    if (costo <= 0) {
+  void _mostrarCrearEncuestaDialog() {
+    if (_cursos.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Ingresa un monto de presupuesto válido'),
+          content: Text('No tienes cursos activos para asignar una encuesta.'),
           backgroundColor: AppTheme.errorRed,
         ),
       );
       return;
     }
 
-    setState(() => _isLoading = true);
-    try {
-      await widget.teacherRepository.createSurvey(
-        courseId: _selectedCurso!.id,
-        classDate: Formatters.isoDate(_fechaClase),
-        totalSupplyCost: costo,
-        deadline: _fechaLimite,
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              '¡Encuesta creada con éxito! Disponible para los alumnos del curso.',
-            ),
-            backgroundColor: AppTheme.successGreen,
-          ),
+    TeacherCourse selectedCourse = _cursos.first;
+    final costoCtrl = TextEditingController();
+    DateTime fechaClase = DateTime.now().add(const Duration(days: 3));
+    DateTime fechaLimite = DateTime.now().add(const Duration(days: 2));
+    final formKey = GlobalKey<FormState>();
+    bool isSubmitting = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.surfaceContainerLow,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              child: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Nueva Encuesta de Insumos',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.onSurface,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.pop(ctx),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Crea una encuesta para que los alumnos confirmen su asistencia y el presupuesto se prorratee automáticamente.',
+                        style: TextStyle(fontSize: 13, color: AppTheme.onSurfaceVariant),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Selector de Curso
+                      DropdownButtonFormField<TeacherCourse>(
+                        isExpanded: true,
+                        initialValue: selectedCourse,
+                        decoration: const InputDecoration(
+                          labelText: 'Curso / Asignatura',
+                          prefixIcon: Icon(Icons.school_outlined),
+                        ),
+                        items: _cursos
+                            .map(
+                              (c) => DropdownMenuItem(
+                                value: c,
+                                child: Text(c.nombre, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (val) {
+                          if (val != null) setModalState(() => selectedCourse = val);
+                        },
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Costo Total
+                      TextFormField(
+                        controller: costoCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Presupuesto Total de Insumos (USD)',
+                          prefixIcon: Icon(Icons.attach_money),
+                          hintText: 'Ej. 35.00',
+                        ),
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'Requerido';
+                          final numVal = double.tryParse(v.trim());
+                          if (numVal == null || numVal <= 0) return 'Monto inválido';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Fecha Práctica
+                      ListTile(
+                        shape: RoundedRectangleBorder(
+                          side: const BorderSide(color: AppTheme.outlineVariant),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        tileColor: AppTheme.surfaceBright,
+                        leading: const Icon(Icons.event, color: AppTheme.primary),
+                        title: const Text('Fecha de la Práctica', style: TextStyle(fontSize: 13)),
+                        subtitle: Text(Formatters.date(fechaClase), style: const TextStyle(fontWeight: FontWeight.bold)),
+                        trailing: const Icon(Icons.edit_calendar_rounded, size: 18),
+                        onTap: () async {
+                          final d = await showDatePicker(
+                            context: context,
+                            initialDate: fechaClase,
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime.now().add(const Duration(days: 90)),
+                          );
+                          if (d != null) setModalState(() => fechaClase = d);
+                        },
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Fecha y Hora Límite
+                      ListTile(
+                        shape: RoundedRectangleBorder(
+                          side: const BorderSide(color: AppTheme.outlineVariant),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        tileColor: AppTheme.surfaceBright,
+                        leading: const Icon(Icons.timer, color: AppTheme.secondary),
+                        title: const Text('Fecha y Hora Límite', style: TextStyle(fontSize: 13)),
+                        subtitle: Text(Formatters.dateTime(fechaLimite), style: const TextStyle(fontWeight: FontWeight.bold)),
+                        trailing: const Icon(Icons.edit_calendar_rounded, size: 18),
+                        onTap: () async {
+                          final d = await showDatePicker(
+                            context: context,
+                            initialDate: fechaLimite,
+                            firstDate: DateTime.now(),
+                            lastDate: fechaClase,
+                          );
+                          if (d != null && context.mounted) {
+                            final t = await showTimePicker(
+                              context: context,
+                              initialTime: TimeOfDay.fromDateTime(fechaLimite),
+                            );
+                            if (t != null) {
+                              setModalState(() {
+                                fechaLimite = DateTime(d.year, d.month, d.day, t.hour, t.minute);
+                              });
+                            }
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 22),
+
+                      ElevatedButton(
+                        onPressed: isSubmitting
+                            ? null
+                            : () async {
+                                if (!formKey.currentState!.validate()) return;
+                                setModalState(() => isSubmitting = true);
+                                final costo = double.parse(costoCtrl.text.trim());
+                                try {
+                                  await widget.teacherRepository.createSurvey(
+                                    courseId: selectedCourse.id,
+                                    classDate: Formatters.isoDate(fechaClase),
+                                    totalSupplyCost: costo,
+                                    deadline: fechaLimite,
+                                  );
+                                  if (context.mounted) {
+                                    Navigator.pop(ctx);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('¡Encuesta creada con éxito!'),
+                                        backgroundColor: AppTheme.successGreen,
+                                      ),
+                                    );
+                                  }
+                                  _loadAll();
+                                } catch (e) {
+                                  setModalState(() => isSubmitting = false);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Error al crear encuesta: $e'),
+                                        backgroundColor: AppTheme.errorRed,
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                        child: isSubmitting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(color: AppTheme.onSurface, strokeWidth: 2),
+                              )
+                            : const Text('Publicar Encuesta a los Alumnos'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         );
-        _costoController.clear();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al crear encuesta: $e'),
-            backgroundColor: AppTheme.errorRed,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+      },
+    );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20.0),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'Programar Práctica y Presupuesto de Insumos',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.onSurface,
+  void _abrirGestionEncuesta(TeacherSurvey survey) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.surfaceContainerLow,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppTheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Crea una encuesta para que los alumnos confirmen su asistencia y el costo de los insumos se divida automáticamente.',
-              style: TextStyle(fontSize: 13, color: AppTheme.onSurfaceVariant),
-            ),
-            const SizedBox(height: 20),
-
-            // Selector de Curso
-            DropdownButtonFormField<TeacherCourse>(
-              isExpanded: true,
-              initialValue: _selectedCurso,
-              decoration: const InputDecoration(
-                labelText: 'Curso / Asignatura',
-                prefixIcon: Icon(Icons.school_outlined),
-              ),
-              selectedItemBuilder: (BuildContext context) {
-                return _cursos.map((c) {
-                  return Text(
-                    c.nombre,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryContainer.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  );
-                }).toList();
-              },
-              items: _cursos
-                  .map(
-                    (c) => DropdownMenuItem(
-                      value: c,
-                      child: Text(
-                        c.nombre,
-                        style: const TextStyle(fontSize: 13),
-                        overflow: TextOverflow.ellipsis,
+                    child: const Icon(Icons.tune_rounded, color: AppTheme.primary, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Gestión de Encuesta',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.onSurface,
+                          ),
+                        ),
+                        Text(
+                          survey.cursoNombre,
+                          style: const TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Opción 1: Modificar Presupuesto y Plazos
+              ListTile(
+                shape: RoundedRectangleBorder(
+                  side: const BorderSide(color: AppTheme.outlineVariant),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                tileColor: AppTheme.surfaceBright,
+                leading: const Icon(Icons.edit_note_rounded, color: AppTheme.mintNeon, size: 26),
+                title: const Text('Modificar Presupuesto y Fechas', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
+                subtitle: const Text(
+                  'Ajusta el monto en USD, fecha de práctica o fecha límite con recálculo automático.',
+                  style: TextStyle(fontSize: 11.5, color: AppTheme.onSurfaceVariant),
+                ),
+                trailing: const Icon(Icons.chevron_right, size: 20),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _mostrarEditarEncuestaDialog(survey);
+                },
+              ),
+              const SizedBox(height: 12),
+
+              // Opción 2: Auditoría y Pagos de Alumnos
+              ListTile(
+                shape: RoundedRectangleBorder(
+                  side: const BorderSide(color: AppTheme.outlineVariant),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                tileColor: AppTheme.surfaceBright,
+                leading: const Icon(Icons.receipt_long_rounded, color: AppTheme.primary, size: 26),
+                title: const Text('Auditoría de Pagos y Confirmaciones', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
+                subtitle: Text(
+                  '${survey.totalConfirmados} alumnos confirmados. Revisa y aprueba comprobantes.',
+                  style: const TextStyle(fontSize: 11.5, color: AppTheme.onSurfaceVariant),
+                ),
+                trailing: const Icon(Icons.chevron_right, size: 20),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _mostrarAuditoriaPagosDialog(survey);
+                },
+              ),
+              const SizedBox(height: 12),
+
+              // Opción 3: Finalizar / Cerrar Encuesta
+              ListTile(
+                shape: RoundedRectangleBorder(
+                  side: BorderSide(color: AppTheme.errorRed.withValues(alpha: 0.4)),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                tileColor: AppTheme.surfaceBright,
+                leading: const Icon(Icons.lock_clock_rounded, color: AppTheme.errorRed, size: 26),
+                title: const Text('Finalizar Encuesta (Mover al Historial)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: AppTheme.errorRed)),
+                subtitle: const Text(
+                  'Cierra la encuesta para no recibir más respuestas de alumnos.',
+                  style: TextStyle(fontSize: 11.5, color: AppTheme.onSurfaceVariant),
+                ),
+                trailing: const Icon(Icons.chevron_right, size: 20, color: AppTheme.errorRed),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _confirmarCerrarEncuesta(survey);
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _mostrarEditarEncuestaDialog(TeacherSurvey survey) {
+    final costoCtrl = TextEditingController(text: survey.costoTotalInsumos.toStringAsFixed(2));
+    DateTime fechaClase = DateTime.tryParse(survey.fechaClase) ?? DateTime.now().add(const Duration(days: 3));
+    DateTime fechaLimite = survey.fechaLimite;
+    final formKey = GlobalKey<FormState>();
+    bool isSaving = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: AppTheme.surfaceContainerLow,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Text('Editar Encuesta • ${survey.cursoNombre}', style: const TextStyle(fontSize: 16)),
+              content: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: costoCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Presupuesto Total (USD)',
+                          prefixIcon: Icon(Icons.attach_money),
+                        ),
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'Requerido';
+                          final val = double.tryParse(v.trim());
+                          if (val == null || val <= 0) return 'Monto inválido';
+                          return null;
+                        },
                       ),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (val) => setState(() => _selectedCurso = val),
-            ),
-            const SizedBox(height: 16),
+                      const SizedBox(height: 14),
+                      ListTile(
+                        shape: RoundedRectangleBorder(
+                          side: const BorderSide(color: AppTheme.outlineVariant),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        tileColor: AppTheme.surfaceBright,
+                        leading: const Icon(Icons.event, color: AppTheme.primary, size: 20),
+                        title: const Text('Fecha de Práctica', style: TextStyle(fontSize: 12)),
+                        subtitle: Text(Formatters.date(fechaClase), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        trailing: const Icon(Icons.edit_calendar_rounded, size: 16),
+                        onTap: () async {
+                          final d = await showDatePicker(
+                            context: context,
+                            initialDate: fechaClase,
+                            firstDate: DateTime.now().subtract(const Duration(days: 7)),
+                            lastDate: DateTime.now().add(const Duration(days: 90)),
+                          );
+                          if (d != null) setDialogState(() => fechaClase = d);
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      ListTile(
+                        shape: RoundedRectangleBorder(
+                          side: const BorderSide(color: AppTheme.outlineVariant),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        tileColor: AppTheme.surfaceBright,
+                        leading: const Icon(Icons.timer, color: AppTheme.secondary, size: 20),
+                        title: const Text('Fecha Límite', style: TextStyle(fontSize: 12)),
+                        subtitle: Text(Formatters.dateTime(fechaLimite), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        trailing: const Icon(Icons.edit_calendar_rounded, size: 16),
+                        onTap: () async {
+                          final d = await showDatePicker(
+                            context: context,
+                            initialDate: fechaLimite,
+                            firstDate: DateTime.now().subtract(const Duration(days: 7)),
+                            lastDate: fechaClase,
+                          );
+                          if (d != null && context.mounted) {
+                            final t = await showTimePicker(
+                              context: context,
+                              initialTime: TimeOfDay.fromDateTime(fechaLimite),
+                            );
+                            if (t != null) {
+                              setDialogState(() {
+                                fechaLimite = DateTime(d.year, d.month, d.day, t.hour, t.minute);
+                              });
+                            }
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSaving ? null : () => Navigator.pop(ctx),
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          if (!formKey.currentState!.validate()) return;
+                          setDialogState(() => isSaving = true);
+                          final costo = double.parse(costoCtrl.text.trim());
+                          try {
+                            await widget.teacherRepository.updateSurveyDetails(
+                              surveyId: survey.id,
+                              totalSupplyCost: costo,
+                              classDate: Formatters.isoDate(fechaClase),
+                              deadline: fechaLimite,
+                            );
+                            if (context.mounted) {
+                              Navigator.pop(ctx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('¡Encuesta actualizada y cuota recalculada exitosamente!'),
+                                  backgroundColor: AppTheme.successGreen,
+                                ),
+                              );
+                            }
+                            _loadAll();
+                          } catch (e) {
+                            setDialogState(() => isSaving = false);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error al actualizar: $e'),
+                                  backgroundColor: AppTheme.errorRed,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                  child: isSaving
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Text('Guardar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 
-            // Costo Total Insumos
-            TextFormField(
-              controller: _costoController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: const InputDecoration(
-                labelText: 'Monto Total del Presupuesto (USD)',
-                prefixIcon: Icon(Icons.attach_money),
-                hintText: 'Ej. 50.00',
-              ),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Requerido' : null,
+  void _confirmarCerrarEncuesta(TeacherSurvey survey) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: AppTheme.surfaceContainerLow,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('¿Finalizar Encuesta?'),
+          content: Text(
+            'La encuesta para "${survey.cursoNombre}" pasará al Historial de Encuestas y los alumnos ya no podrán registrar ni cambiar respuestas.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Volver'),
             ),
-            const SizedBox(height: 16),
-
-            // Fecha de Clase
-            ListTile(
-              shape: RoundedRectangleBorder(
-                side: const BorderSide(color: AppTheme.outlineVariant),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              tileColor: AppTheme.surfaceContainerLow,
-              leading: const Icon(Icons.event, color: AppTheme.primary),
-              title: const Text('Fecha de la Práctica'),
-              subtitle: Text(Formatters.date(_fechaClase)),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-              onTap: () async {
-                final d = await showDatePicker(
-                  context: context,
-                  initialDate: _fechaClase,
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime.now().add(const Duration(days: 90)),
-                );
-                if (d != null) setState(() => _fechaClase = d);
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Fecha y Hora Límite
-            ListTile(
-              shape: RoundedRectangleBorder(
-                side: const BorderSide(color: AppTheme.outlineVariant),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              tileColor: AppTheme.surfaceContainerLow,
-              leading: const Icon(Icons.timer, color: AppTheme.secondary),
-              title: const Text('Fecha y Hora Límite para Responder'),
-              subtitle: Text(Formatters.dateTime(_fechaLimite)),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-              onTap: () async {
-                final d = await showDatePicker(
-                  context: context,
-                  initialDate: _fechaLimite,
-                  firstDate: DateTime.now(),
-                  lastDate: _fechaClase,
-                );
-                if (d != null && context.mounted) {
-                  final t = await showTimePicker(
-                    context: context,
-                    initialTime: TimeOfDay.fromDateTime(_fechaLimite),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
+              onPressed: () async {
+                Navigator.pop(ctx);
+                try {
+                  await widget.teacherRepository.updateSurveyStatus(
+                    surveyId: survey.id,
+                    status: 'cerrada',
                   );
-                  if (t != null) {
-                    setState(() {
-                      _fechaLimite = DateTime(
-                        d.year,
-                        d.month,
-                        d.day,
-                        t.hour,
-                        t.minute,
-                      );
-                    });
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Encuesta finalizada y movida al historial.'),
+                        backgroundColor: AppTheme.successGreen,
+                      ),
+                    );
+                  }
+                  _loadAll();
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.errorRed),
+                    );
                   }
                 }
               },
+              child: const Text('Finalizar'),
             ),
-            const SizedBox(height: 28),
+          ],
+        );
+      },
+    );
+  }
 
-            ElevatedButton(
-              onPressed: _isLoading ? null : _crearEncuesta,
-              child: _isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        color: AppTheme.onSurface,
-                        strokeWidth: 2,
+  void _mostrarAuditoriaPagosDialog(TeacherSurvey survey) async {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return Dialog(
+          backgroundColor: AppTheme.surfaceContainerLow,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
+            child: FutureBuilder<List<PaymentAuditItem>>(
+              future: widget.teacherRepository.getSurveyPayments(survey.id),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                final items = snapshot.data ?? [];
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Auditoría de Pagos • ${survey.cursoNombre}',
+                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  '${items.length} alumnos confirmaron asistencia',
+                                  style: const TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.pop(ctx),
+                          ),
+                        ],
                       ),
-                    )
-                  : const Text('Publicar Encuesta a los Alumnos'),
+                      const Divider(height: 20),
+                      if (items.isEmpty)
+                        const Expanded(
+                          child: Center(
+                            child: Text(
+                              'Aún no hay alumnos confirmados en esta encuesta.',
+                              style: TextStyle(color: AppTheme.onSurfaceVariant),
+                            ),
+                          ),
+                        )
+                      else
+                        Expanded(
+                          child: ListView.separated(
+                            itemCount: items.length,
+                            separatorBuilder: (_, _) => const SizedBox(height: 8),
+                            itemBuilder: (context, i) {
+                              final item = items[i];
+                              final isVerificado = item.estadoPago == 'verificado';
+                              return Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.surfaceBright,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: AppTheme.outlineVariant),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            item.nombreCompleto,
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                          decoration: BoxDecoration(
+                                            color: isVerificado
+                                                ? AppTheme.successGreen.withValues(alpha: 0.15)
+                                                : AppTheme.errorRed.withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            item.estadoPago.toUpperCase(),
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: isVerificado ? AppTheme.successGreen : AppTheme.errorRed,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text('Cédula: ${item.cedula} • Cuota: Bs. ${item.monto.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11.5, color: AppTheme.onSurfaceVariant)),
+                                    if (item.comprobanteUrl != null) ...[
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        children: [
+                                          OutlinedButton.icon(
+                                            icon: const Icon(Icons.receipt_rounded, size: 14),
+                                            label: const Text('Ver Comprobante', style: TextStyle(fontSize: 11)),
+                                            style: OutlinedButton.styleFrom(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              visualDensity: VisualDensity.compact,
+                                            ),
+                                            onPressed: () => _verComprobanteDialog(item.comprobanteUrl!),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          if (!isVerificado)
+                                            ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: AppTheme.successGreen,
+                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                visualDensity: VisualDensity.compact,
+                                              ),
+                                              onPressed: () async {
+                                                await widget.teacherRepository.updatePaymentStatus(
+                                                  responseId: item.respuestaId,
+                                                  status: 'verificado',
+                                                );
+                                                if (ctx.mounted) {
+                                                  Navigator.pop(ctx);
+                                                  _mostrarAuditoriaPagosDialog(survey);
+                                                }
+                                              },
+                                              child: const Text('Aprobar', style: TextStyle(fontSize: 11)),
+                                            ),
+                                        ],
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _verComprobanteDialog(String url) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppBar(
+              title: const Text('Comprobante de Pago'),
+              leading: IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.pop(ctx),
+              ),
+            ),
+            InteractiveViewer(
+              child: Image.network(
+                url,
+                fit: BoxFit.contain,
+                loadingBuilder: (_, child, prog) =>
+                    prog == null ? child : const Center(child: CircularProgressIndicator()),
+                errorBuilder: (context, error, stackTrace) => const Padding(
+                  padding: EdgeInsets.all(24.0),
+                  child: Text('No se pudo cargar la imagen del comprobante.'),
+                ),
+              ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _buildFilterSelector(),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _loadAll,
+            child: _isLoading && _activeSurveys.isEmpty && _historySurveys.isEmpty
+                ? const Center(child: CircularProgressIndicator())
+                : AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: _selectedFilter == 0
+                        ? _buildActiveSurveysView()
+                        : _buildHistorySurveysView(),
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFilterSelector() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: const BoxDecoration(
+        color: AppTheme.surfaceContainerLow,
+        border: Border(
+          bottom: BorderSide(color: AppTheme.outlineVariant, width: 0.5),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.tune_rounded, size: 16, color: AppTheme.primary),
+                  SizedBox(width: 8),
+                  Text(
+                    'Filtro de Selección:',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.onSurfaceVariant,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ],
+              ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.add_rounded, size: 16),
+                label: const Text('Nueva Encuesta', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryContainer,
+                  foregroundColor: AppTheme.onPrimaryContainer,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: _mostrarCrearEncuestaDialog,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceBright,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppTheme.outlineVariant),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int>(
+                value: _selectedFilter,
+                isExpanded: true,
+                icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.primary),
+                dropdownColor: AppTheme.surfaceBright,
+                borderRadius: BorderRadius.circular(12),
+                items: const [
+                  DropdownMenuItem<int>(
+                    value: 0,
+                    child: Row(
+                      children: [
+                        Icon(Icons.assignment_turned_in_rounded, size: 18, color: AppTheme.mintNeon),
+                        SizedBox(width: 10),
+                        Text(
+                          'Encuestas Activas',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ),
+                  DropdownMenuItem<int>(
+                    value: 1,
+                    child: Row(
+                      children: [
+                        Icon(Icons.history_rounded, size: 18, color: AppTheme.secondary),
+                        SizedBox(width: 10),
+                        Text(
+                          'Historial de Encuestas',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                onChanged: (val) {
+                  if (val != null) setState(() => _selectedFilter = val);
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveSurveysView() {
+    if (_activeSurveys.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.assignment_late_outlined, size: 56, color: AppTheme.onSurfaceVariant),
+              const SizedBox(height: 14),
+              const Text(
+                'No tienes encuestas activas actualmente',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.onSurface),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Publica una nueva encuesta para estimar y prorratear insumos con tus alumnos.',
+                style: TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 18),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.add_chart_rounded, size: 18),
+                label: const Text('Crear Encuesta de Insumos'),
+                onPressed: _mostrarCrearEncuestaDialog,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _activeSurveys.length,
+      itemBuilder: (context, index) {
+        final survey = _activeSurveys[index];
+        final fechaClaseDate = DateTime.tryParse(survey.fechaClase);
+        final fechaClaseStr = fechaClaseDate != null ? Formatters.date(fechaClaseDate) : survey.fechaClase;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceBright,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: survey.hasExpired ? AppTheme.outlineVariant : AppTheme.mintNeon.withValues(alpha: 0.35),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Encabezado
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.mintNeon.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.shopping_bag_outlined, color: AppTheme.mintNeon, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'APORTE PARA COMPRA DE INSUMOS',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.mintNeon,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          survey.cursoNombre,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: survey.hasExpired
+                          ? AppTheme.errorRed.withValues(alpha: 0.15)
+                          : AppTheme.successGreen.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      survey.hasExpired ? 'Vencida' : 'Activa',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: survey.hasExpired ? AppTheme.errorRed : AppTheme.successGreen,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              // Fechas
+              Row(
+                children: [
+                  const Icon(Icons.event_available_rounded, size: 14, color: AppTheme.primary),
+                  const SizedBox(width: 6),
+                  Text('Práctica: $fechaClaseStr', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                  const Spacer(),
+                  const Icon(Icons.timer_outlined, size: 14, color: AppTheme.secondary),
+                  const SizedBox(width: 6),
+                  Text('Límite: ${Formatters.dateTime(survey.fechaLimite)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              // Bloque de Montos
+              const Text(
+                'Monto del aporte individual a cancelar:',
+                style: TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                survey.totalConfirmados > 0
+                    ? 'Bs. ${(survey.montoIndividualCalculado * (survey.tasaBcvUsada ?? 1.0)).toStringAsFixed(2)} Bs.'
+                    : 'Pendiente de cálculo',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.mintNeon,
+                ),
+              ),
+              if (survey.totalConfirmados > 0)
+                Text(
+                  '~ \$${survey.montoIndividualCalculado.toStringAsFixed(2)} USD por alumno',
+                  style: const TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant),
+                ),
+              const SizedBox(height: 10),
+
+              // Presupuesto y Confirmados
+              Row(
+                children: [
+                  const Icon(Icons.assignment_outlined, size: 14, color: AppTheme.onSurfaceVariant),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Presupuesto: \$${survey.costoTotalInsumos.toStringAsFixed(2)} USD',
+                    style: const TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryContainer.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${survey.totalConfirmados} confirmados',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppTheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              // Tasa BCV Oficial
+              if (survey.tasaBcvUsada != null && survey.tasaBcvUsada! > 0) ...[
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Icon(Icons.currency_exchange, size: 13, color: AppTheme.mintNeon),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        'Tasa BCV del día: Bs. ${survey.tasaBcvUsada!.toStringAsFixed(2)} / USD',
+                        style: const TextStyle(
+                          fontSize: 10.5,
+                          color: AppTheme.mintNeon,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 16),
+
+              // BOTÓN PARA GESTIONAR LA ENCUESTA
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.tune_rounded, size: 18),
+                  label: const Text(
+                    'Gestionar Encuesta',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryContainer,
+                    foregroundColor: AppTheme.onPrimaryContainer,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () => _abrirGestionEncuesta(survey),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHistorySurveysView() {
+    if (_historySurveys.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.history_toggle_off_rounded, size: 56, color: AppTheme.onSurfaceVariant),
+              SizedBox(height: 14),
+              Text(
+                'No hay encuestas en el historial',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.onSurface),
+              ),
+              SizedBox(height: 6),
+              Text(
+                'Las encuestas cerradas o finalizadas aparecerán archivadas aquí.',
+                style: TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _historySurveys.length,
+      itemBuilder: (context, index) {
+        final survey = _historySurveys[index];
+        final fechaClaseDate = DateTime.tryParse(survey.fechaClase);
+        final fechaClaseStr = fechaClaseDate != null ? Formatters.date(fechaClaseDate) : survey.fechaClase;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceBright,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.outlineVariant),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      survey.cursoNombre,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      survey.estado.toUpperCase(),
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.onSurfaceVariant),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text('Práctica: $fechaClaseStr • Presupuesto: \$${survey.costoTotalInsumos.toStringAsFixed(2)} USD', style: const TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant)),
+              const SizedBox(height: 4),
+              Text('Confirmados: ${survey.totalConfirmados} alumnos • Cuota final: \$${survey.montoIndividualCalculado.toStringAsFixed(2)} USD', style: const TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant)),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.receipt_long_rounded, size: 16),
+                label: const Text('Ver Pagos y Comprobantes', style: TextStyle(fontSize: 12)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () => _mostrarAuditoriaPagosDialog(survey),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

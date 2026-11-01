@@ -153,3 +153,51 @@ class SolicitudAprobacionItem {
     };
   }
 }
+
+class TeacherSurvey {
+  final String id;
+  final String cursoId;
+  final String cursoNombre;
+  final String fechaClase;
+  final double costoTotalInsumos;
+  final double? tasaBcvUsada;
+  final DateTime fechaLimite;
+  final double montoIndividualCalculado;
+  final int totalConfirmados;
+  final String estado;
+  final DateTime? createdAt;
+
+  TeacherSurvey({
+    required this.id,
+    required this.cursoId,
+    required this.cursoNombre,
+    required this.fechaClase,
+    required this.costoTotalInsumos,
+    this.tasaBcvUsada,
+    required this.fechaLimite,
+    required this.montoIndividualCalculado,
+    required this.totalConfirmados,
+    required this.estado,
+    this.createdAt,
+  });
+
+  bool get isActiva => estado == 'activa';
+  bool get hasExpired => DateTime.now().isAfter(fechaLimite);
+
+  factory TeacherSurvey.fromJson(Map<String, dynamic> json) {
+    final cursoData = json['cursos'] as Map<String, dynamic>?;
+    return TeacherSurvey(
+      id: json['id'] as String,
+      cursoId: json['curso_id'] as String,
+      cursoNombre: (cursoData != null ? cursoData['nombre'] as String? : null) ?? 'Curso',
+      fechaClase: json['fecha_clase'] as String? ?? '',
+      costoTotalInsumos: (json['costo_total_insumos'] as num?)?.toDouble() ?? 0.0,
+      tasaBcvUsada: (json['tasa_bcv_usada'] as num?)?.toDouble(),
+      fechaLimite: DateTime.tryParse(json['fecha_limite'] as String? ?? '') ?? DateTime.now(),
+      montoIndividualCalculado: (json['monto_individual_calculado'] as num?)?.toDouble() ?? 0.0,
+      totalConfirmados: (json['total_confirmados'] as num?)?.toInt() ?? 0,
+      estado: json['estado'] as String? ?? 'activa',
+      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
+    );
+  }
+}

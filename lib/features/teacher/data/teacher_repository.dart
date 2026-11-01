@@ -220,6 +220,93 @@ class TeacherRepository {
     } catch (_) {}
   }
 
+  /// Obtiene encuestas del docente (activas o historial)
+  Future<List<TeacherSurvey>> getTeacherSurveys({
+    required bool activeOnly,
+    bool isSuperAdmin = false,
+  }) async {
+    var query = _supabase
+        .from('encuestas_participacion')
+        .select('''
+          id,
+          curso_id,
+          fecha_clase,
+          costo_total_insumos,
+          tasa_bcv_usada,
+          fecha_limite,
+          monto_individual_calculado,
+          total_confirmados,
+          estado,
+          created_at,
+          cursos:curso_id (
+            nombre,
+            profesor_id
+          )
+        ''');
+
+    if (!isSuperAdmin) {
+      final courses = await getMyCourses(isSuperAdmin: false);
+      if (courses.isEmpty) return [];
+      final courseIds = courses.map((c) => c.id).toList();
+      query = query.inFilter('curso_id', courseIds);
+    }
+
+    if (activeOnly) {
+      query = query.eq('estado', 'activa');
+    } else {
+      query = query.neq('estado', 'activa');
+    }
+
+    final data = await query.order('created_at', ascending: false);
+    return (data as List).map((item) => TeacherSurvey.fromJson(item)).toList();
+  }
+
+  /// Actualiza estado de una encuesta (ej. 'cerrada', 'finalizada', 'activa')
+  Future<void> updateSurveyStatus({
+    required String surveyId,
+    required String status,
+  }) async {
+    await _supabase
+        .from('encuestas_participacion')
+        .update({
+          'estado': status,
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', surveyId);
+  }
+
+  /// Modificar encuesta completa (presupuesto, fecha de clase, fecha límite)
+  Future<void> updateSurveyDetails({
+    required String surveyId,
+    required double totalSupplyCost,
+    required String classDate,
+    required DateTime deadline,
+  }) async {
+    double tasaBcv = 1.0;
+    try {
+      final configRes = await _supabase
+          .from('configuracion_general')
+          .select('valor')
+          .eq('clave', 'tasa_cambio_oficial')
+          .maybeSingle();
+      if (configRes != null && configRes['valor'] != null) {
+        tasaBcv = (configRes['valor'] as num).toDouble();
+      }
+    } catch (_) {}
+
+    await _supabase.from('encuestas_participacion').update({
+      'costo_total_insumos': totalSupplyCost,
+      'fecha_clase': classDate,
+      'fecha_limite': deadline.toIso8601String(),
+      'tasa_bcv_usada': tasaBcv,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', surveyId);
+
+    try {
+      await _supabase.rpc('recalcular_monto_encuesta', params: {'p_encuesta_id': surveyId});
+    } catch (_) {}
+  }
+
   /// Checklist de recaudación para una encuesta dada
   Future<List<PaymentAuditItem>> getSurveyPayments(String surveyId) async {
     final resps = await _supabase
