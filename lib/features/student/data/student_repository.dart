@@ -21,6 +21,7 @@ class StudentRepository {
         .from('alumnos')
         .select()
         .eq('user_id', uid)
+        .limit(1)
         .maybeSingle();
 
     if (record != null) return record;
@@ -33,6 +34,7 @@ class StudentRepository {
           .select()
           .ilike('correo', email)
           .isFilter('user_id', null)
+          .limit(1)
           .maybeSingle();
       if (byEmail != null) {
         final linked = await _supabase
@@ -41,6 +43,7 @@ class StudentRepository {
             .eq('id', byEmail['id'])
             .isFilter('user_id', null)
             .select()
+            .limit(1)
             .maybeSingle();
         if (linked == null) {
           throw StateError(
@@ -59,6 +62,7 @@ class StudentRepository {
             .from('perfiles')
             .select('nombre_completo, cedula, telefono, correo')
             .eq('user_id', uid)
+            .limit(1)
             .maybeSingle();
 
         final nombre = perfilesRes?['nombre_completo'] ?? email ?? 'Super Administrador';
@@ -71,6 +75,7 @@ class StudentRepository {
             .from('alumnos')
             .select()
             .or('user_id.eq.$uid,correo.eq.$correo')
+            .limit(1)
             .maybeSingle();
 
         if (existing != null) {
@@ -162,7 +167,7 @@ class StudentRepository {
 
     // Fallback si no tiene inscripciones pero tiene el curso en su perfil
     if (results.isEmpty && alumno['curso'] != null) {
-      final cRes = await _supabase
+      var fallbackQuery = _supabase
           .from('cursos')
           .select('''
             id,
@@ -174,9 +179,14 @@ class StudentRepository {
               nombre_completo
             )
           ''')
-          .ilike('nombre', (alumno['curso'] as String).trim())
-          .maybeSingle();
-      if (cRes != null) {
+          .ilike('nombre', (alumno['curso'] as String).trim());
+
+      if (statusFilter != null) {
+        fallbackQuery = fallbackQuery.eq('estado', statusFilter);
+      }
+
+      final cResList = await fallbackQuery;
+      for (final cRes in cResList) {
         results.add(
           StudentCourse(
             id: cRes['id'] as String,
@@ -184,7 +194,7 @@ class StudentRepository {
             descripcion: cRes['descripcion'] as String?,
             horario: cRes['horario'] as String?,
             profesorNombre: (cRes['perfiles'] as Map?)?['nombre_completo'] as String?,
-            estado: 'activo',
+            estado: cRes['estado'] as String? ?? 'activo',
           ),
         );
       }
@@ -370,13 +380,14 @@ class StudentRepository {
 
       // Si no tiene inscripciones pero tiene el nombre del curso asignado en la tabla alumnos
       if (cursoIds.isEmpty && alumno['curso'] != null && (alumno['curso'] as String).trim().isNotEmpty) {
-        final cursoMatch = await _supabase
+        final cursoMatches = await _supabase
             .from('cursos')
             .select('id')
-            .ilike('nombre', (alumno['curso'] as String).trim())
-            .maybeSingle();
-        if (cursoMatch != null && cursoMatch['id'] != null) {
-          cursoIds.add(cursoMatch['id'] as String);
+            .ilike('nombre', (alumno['curso'] as String).trim());
+        for (final item in cursoMatches) {
+          if (item['id'] != null) {
+            cursoIds.add(item['id'] as String);
+          }
         }
       }
 
@@ -509,13 +520,14 @@ class StudentRepository {
           .toList();
 
       if (cursoIds.isEmpty && alumno['curso'] != null && (alumno['curso'] as String).trim().isNotEmpty) {
-        final cursoMatch = await _supabase
+        final cursoMatches = await _supabase
             .from('cursos')
             .select('id')
-            .ilike('nombre', (alumno['curso'] as String).trim())
-            .maybeSingle();
-        if (cursoMatch != null && cursoMatch['id'] != null) {
-          cursoIds.add(cursoMatch['id'] as String);
+            .ilike('nombre', (alumno['curso'] as String).trim());
+        for (final item in cursoMatches) {
+          if (item['id'] != null) {
+            cursoIds.add(item['id'] as String);
+          }
         }
       }
 
