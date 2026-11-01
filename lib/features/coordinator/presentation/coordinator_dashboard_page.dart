@@ -1,3 +1,4 @@
+import 'package:umbral_immujer/src/core/widgets/formation_image_carousel.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -416,69 +417,6 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
       return true;
     }
     return todayTokens.any((t) => hLower.contains(t));
-  }
-
-  void _mostrarDialogoReasignar(CourseDashboardItem curso) async {
-    final profesores = await widget.coordinatorRepository.getRegisteredTeachers();
-    if (!mounted) return;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Asignar Profesor a ${curso.nombre}'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (curso.profesorId != null)
-                ListTile(
-                  leading: const Icon(Icons.person_remove, color: AppTheme.errorRed),
-                  title: const Text('Dejar sin profesor asignado'),
-                  onTap: () async {
-                    Navigator.of(ctx).pop();
-                    await widget.coordinatorRepository.unassignTeacher(courseId: curso.id);
-                    _loadAll();
-                  },
-                ),
-              const Divider(),
-              Expanded(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: profesores.length,
-                  itemBuilder: (c, idx) {
-                    final p = profesores[idx];
-                    final esActual = p.id == curso.profesorId;
-                    return ListTile(
-                      leading: CircleAvatar(
-                        child: Text(p.nombreCompleto.isNotEmpty ? p.nombreCompleto[0] : '?'),
-                      ),
-                      title: Text(p.nombreCompleto),
-                      subtitle: Text(
-                        'C.I: ${p.cedula} ${p.cursoActual != null ? "• Imparte: ${p.cursoActual}" : ""}',
-                      ),
-                      trailing: esActual
-                          ? const Icon(Icons.check, color: AppTheme.successGreen)
-                          : null,
-                      onTap: esActual
-                          ? null
-                          : () async {
-                              Navigator.of(ctx).pop();
-                              await widget.coordinatorRepository.assignTeacherToCourse(
-                                courseId: curso.id,
-                                teacherId: p.id,
-                              );
-                              _loadAll();
-                            },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   void _abrirCentroNotificaciones(List<SolicitudNotificacionItem> solicitudes) {
@@ -1108,6 +1046,10 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              // Carrusel Formativo de Alumnos
+              const FormationImageCarousel(),
+              const SizedBox(height: 16),
+
               // Barra de Acciones Globales
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -1149,15 +1091,17 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                       isLabelVisible: notificaciones.isNotEmpty,
                       label: Text('${notificaciones.length}'),
                       backgroundColor: AppTheme.errorRed,
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.notifications_active_rounded, size: 18),
-                        label: const Text('Notificaciones'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.tertiaryContainer,
-                          foregroundColor: AppTheme.onTertiaryContainer,
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppTheme.tertiaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.outlineVariant),
                         ),
-                        onPressed: () => _abrirCentroNotificaciones(notificaciones),
+                        child: IconButton(
+                          icon: const Icon(Icons.notifications_active_rounded, size: 20, color: AppTheme.onTertiaryContainer),
+                          tooltip: 'Centro de Notificaciones y Aprobaciones',
+                          onPressed: () => _abrirCentroNotificaciones(notificaciones),
+                        ),
                       ),
                     ),
                   ],
@@ -1199,6 +1143,10 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+
+              // WIDGET PARA VISUALIZACIÓN DEL MONTO TOTAL DE APORTE POR CURSOS
+              _buildResumenTotalAportesWidget(),
               const SizedBox(height: 20),
 
               // SECCIÓN: CURSOS ACTIVOS Y PLANTILLAS
@@ -1276,12 +1224,6 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                                     ),
                                   ],
                                 ),
-                              ),
-                              const Spacer(),
-                              IconButton(
-                                icon: const Icon(Icons.edit, color: AppTheme.primary, size: 20),
-                                tooltip: 'Reasignar Profesor',
-                                onPressed: () => _mostrarDialogoReasignar(c),
                               ),
                             ],
                           ),
@@ -1433,6 +1375,135 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                 _buildAportesEnBsWidget()
               else
                 _buildJustificativosWidget(),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildResumenTotalAportesWidget() {
+    return FutureBuilder<List<AporteCursoBsItem>>(
+      future: _aportesFuture,
+      builder: (context, snapshot) {
+        final aportes = snapshot.data ?? [];
+        final granTotalBs = aportes.fold<double>(0.0, (prev, a) => prev + a.totalAporteBs);
+        final granTotalUsd = aportes.fold<double>(0.0, (prev, a) => prev + a.costoTotalUsd);
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: AppTheme.primary.withValues(alpha: 0.35),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primary.withValues(alpha: 0.06),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryContainer.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.account_balance_wallet_rounded,
+                      color: AppTheme.primary,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Monto Total de Aportes por Cursos',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.onSurface,
+                          ),
+                        ),
+                        Text(
+                          'Recaudación global consolidada en Bolívares (Tasa Oficial BCV)',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            color: AppTheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    'Bs. ${Formatters.currency(granTotalBs)}',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: AppTheme.primary,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppTheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '~ \$${granTotalUsd.toStringAsFixed(2)} USD',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.onSecondaryContainer,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (aportes.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                const Divider(height: 1),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: aportes.map((a) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.5)),
+                      ),
+                      child: Text(
+                        '${a.cursoNombre}: Bs. ${Formatters.currency(a.totalAporteBs)}',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
             ],
           ),
         );

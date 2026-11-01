@@ -6,7 +6,7 @@ import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/core/utils/formatters.dart';
 import 'package:umbral_immujer/features/teacher/data/teacher_repository.dart';
 import 'package:umbral_immujer/features/teacher/domain/teacher_models.dart';
-import 'package:umbral_immujer/src/core/widgets/app_carousel_slider.dart';
+import 'package:umbral_immujer/src/core/widgets/formation_image_carousel.dart';
 import 'package:umbral_immujer/src/core/widgets/skeleton_loader.dart';
 import 'package:umbral_immujer/src/core/widgets/super_admin_nav_bar.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
@@ -401,38 +401,7 @@ class _TeacherSummaryTab extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          AppCarouselSlider(
-            height: 140,
-            items: [
-              CarouselSlideItem(
-                title: 'Pase de Asistencia Rápido',
-                subtitle: 'Toma asistencia en tiempo real de los alumnos en tus cursos activos.',
-                badgeText: 'ACADÉMICO',
-                badgeColor: AppTheme.primary,
-                icon: Icons.checklist_rounded,
-                iconColor: AppTheme.primary,
-                onTap: () => onNavigate(1),
-              ),
-              CarouselSlideItem(
-                title: 'Cálculo de Aportes en Bs',
-                subtitle: 'Crea encuestas dividiendo el monto en USD entre asistentes con tasa oficial BCV.',
-                badgeText: 'ECONOMÍA',
-                badgeColor: AppTheme.secondary,
-                icon: Icons.currency_exchange_rounded,
-                iconColor: AppTheme.secondary,
-                onTap: () => onNavigate(2),
-              ),
-              CarouselSlideItem(
-                title: 'Gestión de Alumnos y Temas',
-                subtitle: 'Añade y edita alumnos y temas con el nuevo flujo de validación institucional.',
-                badgeText: 'SUPERVISIÓN',
-                badgeColor: AppTheme.tertiary,
-                icon: Icons.assignment_turned_in_outlined,
-                iconColor: AppTheme.tertiary,
-                onTap: () => onNavigate(4),
-              ),
-            ],
-          ),
+          const FormationImageCarousel(),
           const SizedBox(height: 16),
           Text(
             'HERRAMIENTAS DEL MÓDULO',
