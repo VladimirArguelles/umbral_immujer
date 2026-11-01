@@ -2701,12 +2701,14 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                 children: [
                                   const Icon(Icons.currency_exchange, size: 13, color: AppTheme.mintNeon),
                                   const SizedBox(width: 4),
-                                  Text(
-                                    'Tasa BCV del día: Bs. ${enc.tasaBcvUsada!.toStringAsFixed(2)} / USD  •  Cálculo: (USD ÷ Confirmados) × BCV',
-                                    style: const TextStyle(
-                                      fontSize: 10.5,
-                                      color: AppTheme.mintNeon,
-                                      fontWeight: FontWeight.w500,
+                                  Expanded(
+                                    child: Text(
+                                      'Tasa BCV del día: Bs. ${enc.tasaBcvUsada!.toStringAsFixed(2)} / USD',
+                                      style: const TextStyle(
+                                        fontSize: 10.5,
+                                        color: AppTheme.mintNeon,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                   ),
                                 ],
