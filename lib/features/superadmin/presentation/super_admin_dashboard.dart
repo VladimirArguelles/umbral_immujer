@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
-import 'package:umbral_immujer/src/core/widgets/app_carousel_slider.dart';
 import 'package:umbral_immujer/src/core/widgets/super_admin_nav_bar.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
 import 'gestion_alumnos_page.dart';
@@ -595,8 +594,6 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                 children: [
                   _buildDesktopHeader(),
                   const SizedBox(height: 16),
-                  _buildSuperAdminCarousel(),
-                  const SizedBox(height: 20),
                   _buildDesktopMetricsGrid(),
                   const SizedBox(height: 28),
                   _buildDesktopModulesGrid(),
@@ -651,17 +648,9 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                   ),
                   const SizedBox(height: 12),
                   Image.asset(
-                    'assets/images/logo_umbral.png',
+                    'assets/images/logo-umbral.png',
                     height: 38,
                     fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Image.asset(
-                        'assets/images/Logo Umbral.png',
-                        height: 38,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-                      );
-                    },
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -918,54 +907,6 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     );
   }
 
-  Widget _buildSuperAdminCarousel() {
-    return AppCarouselSlider(
-      height: 145,
-      items: [
-        CarouselSlideItem(
-          title: 'Sincronización Automatizada BCV',
-          subtitle: 'Cotización oficial sincronizada diariamente vía Edge Function a las 9:00 AM Caracas.',
-          badgeText: 'EDGE FUNCTION',
-          badgeColor: AppTheme.primary,
-          icon: Symbols.currency_exchange,
-          iconColor: AppTheme.primary,
-          onTap: () => context.go('/superadmin/configuracion'),
-        ),
-        CarouselSlideItem(
-          title: 'Centro de Telemetría Institucional',
-          subtitle: 'Monitoreo en vivo de alumnos matriculados, docentes y asistencias registradas.',
-          badgeText: 'TELEMETRÍA EN VIVO',
-          badgeColor: AppTheme.tertiary,
-          icon: Symbols.analytics,
-          iconColor: AppTheme.tertiary,
-          onTap: () => _loadMetrics(),
-        ),
-        CarouselSlideItem(
-          title: 'Gestión Global de Cursos y Temas',
-          subtitle: 'Edición rápida de cursos, días, horarios con calendario y reloj interactivo.',
-          badgeText: 'ACADÉMICO',
-          badgeColor: AppTheme.secondary,
-          icon: Symbols.school,
-          iconColor: AppTheme.secondary,
-          onTap: () {
-            Navigator.of(context)
-                .push(MaterialPageRoute(builder: (_) => const GestionCursosPage()))
-                .then((_) => _loadMetrics());
-          },
-        ),
-        CarouselSlideItem(
-          title: 'Políticas Institucionales y RLS',
-          subtitle: 'Aislamiento de seguridad multi-rol por sedes institucionales y auditoría en Supabase.',
-          badgeText: 'SEGURIDAD',
-          badgeColor: Colors.blueAccent,
-          icon: Symbols.security,
-          iconColor: Colors.blueAccent,
-          onTap: _showSettingsModal,
-        ),
-      ],
-    );
-  }
-
   // ── Grid de métricas escritorio (4 columnas) ──────────────────────────────
   Widget _buildDesktopMetricsGrid() {
     return Column(
@@ -1116,8 +1057,6 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildHeaderSection(),
-                        const SizedBox(height: 14),
-                        _buildSuperAdminCarousel(),
                         const SizedBox(height: 14),
                         _buildKeyMetricsSection(isTablet: isTablet),
                         const SizedBox(height: 20),
