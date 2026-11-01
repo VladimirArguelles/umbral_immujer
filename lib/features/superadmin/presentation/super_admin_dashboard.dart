@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
+import 'package:umbral_immujer/src/core/widgets/super_admin_nav_bar.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
 import 'gestion_alumnos_page.dart';
 import 'gestion_cursos_page.dart';
@@ -1072,10 +1073,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  child: SafeArea(
-                    top: false,
-                    child: _buildBottomNavigationBar(),
-                  ),
+                  child: const SuperAdminBottomNavBar(currentIndex: 0),
                 ),
               ],
             ),
@@ -1897,63 +1895,6 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           ),
         ),
       ],
-    );
-  }
-
-  // --- BEGIN: BottomNavigation (mobile only) ---
-  Widget _buildBottomNavigationBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: cCard.withValues(alpha: 0.96),
-        border: Border(top: BorderSide(color: cBorder.withValues(alpha: 0.8))),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(0, Symbols.dashboard, 'General'),
-          _buildNavItem(1, Symbols.school, 'Alumnos'),
-          _buildNavItem(2, Symbols.badge, 'Profesores'),
-          _buildNavItem(3, Symbols.military_tech, 'Coord.'),
-          _buildNavItem(4, Symbols.settings, 'Ajustes'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(int index, IconData icon, String label) {
-    final isSelected = _currentIndex == index;
-    return InkWell(
-      onTap: () => _onNavTap(index),
-      borderRadius: BorderRadius.circular(16),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? cAccent.withValues(alpha: 0.12)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-          border: isSelected
-              ? Border.all(color: cAccent.withValues(alpha: 0.25))
-              : Border.all(color: Colors.transparent),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 20, color: isSelected ? cAccent : cTextMuted),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 10,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                color: isSelected ? cAccent : cTextMuted,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 

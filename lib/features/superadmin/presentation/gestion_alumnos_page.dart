@@ -4,6 +4,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
+import 'package:umbral_immujer/src/core/widgets/skeleton_loader.dart';
 
 class GestionAlumnosPage extends StatefulWidget {
   const GestionAlumnosPage({super.key});
@@ -534,7 +535,7 @@ class _GestionAlumnosPageState extends State<GestionAlumnosPage> {
           // Cuerpo de la Lista
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const AttendanceSkeleton()
                 : _errorMessage != null
                     ? Center(
                         child: Column(

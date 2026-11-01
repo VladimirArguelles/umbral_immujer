@@ -102,6 +102,7 @@ class StudentSurvey {
   final String? estadoPago; // 'pendiente' | 'verificado' | 'rechazado'
   final double? montoAsignado;
   final DateTime? comprobanteSubidoAt;
+  final double? tasaBcvUsada;
 
   StudentSurvey({
     required this.id,
@@ -120,6 +121,7 @@ class StudentSurvey {
     this.estadoPago,
     this.montoAsignado,
     this.comprobanteSubidoAt,
+    this.tasaBcvUsada,
   });
 
   bool get estaVencida => DateTime.now().isAfter(fechaLimite);

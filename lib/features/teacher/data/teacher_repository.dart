@@ -1,4 +1,4 @@
-﻿import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../domain/teacher_models.dart';
 
@@ -165,16 +165,59 @@ class TeacherRepository {
     required DateTime deadline,
   }) async {
     final uid = currentUserId;
+
+    // Obtener la tasa BCV oficial del día actual para congelarla en la encuesta
+    double tasaBcv = 1.0;
+    try {
+      final configRes = await _supabase
+          .from('configuracion_general')
+          .select('valor')
+          .eq('clave', 'tasa_cambio_oficial')
+          .maybeSingle();
+      if (configRes != null && configRes['valor'] != null) {
+        tasaBcv = (configRes['valor'] as num).toDouble();
+      }
+    } catch (_) {}
+
     await _supabase.from('encuestas_participacion').insert({
       'curso_id': courseId,
       'fecha_clase': classDate,
       'costo_total_insumos': totalSupplyCost,
+      'tasa_bcv_usada': tasaBcv,
       'fecha_limite': deadline.toIso8601String(),
       'creada_por': uid,
       'estado': 'activa',
       'monto_individual_calculado': 0.00,
       'total_confirmados': 0,
     });
+  }
+
+  /// Actualizar el monto del aporte en USD fijado por el profesor y recalcular cuota en Bs
+  Future<void> updateSurveySupplyCost({
+    required String surveyId,
+    required double totalSupplyCost,
+  }) async {
+    double tasaBcv = 1.0;
+    try {
+      final configRes = await _supabase
+          .from('configuracion_general')
+          .select('valor')
+          .eq('clave', 'tasa_cambio_oficial')
+          .maybeSingle();
+      if (configRes != null && configRes['valor'] != null) {
+        tasaBcv = (configRes['valor'] as num).toDouble();
+      }
+    } catch (_) {}
+
+    await _supabase.from('encuestas_participacion').update({
+      'costo_total_insumos': totalSupplyCost,
+      'tasa_bcv_usada': tasaBcv,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', surveyId);
+
+    try {
+      await _supabase.rpc('recalcular_monto_encuesta', params: {'p_encuesta_id': surveyId});
+    } catch (_) {}
   }
 
   /// Checklist de recaudación para una encuesta dada

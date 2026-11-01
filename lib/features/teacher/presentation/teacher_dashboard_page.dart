@@ -6,6 +6,8 @@ import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/core/utils/formatters.dart';
 import 'package:umbral_immujer/features/teacher/data/teacher_repository.dart';
 import 'package:umbral_immujer/features/teacher/domain/teacher_models.dart';
+import 'package:umbral_immujer/src/core/widgets/skeleton_loader.dart';
+import 'package:umbral_immujer/src/core/widgets/super_admin_nav_bar.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
 
 class TeacherDashboardPage extends StatefulWidget {
@@ -30,6 +32,188 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
     super.initState();
     _currentIndex = widget.initialIndex.clamp(0, 4);
     _teacherRepository = TeacherRepository(SupabaseConfig.client);
+  }
+
+  Widget _buildDropdownNav(bool isSuperAdmin) {
+    const tabTitles = [
+      'Inicio',
+      'Asistencia',
+      'Encuestas',
+      'Recaudación',
+      'Alumnas',
+    ];
+    const tabIcons = [
+      Icons.dashboard_rounded,
+      Icons.playlist_add_check_circle_rounded,
+      Icons.add_chart_rounded,
+      Icons.payments_rounded,
+      Icons.people_alt_rounded,
+    ];
+
+    return Theme(
+      data: Theme.of(context).copyWith(
+        popupMenuTheme: PopupMenuThemeData(
+          color: AppTheme.surfaceContainerLow,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: AppTheme.outlineVariant),
+          ),
+        ),
+      ),
+      child: PopupMenuButton<dynamic>(
+        tooltip: 'Menú de opciones y navegación',
+        offset: const Offset(0, 48),
+        onSelected: (value) {
+          if (value is int) {
+            setState(() => _currentIndex = value);
+          } else if (value is String) {
+            context.go(value);
+          }
+        },
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppTheme.outlineVariant),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                tabIcons[_currentIndex],
+                size: 16,
+                color: AppTheme.primary,
+              ),
+              const SizedBox(width: 6),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 96),
+                child: Text(
+                  tabTitles[_currentIndex],
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.onSurface,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 2),
+              const Icon(
+                Icons.arrow_drop_down_rounded,
+                size: 20,
+                color: AppTheme.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
+        itemBuilder: (context) => [
+          const PopupMenuItem<dynamic>(
+            enabled: false,
+            child: Text(
+              'OPCIONES DE DOCENTE',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.primary,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ),
+          for (int i = 0; i < tabTitles.length; i++)
+            PopupMenuItem<dynamic>(
+              value: i,
+              child: Row(
+                children: [
+                  Icon(
+                    tabIcons[i],
+                    size: 18,
+                    color: _currentIndex == i
+                        ? AppTheme.primary
+                        : AppTheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    tabTitles[i],
+                    style: TextStyle(
+                      fontWeight: _currentIndex == i
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: _currentIndex == i
+                          ? AppTheme.primary
+                          : AppTheme.onSurface,
+                    ),
+                  ),
+                  if (_currentIndex == i) ...[
+                    const Spacer(),
+                    const Icon(
+                      Icons.check_rounded,
+                      size: 16,
+                      color: AppTheme.primary,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          if (isSuperAdmin) ...[
+            const PopupMenuDivider(),
+            const PopupMenuItem<dynamic>(
+              enabled: false,
+              child: Text(
+                'NAVEGACIÓN SUPER ADMIN',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.primary,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ),
+            const PopupMenuItem<dynamic>(
+              value: '/student',
+              child: Row(
+                children: [
+                  Icon(Icons.school_outlined, size: 18, color: AppTheme.primary),
+                  SizedBox(width: 10),
+                  Text('Módulo Alumnos'),
+                ],
+              ),
+            ),
+            const PopupMenuItem<dynamic>(
+              value: '/coordinator',
+              child: Row(
+                children: [
+                  Icon(Icons.military_tech_outlined, size: 18, color: AppTheme.tertiary),
+                  SizedBox(width: 10),
+                  Text('Módulo Coordinación'),
+                ],
+              ),
+            ),
+            const PopupMenuItem<dynamic>(
+              value: '/superadmin',
+              child: Row(
+                children: [
+                  Icon(Icons.admin_panel_settings_outlined, size: 18, color: AppTheme.primary),
+                  SizedBox(width: 10),
+                  Text('Centro de Control Super Admin'),
+                ],
+              ),
+            ),
+            const PopupMenuItem<dynamic>(
+              value: '/superadmin/configuracion',
+              child: Row(
+                children: [
+                  Icon(Icons.settings_outlined, size: 18, color: AppTheme.outline),
+                  SizedBox(width: 10),
+                  Text('Ajustes y Configuración'),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   void _handleBackNavigation() {
@@ -132,35 +316,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
             ],
           ),
           actions: [
-            if (isSuperAdmin)
-              Padding(
-                padding: const EdgeInsets.only(right: 4),
-                child: TextButton.icon(
-                  style: TextButton.styleFrom(
-                    backgroundColor:
-                        AppTheme.primaryContainer.withValues(alpha: 0.25),
-                    foregroundColor: AppTheme.primary,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    minimumSize: const Size(0, 34),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: BorderSide(
-                        color: AppTheme.primary.withValues(alpha: 0.5),
-                      ),
-                    ),
-                  ),
-                  icon: const Icon(Icons.arrow_back_rounded, size: 14),
-                  label: const Text(
-                    'Super Admin',
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  onPressed: () => context.go('/superadmin'),
-                ),
-              ),
+            _buildDropdownNav(isSuperAdmin),
             IconButton(
               icon: const Icon(Icons.logout),
               tooltip: 'Cerrar Sesión',
@@ -169,53 +325,9 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
           ],
         ),
         body: tabs[_currentIndex],
-        bottomNavigationBar: NavigationBarTheme(
-          data: NavigationBarThemeData(
-            height: 64,
-            labelTextStyle: WidgetStateProperty.resolveWith((states) {
-              final isSelected = states.contains(WidgetState.selected);
-              return TextStyle(
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected
-                    ? AppTheme.primary
-                    : AppTheme.onSurfaceVariant,
-              );
-            }),
-          ),
-          child: NavigationBar(
-            selectedIndex: _currentIndex,
-            onDestinationSelected: (idx) => setState(() => _currentIndex = idx),
-            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.dashboard_outlined),
-                selectedIcon: Icon(Icons.dashboard),
-                label: 'Inicio',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.playlist_add_check_circle_outlined),
-                selectedIcon: Icon(Icons.playlist_add_check_circle),
-                label: 'Asistencia',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.add_chart_outlined),
-                selectedIcon: Icon(Icons.add_chart),
-                label: 'Encuestas',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.payments_outlined),
-                selectedIcon: Icon(Icons.payments),
-                label: 'Recaudación',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.people_alt_outlined),
-                selectedIcon: Icon(Icons.people_alt),
-                label: 'Alumnas',
-              ),
-            ],
-          ),
-        ),
+        bottomNavigationBar: isSuperAdmin
+            ? const SuperAdminBottomNavBar(currentIndex: 2)
+            : null,
       ),
     );
   }
@@ -557,7 +669,7 @@ class _PaseListaTabState extends State<_PaseListaTab> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading && _cursos.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const AttendanceSkeleton();
     }
 
     if (_cursos.isEmpty) {
@@ -1197,7 +1309,7 @@ class _AuditoriaRecaudacionTabState extends State<_AuditoriaRecaudacionTab> {
 
         Expanded(
           child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? const SurveysSkeleton()
               : _recaudacion.isEmpty
               ? const Center(
                   child: Text(
@@ -1454,7 +1566,7 @@ class _GestionAlumnosTabState extends State<_GestionAlumnosTab> {
 
         Expanded(
           child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? const AttendanceSkeleton()
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: _historialAlumnos.length,

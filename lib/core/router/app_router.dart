@@ -10,6 +10,7 @@ import 'package:umbral_immujer/src/features/auth/data/auth_repository.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
 import 'package:umbral_immujer/src/features/auth/presentation/login_screen.dart';
 import 'package:umbral_immujer/src/features/auth/presentation/register_screen.dart';
+import 'package:umbral_immujer/src/core/widgets/skeleton_loader.dart';
 import 'package:umbral_immujer/features/coordinator/presentation/coordinator_dashboard_page.dart';
 import 'package:umbral_immujer/features/superadmin/presentation/configuracion_general_screen.dart';
 import 'package:umbral_immujer/features/superadmin/presentation/gestion_profesores_page.dart';
@@ -221,7 +222,7 @@ class _AuthenticatedDashboardPageState
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+            body: SafeArea(child: DashboardSkeleton()),
           );
         }
 

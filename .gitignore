@@ -52,3 +52,5 @@ assets/.env
 
 # Widget Preview related
 .widget_preview/
+
+supabase/.temp/

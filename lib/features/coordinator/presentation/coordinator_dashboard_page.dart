@@ -5,6 +5,8 @@ import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/core/utils/formatters.dart';
 import 'package:umbral_immujer/features/coordinator/data/coordinator_repository.dart';
 import 'package:umbral_immujer/features/coordinator/domain/coordinator_models.dart';
+import 'package:umbral_immujer/src/core/widgets/skeleton_loader.dart';
+import 'package:umbral_immujer/src/core/widgets/super_admin_nav_bar.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
 
 class CoordinatorDashboardPage extends StatefulWidget {
@@ -24,6 +26,186 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
   void initState() {
     super.initState();
     _coordinatorRepository = CoordinatorRepository(SupabaseConfig.client);
+  }
+
+  Widget _buildDropdownNav(bool isSuperAdmin) {
+    const tabTitles = [
+      'Cursos',
+      'En Vivo',
+      'Profesores',
+      'Insumos',
+    ];
+    const tabIcons = [
+      Icons.dashboard_rounded,
+      Icons.sensors_rounded,
+      Icons.badge_rounded,
+      Icons.monetization_on_rounded,
+    ];
+
+    return Theme(
+      data: Theme.of(context).copyWith(
+        popupMenuTheme: PopupMenuThemeData(
+          color: AppTheme.surfaceContainerLow,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: AppTheme.outlineVariant),
+          ),
+        ),
+      ),
+      child: PopupMenuButton<dynamic>(
+        tooltip: 'Menú de opciones y navegación',
+        offset: const Offset(0, 48),
+        onSelected: (value) {
+          if (value is int) {
+            setState(() => _currentIndex = value);
+          } else if (value is String) {
+            context.go(value);
+          }
+        },
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppTheme.outlineVariant),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                tabIcons[_currentIndex],
+                size: 16,
+                color: AppTheme.primary,
+              ),
+              const SizedBox(width: 6),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 96),
+                child: Text(
+                  tabTitles[_currentIndex],
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.onSurface,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 2),
+              const Icon(
+                Icons.arrow_drop_down_rounded,
+                size: 20,
+                color: AppTheme.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
+        itemBuilder: (context) => [
+          const PopupMenuItem<dynamic>(
+            enabled: false,
+            child: Text(
+              'OPCIONES DE COORDINACIÓN',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.primary,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ),
+          for (int i = 0; i < tabTitles.length; i++)
+            PopupMenuItem<dynamic>(
+              value: i,
+              child: Row(
+                children: [
+                  Icon(
+                    tabIcons[i],
+                    size: 18,
+                    color: _currentIndex == i
+                        ? AppTheme.primary
+                        : AppTheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    tabTitles[i],
+                    style: TextStyle(
+                      fontWeight: _currentIndex == i
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: _currentIndex == i
+                          ? AppTheme.primary
+                          : AppTheme.onSurface,
+                    ),
+                  ),
+                  if (_currentIndex == i) ...[
+                    const Spacer(),
+                    const Icon(
+                      Icons.check_rounded,
+                      size: 16,
+                      color: AppTheme.primary,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          if (isSuperAdmin) ...[
+            const PopupMenuDivider(),
+            const PopupMenuItem<dynamic>(
+              enabled: false,
+              child: Text(
+                'NAVEGACIÓN SUPER ADMIN',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.primary,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ),
+            const PopupMenuItem<dynamic>(
+              value: '/student',
+              child: Row(
+                children: [
+                  Icon(Icons.school_outlined, size: 18, color: AppTheme.primary),
+                  SizedBox(width: 10),
+                  Text('Módulo Alumnos'),
+                ],
+              ),
+            ),
+            const PopupMenuItem<dynamic>(
+              value: '/teacher',
+              child: Row(
+                children: [
+                  Icon(Icons.badge_outlined, size: 18, color: AppTheme.secondary),
+                  SizedBox(width: 10),
+                  Text('Módulo Docente (Profesores)'),
+                ],
+              ),
+            ),
+            const PopupMenuItem<dynamic>(
+              value: '/superadmin',
+              child: Row(
+                children: [
+                  Icon(Icons.admin_panel_settings_outlined, size: 18, color: AppTheme.primary),
+                  SizedBox(width: 10),
+                  Text('Centro de Control Super Admin'),
+                ],
+              ),
+            ),
+            const PopupMenuItem<dynamic>(
+              value: '/superadmin/configuracion',
+              child: Row(
+                children: [
+                  Icon(Icons.settings_outlined, size: 18, color: AppTheme.outline),
+                  SizedBox(width: 10),
+                  Text('Ajustes y Configuración'),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   void _handleSignOut() async {
@@ -56,6 +238,7 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
               )
             : null,
         title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               isSuperAdmin
@@ -73,6 +256,7 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
           ],
         ),
         actions: [
+          _buildDropdownNav(isSuperAdmin),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Cerrar Sesión',
@@ -152,32 +336,9 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
           Expanded(child: tabs[_currentIndex]),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (idx) => setState(() => _currentIndex = idx),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard),
-            label: 'Cursos',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.sensors_outlined),
-            selectedIcon: Icon(Icons.sensors),
-            label: 'En Vivo',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.badge_outlined),
-            selectedIcon: Icon(Icons.badge),
-            label: 'Profesores',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.monetization_on_outlined),
-            selectedIcon: Icon(Icons.monetization_on),
-            label: 'Insumos',
-          ),
-        ],
-      ),
+      bottomNavigationBar: isSuperAdmin
+          ? const SuperAdminBottomNavBar(currentIndex: 3)
+          : null,
     );
   }
 }
@@ -290,7 +451,7 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
       future: _dashboardFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const CoursesSkeleton();
         }
         final cursos = snapshot.data ?? [];
         if (cursos.isEmpty) {
@@ -515,7 +676,7 @@ class _MonitorRealtimeAusenciasTabState
 
         Expanded(
           child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? const AttendanceSkeleton()
               : _ausencias.isEmpty
               ? const Center(
                   child: Column(
@@ -627,7 +788,7 @@ class _AsignacionProfesoresTabState extends State<_AsignacionProfesoresTab> {
       future: _profesoresFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const AttendanceSkeleton();
         }
         final profs = snapshot.data ?? [];
         if (profs.isEmpty) {
@@ -681,7 +842,7 @@ class _AuditoriaInsumosTab extends StatelessWidget {
       future: coordinatorRepository.getSurveyAudits(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const SurveysSkeleton();
         }
         final encuestas = snapshot.data ?? [];
         if (encuestas.isEmpty) {

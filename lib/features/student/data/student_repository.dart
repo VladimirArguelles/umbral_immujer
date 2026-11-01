@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -242,6 +242,7 @@ class StudentRepository {
           curso_id,
           fecha_clase,
           costo_total_insumos,
+          tasa_bcv_usada,
           fecha_limite,
           monto_individual_calculado,
           total_confirmados,
@@ -292,6 +293,7 @@ class StudentRepository {
           fechaClase: enc['fecha_clase']?.toString() ?? '',
           costoTotalInsumos:
               (enc['costo_total_insumos'] as num?)?.toDouble() ?? 0.0,
+          tasaBcvUsada: (enc['tasa_bcv_usada'] as num?)?.toDouble(),
           fechaLimite: fechaLimite,
           montoIndividual:
               (enc['monto_individual_calculado'] as num?)?.toDouble() ?? 0.0,
@@ -335,6 +337,7 @@ class StudentRepository {
           curso_id,
           fecha_clase,
           costo_total_insumos,
+          tasa_bcv_usada,
           fecha_limite,
           monto_individual_calculado,
           total_confirmados,
@@ -377,6 +380,7 @@ class StudentRepository {
           fechaClase: enc['fecha_clase']?.toString() ?? '',
           costoTotalInsumos:
               (enc['costo_total_insumos'] as num?)?.toDouble() ?? 0.0,
+          tasaBcvUsada: (enc['tasa_bcv_usada'] as num?)?.toDouble(),
           fechaLimite: fechaLimite,
           montoIndividual:
               (enc['monto_individual_calculado'] as num?)?.toDouble() ?? 0.0,
@@ -502,6 +506,10 @@ class StudentRepository {
       'asistira': willAttend,
       'estado_pago': 'pendiente',
     }, onConflict: 'encuesta_id, alumno_id');
+
+    try {
+      await _supabase.rpc('recalcular_monto_encuesta', params: {'p_encuesta_id': surveyId});
+    } catch (_) {}
   }
 
   /// Subir imagen de comprobante a Supabase Storage y registrar URL
