@@ -647,15 +647,23 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Text(
-                    'UMBRAL',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
-                      color: cTextMain,
-                      letterSpacing: 1.5,
-                    ),
+                  Image.asset(
+                    'assets/images/Logo Umbral.png',
+                    height: 34,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Text(
+                        'UMBRAL',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                          color: cTextMain,
+                          letterSpacing: 1.5,
+                        ),
+                      );
+                    },
                   ),
+                  const SizedBox(height: 4),
                   Text(
                     'Super Admin',
                     style: GoogleFonts.plusJakartaSans(
