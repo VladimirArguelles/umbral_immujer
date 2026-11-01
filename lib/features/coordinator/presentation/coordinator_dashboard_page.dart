@@ -1051,17 +1051,25 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
               const SizedBox(height: 16),
 
               // Barra de Acciones Globales
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.school_rounded, size: 18),
-                      label: const Text('Gestión Cursos'),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.school_rounded, size: 16),
+                      label: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'Gestión Cursos',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primaryContainer,
                         foregroundColor: AppTheme.onPrimaryContainer,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       onPressed: () {
                         Navigator.push(
@@ -1070,14 +1078,25 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                         ).then((_) => _loadAll());
                       },
                     ),
-                    const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.badge_rounded, size: 18),
-                      label: const Text('Gestión Profesores'),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.badge_rounded, size: 16),
+                      label: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'Gestión Profesores',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.secondaryContainer,
                         foregroundColor: AppTheme.onSecondaryContainer,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       onPressed: () {
                         Navigator.push(
@@ -1086,26 +1105,28 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                         ).then((_) => _loadAll());
                       },
                     ),
-                    const SizedBox(width: 8),
-                    Badge(
-                      isLabelVisible: notificaciones.isNotEmpty,
-                      label: Text('${notificaciones.length}'),
-                      backgroundColor: AppTheme.errorRed,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: AppTheme.tertiaryContainer,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppTheme.outlineVariant),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.notifications_active_rounded, size: 20, color: AppTheme.onTertiaryContainer),
-                          tooltip: 'Centro de Notificaciones y Aprobaciones',
-                          onPressed: () => _abrirCentroNotificaciones(notificaciones),
-                        ),
+                  ),
+                  const SizedBox(width: 8),
+                  Badge(
+                    isLabelVisible: notificaciones.isNotEmpty,
+                    label: Text('${notificaciones.length}'),
+                    backgroundColor: AppTheme.errorRed,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppTheme.tertiaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppTheme.outlineVariant),
+                      ),
+                      child: IconButton(
+                        padding: const EdgeInsets.all(8),
+                        constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                        icon: const Icon(Icons.notifications_active_rounded, size: 20, color: AppTheme.onTertiaryContainer),
+                        tooltip: 'Centro de Notificaciones y Aprobaciones',
+                        onPressed: () => _abrirCentroNotificaciones(notificaciones),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
 
