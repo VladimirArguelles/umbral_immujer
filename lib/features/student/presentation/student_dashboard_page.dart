@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -235,17 +234,26 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isSuperAdmin = widget.profile.role == UserRole.superAdmin;
+
     final List<Widget> tabs = [
       StudentSummaryTab(
         studentName: widget.profile.fullName,
         onNavigate: (index) => setState(() => _currentIndex = index),
       ),
-      _MisCursosTab(studentRepository: _studentRepository),
-      _MisAsistenciasTab(studentRepository: _studentRepository),
-      _EncuestasAportesTab(studentRepository: _studentRepository),
+      _MisCursosTab(
+        studentRepository: _studentRepository,
+        isSuperAdmin: isSuperAdmin,
+      ),
+      _MisAsistenciasTab(
+        studentRepository: _studentRepository,
+        isSuperAdmin: isSuperAdmin,
+      ),
+      _EncuestasAportesTab(
+        studentRepository: _studentRepository,
+        isSuperAdmin: isSuperAdmin,
+      ),
     ];
-
-    final isSuperAdmin = widget.profile.role == UserRole.superAdmin;
 
     return PopScope(
       canPop: _currentIndex == 0 && !isSuperAdmin,
@@ -374,7 +382,11 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
 /// -------------------------------------------------------------
 class _MisCursosTab extends StatefulWidget {
   final StudentRepository studentRepository;
-  const _MisCursosTab({required this.studentRepository});
+  final bool isSuperAdmin;
+  const _MisCursosTab({
+    required this.studentRepository,
+    this.isSuperAdmin = false,
+  });
 
   @override
   State<_MisCursosTab> createState() => _MisCursosTabState();
@@ -397,9 +409,11 @@ class _MisCursosTabState extends State<_MisCursosTab>
     setState(() {
       _cursosActivosFuture = widget.studentRepository.getMyCourses(
         statusFilter: 'activo',
+        isSuperAdmin: widget.isSuperAdmin,
       );
       _cursosHistorialFuture = widget.studentRepository.getMyCourses(
         statusFilter: 'finalizado',
+        isSuperAdmin: widget.isSuperAdmin,
       );
     });
   }
@@ -582,7 +596,11 @@ class _MisCursosTabState extends State<_MisCursosTab>
 /// -------------------------------------------------------------
 class _MisAsistenciasTab extends StatefulWidget {
   final StudentRepository studentRepository;
-  const _MisAsistenciasTab({required this.studentRepository});
+  final bool isSuperAdmin;
+  const _MisAsistenciasTab({
+    required this.studentRepository,
+    this.isSuperAdmin = false,
+  });
 
   @override
   State<_MisAsistenciasTab> createState() => _MisAsistenciasTabState();
@@ -606,6 +624,7 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
     setState(() => _isLoading = true);
     final cursos = await widget.studentRepository.getMyCourses(
       statusFilter: 'activo',
+      isSuperAdmin: widget.isSuperAdmin,
     );
     if (!mounted) return;
     setState(() {
@@ -1827,7 +1846,11 @@ class _ModalJustificarAusenciaState extends State<_ModalJustificarAusencia> {
 /// -------------------------------------------------------------
 class _EncuestasAportesTab extends StatefulWidget {
   final StudentRepository studentRepository;
-  const _EncuestasAportesTab({required this.studentRepository});
+  final bool isSuperAdmin;
+  const _EncuestasAportesTab({
+    required this.studentRepository,
+    this.isSuperAdmin = false,
+  });
 
   @override
   State<_EncuestasAportesTab> createState() => _EncuestasAportesTabState();
@@ -1843,6 +1866,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
 
   final ImagePicker _picker = ImagePicker();
   bool _isUploading = false;
+  bool _isResponding = false;
 
   @override
   void initState() {
@@ -1852,12 +1876,52 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
 
   void _loadAll() {
     setState(() {
-      _encuestasDisponiblesFuture = widget.studentRepository.getActiveSurveys();
-      _historialEncuestasFuture = widget.studentRepository.getSurveysHistory();
-      _historialPagosFuture = widget.studentRepository.getPaymentHistory();
+      _encuestasDisponiblesFuture = widget.studentRepository.getActiveSurveys(
+        isSuperAdmin: widget.isSuperAdmin,
+      );
+      _historialEncuestasFuture = widget.studentRepository.getSurveysHistory(
+        isSuperAdmin: widget.isSuperAdmin,
+      );
+      _historialPagosFuture = widget.studentRepository.getPaymentHistory(
+        isSuperAdmin: widget.isSuperAdmin,
+      );
     });
   }
 
+  Future<void> _responderEncuesta(String surveyId, bool willAttend) async {
+    setState(() => _isResponding = true);
+    try {
+      await widget.studentRepository.respondToSurvey(
+        surveyId: surveyId,
+        willAttend: willAttend,
+        isSuperAdmin: widget.isSuperAdmin,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              willAttend
+                  ? '¡Asistencia confirmada! El monto del aporte se ha calculado en Bolívares (Bs.).'
+                  : 'Has indicado que no asistirás a esta clase práctica.',
+            ),
+            backgroundColor: willAttend ? AppTheme.successGreen : AppTheme.secondary,
+          ),
+        );
+        _loadAll();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al responder encuesta: $e'),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isResponding = false);
+    }
+  }
 
   Future<void> _seleccionarYSubirComprobante(
     String surveyId,
@@ -1868,9 +1932,14 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
 
     setState(() => _isUploading = true);
     try {
+      final bytes = await picked.readAsBytes();
+      final ext = picked.name.contains('.') ? picked.name.split('.').last : 'jpg';
+
       await widget.studentRepository.uploadPaymentProof(
         surveyId: surveyId,
-        imageFile: File(picked.path),
+        imageBytes: bytes,
+        fileExtension: ext,
+        isSuperAdmin: widget.isSuperAdmin,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -2371,6 +2440,129 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                       ),
                       const SizedBox(height: 16),
 
+                      // ── PREGUNTA / CONFIRMACIÓN DE ASISTENCIA A LA CLASE ──
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceBright,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: enc.asistira == true
+                                ? AppTheme.mintNeon.withValues(alpha: 0.5)
+                                : enc.asistira == false
+                                    ? AppTheme.errorRed.withValues(alpha: 0.4)
+                                    : AppTheme.outlineVariant,
+                            width: 1.2,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  enc.asistira == true
+                                      ? Icons.check_circle_rounded
+                                      : enc.asistira == false
+                                          ? Icons.cancel_rounded
+                                          : Icons.help_outline_rounded,
+                                  color: enc.asistira == true
+                                      ? AppTheme.mintNeon
+                                      : enc.asistira == false
+                                          ? AppTheme.errorRed
+                                          : AppTheme.primary,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    enc.asistira == true
+                                        ? 'Asistencia Confirmada para esta clase'
+                                        : enc.asistira == false
+                                            ? 'Respuesta: No asistirás a esta clase'
+                                            : '¿Asistirás a la próxima clase práctica?',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.onSurface,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              enc.asistira == true
+                                  ? 'Has confirmado tu asistencia. El costo de insumos se dividió entre los alumnos confirmados y se multiplicó por la tasa BCV oficial.'
+                                  : enc.asistira == false
+                                      ? 'Has indicado que no asistirás. No se te ha asignado cuota de pago de insumos.'
+                                      : 'Confirma si asistirás a la clase práctica para estimar el total de asistentes y calcular el aporte de insumos por alumno.',
+                              style: const TextStyle(
+                                fontSize: 11.5,
+                                color: AppTheme.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            if (enc.asistira == null) ...[
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppTheme.mintNeon.withValues(alpha: 0.2),
+                                        foregroundColor: AppTheme.mintNeon,
+                                        side: const BorderSide(color: AppTheme.mintNeon, width: 1.2),
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      ),
+                                      onPressed: _isResponding ? null : () => _responderEncuesta(enc.id, true),
+                                      icon: const Icon(Icons.check_circle_rounded, size: 18),
+                                      label: const Text(
+                                        'Sí, asistiré',
+                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: AppTheme.errorRed,
+                                        side: BorderSide(color: AppTheme.errorRed.withValues(alpha: 0.5)),
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      ),
+                                      onPressed: _isResponding ? null : () => _responderEncuesta(enc.id, false),
+                                      icon: const Icon(Icons.cancel_outlined, size: 18),
+                                      label: const Text(
+                                        'No podré',
+                                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ] else ...[
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  TextButton.icon(
+                                    onPressed: _isResponding ? null : () => _responderEncuesta(enc.id, !(enc.asistira == true)),
+                                    icon: const Icon(Icons.swap_horiz_rounded, size: 16),
+                                    label: Text(
+                                      enc.asistira == true ? 'Cambiar a: No podré asistir' : 'Cambiar a: Sí asistiré',
+                                      style: const TextStyle(fontSize: 11.5),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
                       // WIDGET CARD: MONTO DEL APORTE COLOCADO POR EL PROFESOR PARA INSUMOS
                       Container(
                         width: double.infinity,
@@ -2446,11 +2638,13 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                             Text(
                               enc.cuotaACancelar > 0
                                   ? Formatters.currency(enc.cuotaACancelar)
-                                  : Formatters.currency(0),
-                              style: const TextStyle(
-                                fontSize: 32,
+                                  : (enc.asistira == false
+                                      ? 'No aplica'
+                                      : 'Pendiente de cálculo'),
+                              style: TextStyle(
+                                fontSize: enc.asistira == false ? 22 : 32,
                                 fontWeight: FontWeight.w900,
-                                color: AppTheme.mintNeon,
+                                color: enc.asistira == false ? AppTheme.outline : AppTheme.mintNeon,
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -2524,7 +2718,46 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                       const SizedBox(height: 16),
 
                       // BOTÓN PARA SUBIR LA IMAGEN DEL CAPTURE DEL PAGO REALIZADO
-                      if (enc.comprobanteUrl == null || enc.comprobanteUrl!.isEmpty) ...[
+                      if (enc.asistira == false) ...[
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.surfaceBright,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppTheme.outlineVariant),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'No se requiere aporte (indicaste que no asistirás a esta clase).',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ] else if (enc.asistira == null) ...[
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.surfaceBright,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppTheme.outlineVariant),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'Confirma tu asistencia para habilitar el comprobante de pago.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: AppTheme.primary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ] else if (enc.comprobanteUrl == null || enc.comprobanteUrl!.isEmpty) ...[
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(

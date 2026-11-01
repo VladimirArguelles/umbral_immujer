@@ -13,7 +13,7 @@ class StudentRepository {
   String? get currentUserId => _supabase.auth.currentUser?.id;
 
   /// Obtiene el registro de 'alumnos' correspondiente al usuario autenticado
-  Future<Map<String, dynamic>?> getAlumnoRecord() async {
+  Future<Map<String, dynamic>?> getAlumnoRecord({bool isSuperAdmin = false}) async {
     final uid = currentUserId;
     if (uid == null) return null;
 
@@ -51,12 +51,87 @@ class StudentRepository {
         return byEmail;
       }
     }
+
+    // Si es Super Admin o perfil administrativo, asegurar que exista un registro de alumno para pruebas y auditoría
+    if (isSuperAdmin) {
+      try {
+        final perfilesRes = await _supabase
+            .from('perfiles')
+            .select('nombre_completo, cedula, telefono, correo')
+            .eq('user_id', uid)
+            .maybeSingle();
+
+        final nombre = perfilesRes?['nombre_completo'] ?? email ?? 'Super Administrador';
+        final cedula = perfilesRes?['cedula'] ?? 'SUPERADMIN';
+        final telefono = perfilesRes?['telefono'];
+        final correo = perfilesRes?['correo'] ?? email;
+
+        // Intentar buscar si ya existe con esa cédula o correo
+        final existing = await _supabase
+            .from('alumnos')
+            .select()
+            .or('user_id.eq.$uid,correo.eq.$correo')
+            .maybeSingle();
+
+        if (existing != null) {
+          if (existing['user_id'] == null) {
+            await _supabase.from('alumnos').update({'user_id': uid}).eq('id', existing['id']);
+            existing['user_id'] = uid;
+          }
+          return existing;
+        }
+
+        final inserted = await _supabase.from('alumnos').insert({
+          'user_id': uid,
+          'nombre_completo': nombre,
+          'cedula': cedula,
+          'telefono': telefono,
+          'correo': correo,
+          'curso': 'Repostería Básica',
+        }).select().maybeSingle();
+
+        return inserted;
+      } catch (_) {}
+    }
+
     return null;
   }
 
   /// Obtiene los cursos activos e historial del alumno
-  Future<List<StudentCourse>> getMyCourses({String? statusFilter}) async {
-    final alumno = await getAlumnoRecord();
+  Future<List<StudentCourse>> getMyCourses({
+    String? statusFilter,
+    bool isSuperAdmin = false,
+  }) async {
+    final alumno = await getAlumnoRecord(isSuperAdmin: isSuperAdmin);
+
+    if (isSuperAdmin && alumno == null) {
+      final allCourses = await _supabase
+          .from('cursos')
+          .select('''
+            id,
+            nombre,
+            descripcion,
+            horario,
+            estado,
+            perfiles:profesor_id (
+              nombre_completo
+            )
+          ''')
+          .eq('estado', 'activo')
+          .order('nombre');
+
+      return (allCourses as List).map((c) {
+        return StudentCourse(
+          id: c['id'] as String,
+          nombre: c['nombre'] as String? ?? 'Curso',
+          descripcion: c['descripcion'] as String?,
+          horario: c['horario'] as String?,
+          profesorNombre: (c['perfiles'] as Map?)?['nombre_completo'] as String?,
+          estado: 'activo',
+        );
+      }).toList();
+    }
+
     if (alumno == null) return [];
 
     var query = _supabase
@@ -83,7 +158,39 @@ class StudentRepository {
     }
 
     final data = await query;
-    return (data as List).map((item) => StudentCourse.fromJson(item)).toList();
+    final results = (data as List).map((item) => StudentCourse.fromJson(item)).toList();
+
+    // Fallback si no tiene inscripciones pero tiene el curso en su perfil
+    if (results.isEmpty && alumno['curso'] != null) {
+      final cRes = await _supabase
+          .from('cursos')
+          .select('''
+            id,
+            nombre,
+            descripcion,
+            horario,
+            estado,
+            perfiles:profesor_id (
+              nombre_completo
+            )
+          ''')
+          .ilike('nombre', (alumno['curso'] as String).trim())
+          .maybeSingle();
+      if (cRes != null) {
+        results.add(
+          StudentCourse(
+            id: cRes['id'] as String,
+            nombre: cRes['nombre'] as String? ?? 'Curso',
+            descripcion: cRes['descripcion'] as String?,
+            horario: cRes['horario'] as String?,
+            profesorNombre: (cRes['perfiles'] as Map?)?['nombre_completo'] as String?,
+            estado: 'activo',
+          ),
+        );
+      }
+    }
+
+    return results;
   }
 
   /// Consulta de asistencias por curso y cálculo de métricas
@@ -219,41 +326,85 @@ class StudentRepository {
   }
 
   /// Obtiene las encuestas activas de los cursos donde el alumno está inscrito
-  Future<List<StudentSurvey>> getActiveSurveys() async {
-    final alumno = await getAlumnoRecord();
-    if (alumno == null) return [];
+  Future<List<StudentSurvey>> getActiveSurveys({bool isSuperAdmin = false}) async {
+    final alumno = await getAlumnoRecord(isSuperAdmin: isSuperAdmin);
 
-    // Cursos del alumno
-    final inscripciones = await _supabase
-        .from('inscripciones')
-        .select('curso_id')
-        .eq('alumno_id', alumno['id'])
-        .isFilter('deleted_at', null);
+    final dynamic encuestasData;
 
-    final cursoIds = (inscripciones as List)
-        .map((i) => i['curso_id'] as String)
-        .toList();
-    if (cursoIds.isEmpty) return [];
+    if (isSuperAdmin) {
+      // Como Super Admin en vista de alumno, ver todas las encuestas activas del sistema
+      encuestasData = await _supabase
+          .from('encuestas_participacion')
+          .select('''
+            id,
+            curso_id,
+            fecha_clase,
+            costo_total_insumos,
+            tasa_bcv_usada,
+            fecha_limite,
+            monto_individual_calculado,
+            total_confirmados,
+            estado,
+            cursos:curso_id (
+              nombre,
+              perfiles:profesor_id (
+                nombre_completo
+              )
+            )
+          ''')
+          .eq('estado', 'activa')
+          .order('fecha_limite', ascending: true);
+    } else {
+      if (alumno == null) return [];
 
-    final encuestasData = await _supabase
-        .from('encuestas_participacion')
-        .select('''
-          id,
-          curso_id,
-          fecha_clase,
-          costo_total_insumos,
-          tasa_bcv_usada,
-          fecha_limite,
-          monto_individual_calculado,
-          total_confirmados,
-          estado,
-          cursos:curso_id (
-            nombre
-          )
-        ''')
-        .inFilter('curso_id', cursoIds)
-        .eq('estado', 'activa')
-        .order('fecha_limite', ascending: true);
+      // Cursos del alumno
+      final inscripciones = await _supabase
+          .from('inscripciones')
+          .select('curso_id')
+          .eq('alumno_id', alumno['id'])
+          .isFilter('deleted_at', null);
+
+      final cursoIds = (inscripciones as List)
+          .map((i) => i['curso_id'] as String)
+          .toList();
+
+      // Si no tiene inscripciones pero tiene el nombre del curso asignado en la tabla alumnos
+      if (cursoIds.isEmpty && alumno['curso'] != null && (alumno['curso'] as String).trim().isNotEmpty) {
+        final cursoMatch = await _supabase
+            .from('cursos')
+            .select('id')
+            .ilike('nombre', (alumno['curso'] as String).trim())
+            .maybeSingle();
+        if (cursoMatch != null && cursoMatch['id'] != null) {
+          cursoIds.add(cursoMatch['id'] as String);
+        }
+      }
+
+      if (cursoIds.isEmpty) return [];
+
+      encuestasData = await _supabase
+          .from('encuestas_participacion')
+          .select('''
+            id,
+            curso_id,
+            fecha_clase,
+            costo_total_insumos,
+            tasa_bcv_usada,
+            fecha_limite,
+            monto_individual_calculado,
+            total_confirmados,
+            estado,
+            cursos:curso_id (
+              nombre,
+              perfiles:profesor_id (
+                nombre_completo
+              )
+            )
+          ''')
+          .inFilter('curso_id', cursoIds)
+          .eq('estado', 'activa')
+          .order('fecha_limite', ascending: true);
+    }
 
     final List<StudentSurvey> resultado = [];
 
@@ -261,12 +412,15 @@ class StudentRepository {
       final encuestaId = enc['id'] as String;
 
       // Buscar respuesta del alumno
-      final respData = await _supabase
-          .from('respuestas_encuesta')
-          .select()
-          .eq('encuesta_id', encuestaId)
-          .eq('alumno_id', alumno['id'])
-          .maybeSingle();
+      Map<String, dynamic>? respData;
+      if (alumno != null) {
+        respData = await _supabase
+            .from('respuestas_encuesta')
+            .select()
+            .eq('encuesta_id', encuestaId)
+            .eq('alumno_id', alumno['id'])
+            .maybeSingle();
+      }
 
       final cursoMap = enc['cursos'] as Map<String, dynamic>?;
       final fechaLimite =
@@ -315,39 +469,80 @@ class StudentRepository {
   }
 
   /// Obtiene el historial de encuestas (cerradas, finalizadas o pasadas) de los cursos del alumno
-  Future<List<StudentSurvey>> getSurveysHistory() async {
-    final alumno = await getAlumnoRecord();
-    if (alumno == null) return [];
+  Future<List<StudentSurvey>> getSurveysHistory({bool isSuperAdmin = false}) async {
+    final alumno = await getAlumnoRecord(isSuperAdmin: isSuperAdmin);
 
-    final inscripciones = await _supabase
-        .from('inscripciones')
-        .select('curso_id')
-        .eq('alumno_id', alumno['id'])
-        .isFilter('deleted_at', null);
+    final dynamic encuestasData;
 
-    final cursoIds = (inscripciones as List)
-        .map((i) => i['curso_id'] as String)
-        .toList();
-    if (cursoIds.isEmpty) return [];
+    if (isSuperAdmin) {
+      encuestasData = await _supabase
+          .from('encuestas_participacion')
+          .select('''
+            id,
+            curso_id,
+            fecha_clase,
+            costo_total_insumos,
+            tasa_bcv_usada,
+            fecha_limite,
+            monto_individual_calculado,
+            total_confirmados,
+            estado,
+            cursos:curso_id (
+              nombre,
+              perfiles:profesor_id (
+                nombre_completo
+              )
+            )
+          ''')
+          .order('fecha_clase', ascending: false);
+    } else {
+      if (alumno == null) return [];
 
-    final encuestasData = await _supabase
-        .from('encuestas_participacion')
-        .select('''
-          id,
-          curso_id,
-          fecha_clase,
-          costo_total_insumos,
-          tasa_bcv_usada,
-          fecha_limite,
-          monto_individual_calculado,
-          total_confirmados,
-          estado,
-          cursos:curso_id (
-            nombre
-          )
-        ''')
-        .inFilter('curso_id', cursoIds)
-        .order('fecha_clase', ascending: false);
+      final inscripciones = await _supabase
+          .from('inscripciones')
+          .select('curso_id')
+          .eq('alumno_id', alumno['id'])
+          .isFilter('deleted_at', null);
+
+      final cursoIds = (inscripciones as List)
+          .map((i) => i['curso_id'] as String)
+          .toList();
+
+      if (cursoIds.isEmpty && alumno['curso'] != null && (alumno['curso'] as String).trim().isNotEmpty) {
+        final cursoMatch = await _supabase
+            .from('cursos')
+            .select('id')
+            .ilike('nombre', (alumno['curso'] as String).trim())
+            .maybeSingle();
+        if (cursoMatch != null && cursoMatch['id'] != null) {
+          cursoIds.add(cursoMatch['id'] as String);
+        }
+      }
+
+      if (cursoIds.isEmpty) return [];
+
+      encuestasData = await _supabase
+          .from('encuestas_participacion')
+          .select('''
+            id,
+            curso_id,
+            fecha_clase,
+            costo_total_insumos,
+            tasa_bcv_usada,
+            fecha_limite,
+            monto_individual_calculado,
+            total_confirmados,
+            estado,
+            cursos:curso_id (
+              nombre,
+              perfiles:profesor_id (
+                nombre_completo
+              )
+            )
+          ''')
+          .inFilter('curso_id', cursoIds)
+          .order('fecha_clase', ascending: false);
+    }
 
     final List<StudentSurvey> resultado = [];
 
@@ -363,20 +558,29 @@ class StudentRepository {
 
       final encuestaId = enc['id'] as String;
 
-      final respData = await _supabase
-          .from('respuestas_encuesta')
-          .select()
-          .eq('encuesta_id', encuestaId)
-          .eq('alumno_id', alumno['id'])
-          .maybeSingle();
+      Map<String, dynamic>? respData;
+      if (alumno != null) {
+        respData = await _supabase
+            .from('respuestas_encuesta')
+            .select()
+            .eq('encuesta_id', encuestaId)
+            .eq('alumno_id', alumno['id'])
+            .maybeSingle();
+      }
 
       final cursoMap = enc['cursos'] as Map<String, dynamic>?;
+
+      String? profName;
+      if (cursoMap != null && cursoMap['perfiles'] is Map) {
+        profName = cursoMap['perfiles']['nombre_completo'] as String?;
+      }
 
       resultado.add(
         StudentSurvey(
           id: encuestaId,
           cursoId: enc['curso_id'] as String,
           cursoNombre: cursoMap?['nombre'] ?? 'Curso',
+          profesorNombre: profName,
           fechaClase: enc['fecha_clase']?.toString() ?? '',
           costoTotalInsumos:
               (enc['costo_total_insumos'] as num?)?.toDouble() ?? 0.0,
@@ -402,37 +606,68 @@ class StudentRepository {
   }
 
   /// Obtiene el historial de pagos realizados / comprobantes registrados por el alumno
-  Future<List<StudentPaymentRecord>> getPaymentHistory() async {
-    final alumno = await getAlumnoRecord();
-    if (alumno == null) return [];
+  Future<List<StudentPaymentRecord>> getPaymentHistory({bool isSuperAdmin = false}) async {
+    final alumno = await getAlumnoRecord(isSuperAdmin: isSuperAdmin);
 
-    final data = await _supabase
-        .from('respuestas_encuesta')
-        .select('''
-          id,
-          encuesta_id,
-          alumno_id,
-          asistira,
-          monto_asignado,
-          comprobante_url,
-          estado_pago,
-          comprobante_subido_at,
-          created_at,
-          encuestas_participacion:encuesta_id (
+    final dynamic data;
+    if (isSuperAdmin && alumno == null) {
+      data = await _supabase
+          .from('respuestas_encuesta')
+          .select('''
             id,
-            curso_id,
-            fecha_clase,
-            costo_total_insumos,
-            monto_individual_calculado,
-            estado,
-            cursos:curso_id (
+            encuesta_id,
+            alumno_id,
+            asistira,
+            monto_asignado,
+            comprobante_url,
+            estado_pago,
+            comprobante_subido_at,
+            created_at,
+            encuestas_participacion:encuesta_id (
               id,
-              nombre
+              curso_id,
+              fecha_clase,
+              costo_total_insumos,
+              monto_individual_calculado,
+              estado,
+              cursos:curso_id (
+                id,
+                nombre
+              )
             )
-          )
-        ''')
-        .eq('alumno_id', alumno['id'])
-        .order('created_at', ascending: false);
+          ''')
+          .order('created_at', ascending: false);
+    } else {
+      if (alumno == null) return [];
+
+      data = await _supabase
+          .from('respuestas_encuesta')
+          .select('''
+            id,
+            encuesta_id,
+            alumno_id,
+            asistira,
+            monto_asignado,
+            comprobante_url,
+            estado_pago,
+            comprobante_subido_at,
+            created_at,
+            encuestas_participacion:encuesta_id (
+              id,
+              curso_id,
+              fecha_clase,
+              costo_total_insumos,
+              monto_individual_calculado,
+              estado,
+              cursos:curso_id (
+                id,
+                nombre
+              )
+            )
+          ''')
+          .eq('alumno_id', alumno['id'])
+          .order('created_at', ascending: false);
+    }
 
     final List<StudentPaymentRecord> records = [];
 
@@ -481,8 +716,9 @@ class StudentRepository {
   Future<void> respondToSurvey({
     required String surveyId,
     required bool willAttend,
+    bool isSuperAdmin = false,
   }) async {
-    final alumno = await getAlumnoRecord();
+    final alumno = await getAlumnoRecord(isSuperAdmin: isSuperAdmin);
     if (alumno == null) {
       throw Exception('No se encontró el registro del alumno.');
     }
@@ -515,24 +751,34 @@ class StudentRepository {
   /// Subir imagen de comprobante a Supabase Storage y registrar URL
   Future<String> uploadPaymentProof({
     required String surveyId,
-    required File imageFile,
+    File? imageFile,
+    Uint8List? imageBytes,
+    String fileExtension = 'jpg',
+    bool isSuperAdmin = false,
   }) async {
-    final alumno = await getAlumnoRecord();
+    final alumno = await getAlumnoRecord(isSuperAdmin: isSuperAdmin);
     if (alumno == null) throw Exception('Alumno no identificado.');
 
-    final fileExt = imageFile.path.split('.').last;
     final fileName =
-        '${surveyId}_${alumno['id']}_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+        '${surveyId}_${alumno['id']}_${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
     final filePath = 'comprobantes/$fileName';
 
-    // Subir a Storage
-    await _supabase.storage
-        .from('comprobantes')
-        .upload(
-          filePath,
-          imageFile,
-          fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
-        );
+    // Subir a Storage (Compatible con Web vía bytes o móvil vía File)
+    if (imageBytes != null) {
+      await _supabase.storage.from('comprobantes').uploadBinary(
+            filePath,
+            imageBytes,
+            fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+          );
+    } else if (imageFile != null) {
+      await _supabase.storage.from('comprobantes').upload(
+            filePath,
+            imageFile,
+            fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+          );
+    } else {
+      throw Exception('No se proporcionó imagen de comprobante.');
+    }
 
     final publicUrl = _supabase.storage
         .from('comprobantes')
