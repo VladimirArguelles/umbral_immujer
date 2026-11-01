@@ -1284,6 +1284,27 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
                   _confirmarCerrarEncuesta(survey);
                 },
               ),
+              const SizedBox(height: 12),
+
+              // Opción 4: Eliminar Encuesta
+              ListTile(
+                shape: RoundedRectangleBorder(
+                  side: BorderSide(color: AppTheme.errorRed.withValues(alpha: 0.6)),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                tileColor: AppTheme.surfaceBright,
+                leading: const Icon(Icons.delete_forever_rounded, color: AppTheme.errorRed, size: 26),
+                title: const Text('Eliminar Encuesta', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: AppTheme.errorRed)),
+                subtitle: const Text(
+                  'Borra permanentemente la encuesta y los registros vinculados.',
+                  style: TextStyle(fontSize: 11.5, color: AppTheme.onSurfaceVariant),
+                ),
+                trailing: const Icon(Icons.chevron_right, size: 20, color: AppTheme.errorRed),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _confirmarEliminarEncuesta(survey);
+                },
+              ),
               const SizedBox(height: 10),
             ],
           ),
@@ -1480,6 +1501,63 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
                 }
               },
               child: const Text('Finalizar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _confirmarEliminarEncuesta(TeacherSurvey survey) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: AppTheme.surfaceContainerLow,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.delete_forever_rounded, color: AppTheme.errorRed, size: 24),
+              SizedBox(width: 8),
+              Text('¿Eliminar Encuesta?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            ],
+          ),
+          content: Text(
+            '¿Estás seguro de que deseas eliminar permanentemente la encuesta para "${survey.cursoNombre}"? Se borrarán también las respuestas de los alumnos asociados.',
+            style: const TextStyle(fontSize: 13, color: AppTheme.onSurfaceVariant),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.errorRed,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () async {
+                Navigator.pop(ctx);
+                try {
+                  await widget.teacherRepository.deleteSurvey(survey.id);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Encuesta eliminada correctamente.'),
+                        backgroundColor: AppTheme.successGreen,
+                      ),
+                    );
+                  }
+                  _loadAll();
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error al eliminar: $e'), backgroundColor: AppTheme.errorRed),
+                    );
+                  }
+                }
+              },
+              child: const Text('Eliminar'),
             ),
           ],
         );
@@ -1892,22 +1970,36 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
                       ],
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: survey.hasExpired
-                          ? AppTheme.errorRed.withValues(alpha: 0.15)
-                          : AppTheme.successGreen.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      survey.hasExpired ? 'Vencida' : 'Activa',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: survey.hasExpired ? AppTheme.errorRed : AppTheme.successGreen,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: survey.hasExpired
+                              ? AppTheme.errorRed.withValues(alpha: 0.15)
+                              : AppTheme.successGreen.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          survey.hasExpired ? 'Vencida' : 'Activa',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: survey.hasExpired ? AppTheme.errorRed : AppTheme.successGreen,
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                        icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.errorRed, size: 20),
+                        tooltip: 'Eliminar Encuesta',
+                        onPressed: () => _confirmarEliminarEncuesta(survey),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -2000,23 +2092,39 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
               ],
               const SizedBox(height: 16),
 
-              // BOTÓN PARA GESTIONAR LA ENCUESTA
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.tune_rounded, size: 18),
-                  label: const Text(
-                    'Gestionar Encuesta',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              // BOTÓN PARA GESTIONAR LA ENCUESTA Y PAPELERA
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.tune_rounded, size: 18),
+                      label: const Text(
+                        'Gestionar Encuesta',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryContainer,
+                        foregroundColor: AppTheme.onPrimaryContainer,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () => _abrirGestionEncuesta(survey),
+                    ),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryContainer,
-                    foregroundColor: AppTheme.onPrimaryContainer,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  const SizedBox(width: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppTheme.errorRed.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppTheme.errorRed.withValues(alpha: 0.3)),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.errorRed, size: 22),
+                      tooltip: 'Eliminar Encuesta',
+                      onPressed: () => _confirmarEliminarEncuesta(survey),
+                    ),
                   ),
-                  onPressed: () => _abrirGestionEncuesta(survey),
-                ),
+                ],
               ),
             ],
           ),

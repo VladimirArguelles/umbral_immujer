@@ -307,6 +307,14 @@ class TeacherRepository {
     } catch (_) {}
   }
 
+  /// Elimina una encuesta de participación
+  Future<void> deleteSurvey(String surveyId) async {
+    await _supabase
+        .from('encuestas_participacion')
+        .delete()
+        .eq('id', surveyId);
+  }
+
   /// Checklist de recaudación para una encuesta dada
   Future<List<PaymentAuditItem>> getSurveyPayments(String surveyId) async {
     final resps = await _supabase
