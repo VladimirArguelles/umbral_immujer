@@ -14,6 +14,13 @@ interface RateResponse {
   fuente?: string;
 }
 
+function formatDateIso(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 serve(async (req: Request) => {
   // Manejo de preflight CORS
   if (req.method === "OPTIONS") {
@@ -32,7 +39,7 @@ serve(async (req: Request) => {
 
     // 1. Consultar Tasa Oficial BCV para USD
     let tasaUsd = 0;
-    let fechaActualizacion = new Date().toISOString().split("T")[0];
+    let fechaActualizacion = "";
 
     try {
       const resUsd = await fetch("https://ve.dolarapi.com/v1/dolares/oficial", {
@@ -106,35 +113,104 @@ serve(async (req: Request) => {
       throw new Error("No se pudo obtener una tasa oficial BCV válida para USD.");
     }
     if (!tasaEur || tasaEur <= 0) {
-      tasaEur = Number((tasaUsd * 1.08).toFixed(4)); // Referencia aproximada si EUR no responde
+      tasaEur = Number((tasaUsd * 1.08).toFixed(4));
     }
 
-    // Fecha a registrar (usar la fecha oficial de la tasa o la fecha actual)
-    const fechaRegistro = fechaActualizacion || new Date().toISOString().split("T")[0];
+    // 3. Cálculo de la Fecha Efectiva en la Zona Horaria de Venezuela (America/Caracas, UTC-4)
+    // En la banca venezolana (BCV), los viernes por la tarde se fija la tasa con fecha valor Lunes.
+    // Durante viernes, sábado y domingo la tasa oficial vigente corresponde a la fecha del día lunes.
+    const nowCaracas = new Date(
+      new Date().toLocaleString("en-US", { timeZone: "America/Caracas" })
+    );
+    const dayOfWeek = nowCaracas.getDay(); // 0 = Domingo, 1 = Lunes, ..., 5 = Viernes, 6 = Sábado
+    const fechaHoy = formatDateIso(nowCaracas);
 
-    // 3. Insertar o actualizar en tabla tasa_cambiaria
+    let fechaRegistro = fechaHoy;
+    let esFinDeSemana = false;
+
+    if (dayOfWeek === 5) {
+      // Viernes -> Fecha valor Lunes (+3 días)
+      const lunes = new Date(nowCaracas);
+      lunes.setDate(nowCaracas.getDate() + 3);
+      fechaRegistro = formatDateIso(lunes);
+      esFinDeSemana = true;
+    } else if (dayOfWeek === 6) {
+      // Sábado -> Fecha valor Lunes (+2 días)
+      const lunes = new Date(nowCaracas);
+      lunes.setDate(nowCaracas.getDate() + 2);
+      fechaRegistro = formatDateIso(lunes);
+      esFinDeSemana = true;
+    } else if (dayOfWeek === 0) {
+      // Domingo -> Fecha valor Lunes (+1 día)
+      const lunes = new Date(nowCaracas);
+      lunes.setDate(nowCaracas.getDate() + 1);
+      fechaRegistro = formatDateIso(lunes);
+      esFinDeSemana = true;
+    } else {
+      // Lunes a Jueves: respetar fecha oficial si es posterior/igual a hoy, o usar hoy
+      fechaRegistro = (fechaActualizacion && fechaActualizacion >= fechaHoy)
+        ? fechaActualizacion
+        : fechaHoy;
+    }
+
+    // 4. Insertar o actualizar en tabla tasa_cambiaria
+    const rowsToUpsert = [
+      {
+        fecha: fechaRegistro,
+        tasa_bcv: tasaUsd,
+        tasa_eur: tasaEur,
+        creado_en: new Date().toISOString(),
+      },
+    ];
+
+    // Si es fin de semana y la fecha de hoy es diferente a la del lunes,
+    // también aseguramos el registro para la fecha de hoy (evita vacíos al consultar por CURRENT_DATE)
+    if (esFinDeSemana && fechaHoy !== fechaRegistro) {
+      rowsToUpsert.push({
+        fecha: fechaHoy,
+        tasa_bcv: tasaUsd,
+        tasa_eur: tasaEur,
+        creado_en: new Date().toISOString(),
+      });
+    }
+
     const { data: upsertData, error: upsertError } = await supabase
       .from("tasa_cambiaria")
-      .upsert(
-        {
-          fecha: fechaRegistro,
-          tasa_bcv: tasaUsd,
-          tasa_eur: tasaEur,
-          creado_en: new Date().toISOString(),
-        },
-        { onConflict: "fecha" }
-      )
+      .upsert(rowsToUpsert, { onConflict: "fecha" })
       .select();
 
     if (upsertError) {
       throw upsertError;
     }
 
+    // 5. Actualización directa de la tasa en configuracion_general
+    await supabase
+      .from("configuracion_general")
+      .update({
+        valor: tasaUsd,
+        actualizado_en: new Date().toISOString(),
+      })
+      .eq("clave", "tasa_cambio_oficial");
+
+    try {
+      await supabase
+        .from("configuracion_general")
+        .update({
+          valor: tasaEur,
+          actualizado_en: new Date().toISOString(),
+        })
+        .eq("clave", "tasa_eur_oficial");
+    } catch (_) {}
+
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Tasas sincronizadas correctamente con el BCV.",
+        message: esFinDeSemana
+          ? `Tasas sincronizadas para fin de semana. Fecha valor asignada a día Lunes (${fechaRegistro}).`
+          : `Tasas sincronizadas correctamente con el BCV para ${fechaRegistro}.`,
         fecha: fechaRegistro,
+        fecha_hoy: fechaHoy,
+        es_fin_de_semana: esFinDeSemana,
         tasa_bcv: tasaUsd,
         tasa_eur: tasaEur,
         data: upsertData,
@@ -149,7 +225,7 @@ serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: (error as Error).message,
+        error: error instanceof Error ? error.message : String(error),
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

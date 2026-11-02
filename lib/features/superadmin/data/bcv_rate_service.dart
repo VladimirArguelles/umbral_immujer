@@ -43,9 +43,7 @@ class BcvRateService {
         }
 
         final rawDate = data['fechaActualizacion'] as String?;
-        final updatedAt = rawDate != null
-            ? (DateTime.tryParse(rawDate)?.toLocal() ?? DateTime.now())
-            : DateTime.now();
+        final updatedAt = _calculateEffectiveDate(rawDate);
 
         return BcvRateResult(
           rate: rate,
@@ -90,9 +88,7 @@ class BcvRateService {
         }
 
         final rawDate = oficialItem['fechaActualizacion'] as String?;
-        final updatedAt = rawDate != null
-            ? (DateTime.tryParse(rawDate)?.toLocal() ?? DateTime.now())
-            : DateTime.now();
+        final updatedAt = _calculateEffectiveDate(rawDate);
 
         return BcvRateResult(
           rate: rate,
@@ -108,6 +104,20 @@ class BcvRateService {
     } on TimeoutException {
       throw TimeoutException('Tiempo de espera agotado al consultar la tasa del BCV.');
     }
+  }
+
+  static DateTime _calculateEffectiveDate(String? rawDate) {
+    final now = DateTime.now();
+    if (now.weekday == DateTime.friday) {
+      return DateTime(now.year, now.month, now.day + 3);
+    } else if (now.weekday == DateTime.saturday) {
+      return DateTime(now.year, now.month, now.day + 2);
+    } else if (now.weekday == DateTime.sunday) {
+      return DateTime(now.year, now.month, now.day + 1);
+    }
+    return rawDate != null
+        ? (DateTime.tryParse(rawDate)?.toLocal() ?? now)
+        : now;
   }
 
   static double _parseRate(dynamic value) {
