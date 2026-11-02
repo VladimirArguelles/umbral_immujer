@@ -59,10 +59,10 @@ abstract final class AppTheme {
   static Color get dynamicSurfaceHigh => isDark ? anthraciteElevated : const Color(0xFFF1F5F9);
 
   /// Fondo de list tiles, chips y cajas secundarias
-  static Color get dynamicSurfaceBright => isDark ? const Color(0xFF363941) : const Color(0xFFF1F5F9);
+  static Color get dynamicSurfaceBright => isDark ? surfaceBright : const Color(0xFFF1F5F9);
 
   /// Fondo de badges e indicadores de progreso inactivos
-  static Color get dynamicSurfaceHighest => isDark ? const Color(0xFF32353D) : const Color(0xFFE2E8F0);
+  static Color get dynamicSurfaceHighest => isDark ? surfaceContainerHighest : const Color(0xFFE2E8F0);
 
   /// Color de texto principal (títulos, encabezados, valores)
   static Color get dynamicText => isDark ? pureWhite : const Color(0xFF1E232A);
@@ -82,18 +82,19 @@ abstract final class AppTheme {
 
   /// Gris Oscuro / Antracita: Color de contenedores, tarjetas de métricas y módulos.
   static const Color anthracite = Color(0xFF1D1F27);
-  static const Color anthraciteDark = Color(0xFF10131A);
-  static const Color anthraciteCard = Color(0xFF191B23);
+  static const Color anthraciteDark = Color(0xFF0F172A);
+  static const Color anthraciteCard = Color(0xFF1E293B);
   static const Color anthraciteElevated = Color(0xFF272A32);
 
   /// Verde Menta / Neón: Indicadores de estado positivo, gráficos de líneas,
   /// porcentajes de éxito y barras de progreso.
-  static const Color mintNeon = Color(0xFF4EDEA3);
+  static const Color mintNeon = Color(0xFF0BD984);
 
   /// Rosa Coral / Fucsia: Llamada a la acción (CTA) para botones principales,
   /// insignias de alerta y notificaciones.
-  static const Color coralFuchsia = Color(0xFFFF516A);
-  static const Color coralFuchsiaSoft = Color(0xFFFFB2B7);
+  static const Color coralFuchsia = Color(0xFFFF1493);
+  static const Color coralFuchsiaSoft = Color(0xFFD42F8C);
+  static const Color primaryGlow = Color(0x59FF1493);
 
   /// Blanco Puro: Tipografías principales de títulos, valores numéricos y textos destacados.
   static const Color pureWhite = Color(0xFFFFFFFF);
@@ -108,27 +109,28 @@ abstract final class AppTheme {
   static const Color background = anthraciteDark;
   static const Color surface = anthraciteDark;
   static const Color surfaceDim = anthraciteDark;
-  static const Color surfaceBright = Color(0xFF363941);
+  static const Color surfaceBright = anthraciteElevated;
   static const Color surfaceContainerLowest = Color(0xFF0B0E15);
   static const Color surfaceContainerLow = anthraciteCard;
   static const Color surfaceContainer = anthracite;
   static const Color surfaceContainerHigh = anthraciteElevated;
-  static const Color surfaceContainerHighest = Color(0xFF32353D);
+  static const Color surfaceContainerHighest = anthraciteElevated;
   static const Color onSurface = pureWhite;
   static const Color onSurfaceVariant = mutedGray;
   static const Color outline = Color(0xFF3F424E);
   static const Color outlineVariant = Color(0xFF2B2D38);
+  static const Color activeOutline = Color(0xFF334155);
   /// Botones principales, acentos y llamadas a la acción (Rosa Coral / Fucsia)
-  static const Color primary = coralFuchsiaSoft;
-  static const Color onPrimary = Color(0xFF67001B);
-  static const Color primaryContainer = coralFuchsia;
-  static const Color onPrimaryContainer = Color(0xFF5B0017);
-  static const Color primaryFixed = Color(0xFFFFDADB);
+  static const Color primary = coralFuchsia;
+  static const Color onPrimary = Color(0xFF0F172A);
+  static const Color primaryContainer = coralFuchsiaSoft;
+  static const Color onPrimaryContainer = Color(0xFF0F172A);
+  static const Color primaryFixed = coralFuchsia;
   static const Color primaryFixedDim = coralFuchsiaSoft;
-  static const Color onPrimaryFixed = Color(0xFF40000D);
-  static const Color onPrimaryFixedVariant = Color(0xFF92002A);
+  static const Color onPrimaryFixed = Color(0xFF0F172A);
+  static const Color onPrimaryFixedVariant = Color(0xFF0F172A);
   static const Color primaryDark = primary;
-  static const Color inversePrimary = Color(0xFFBC0B3B);
+  static const Color inversePrimary = Color(0xFFE11D48);
 
   static const Color secondary = Color(0xFFBFC6DC);
   static const Color onSecondary = Color(0xFF283041);
@@ -142,14 +144,15 @@ abstract final class AppTheme {
   /// Indicadores de estado positivo, gráficos, porcentajes de éxito y barras de progreso (Verde Menta / Neón)
   static const Color tertiary = mintNeon;
   static const Color onTertiary = Color(0xFF003824);
-  static const Color tertiaryContainer = Color(0xFF00A572);
+  static const Color tertiaryContainer = Color(0xFF10B981);
+  static const Color successGreenVariant = Color(0xFF00A572);
   static const Color onTertiaryContainer = Color(0xFF00311F);
   static const Color tertiaryFixed = Color(0xFF6FFBBE);
   static const Color tertiaryFixedDim = mintNeon;
   static const Color onTertiaryFixed = Color(0xFF002113);
   static const Color onTertiaryFixedVariant = Color(0xFF005236);
-  static const Color errorRed = Color(0xFFFFB4AB);
-  static const Color onError = Color(0xFF690005);
+  static const Color errorRed = Color(0xFFDC2626);
+  static const Color onError = pureWhite;
   static const Color errorContainer = Color(0xFF93000A);
   static const Color onErrorContainer = Color(0xFFFFDAD6);
   static const Color warningOrange = Color(0xFFF59E0B);
@@ -300,7 +303,7 @@ abstract final class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: primary,
-          side: const BorderSide(color: outline, width: 1),
+          side: const BorderSide(color: activeOutline, width: 1),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -326,7 +329,7 @@ abstract final class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: primary, width: 2),
+          borderSide: const BorderSide(color: activeOutline, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -367,7 +370,7 @@ abstract final class AppTheme {
     const lightOnSurface = Color(0xFF1E232A);
     const lightOnSurfaceVariant = Color(0xFF64748B);
     const lightOutline = Color(0xFFE2E8F0);
-    const lightPrimary = Color(0xFFE11D48);
+    const lightPrimary = coralFuchsia;
 
     final baseTextTheme = GoogleFonts.plusJakartaSansTextTheme(
       ThemeData.light().textTheme,
@@ -435,17 +438,17 @@ abstract final class AppTheme {
         brightness: Brightness.light,
         primary: lightPrimary,
         onPrimary: Colors.white,
-        primaryContainer: Color(0xFFFFE4E6),
-        onPrimaryContainer: Color(0xFF9F1239),
+        primaryContainer: coralFuchsiaSoft,
+        onPrimaryContainer: Color(0xFF0F172A),
         secondary: Color(0xFF475569),
         onSecondary: Colors.white,
         secondaryContainer: Color(0xFFE2E8F0),
         onSecondaryContainer: Color(0xFF1E293B),
-        tertiary: Color(0xFF059669),
+        tertiary: mintNeon,
         onTertiary: Colors.white,
-        tertiaryContainer: Color(0xFFD1FAE5),
+        tertiaryContainer: Color(0xFF10B981),
         onTertiaryContainer: Color(0xFF065F46),
-        error: Color(0xFFDC2626),
+        error: errorRed,
         onError: Colors.white,
         surface: lightSurface,
         surfaceDim: Color(0xFFEDEFEF),
@@ -458,7 +461,7 @@ abstract final class AppTheme {
         onSurface: lightOnSurface,
         onSurfaceVariant: lightOnSurfaceVariant,
         outline: lightOutline,
-        outlineVariant: Color(0xFFCBD5E1),
+        outlineVariant: activeOutline,
       ),
       scaffoldBackgroundColor: lightBackground,
       textTheme: textTheme,
@@ -516,7 +519,7 @@ abstract final class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: lightPrimary, width: 2),
+          borderSide: const BorderSide(color: activeOutline, width: 2),
         ),
       ),
       cardTheme: CardThemeData(

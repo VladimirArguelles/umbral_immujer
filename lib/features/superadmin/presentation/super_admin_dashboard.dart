@@ -59,10 +59,10 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
   // Constantes de diseño según especificación Tailwind
   static const Color cBg = AppTheme.background;
   static const Color cCard = AppTheme.surfaceContainerLow;
-  static const Color cCardInner = AppTheme.surfaceContainer;
+  static const Color cCardInner = AppTheme.surfaceContainerLowest;
   static const Color cBorder = AppTheme.outlineVariant;
   static const Color cAccent = AppTheme.primaryContainer;
-  static const Color cAccentGlow = Color(0x59FF516A);
+  static const Color cAccentGlow = AppTheme.primaryGlow;
   static const Color cMintBright = AppTheme.tertiary;
   static const Color cTextMain = AppTheme.onSurface;
   static const Color cTextMuted = AppTheme.onSurfaceVariant;
@@ -299,12 +299,12 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.blueAccent.withAlpha(30),
+                            color: AppTheme.secondary.withAlpha(30),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(
                             Symbols.currency_exchange,
-                            color: Colors.blueAccent,
+                            color: AppTheme.secondary,
                             size: 20,
                           ),
                         ),
@@ -1085,11 +1085,11 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Color(0xD9181B24), // cCard.withValues(alpha: 0.85)
+        color: cCard.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Color(0xB3252936),
-        ), // cBorder.withValues(alpha: 0.7)
+          color: cBorder.withValues(alpha: 0.7),
+        ),
         boxShadow: const [
           BoxShadow(
             color: Color(0x73000000),

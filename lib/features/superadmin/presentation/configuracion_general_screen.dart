@@ -43,19 +43,18 @@ class _ConfiguracionGeneralScreenState
   final TextEditingController _nuevoFormatoController =
       TextEditingController();
 
-  // Colores del tema oscuro requeridos por especificación
-  static const Color cBg = Color(0xFF0F172A); // Slate 900
-  static const Color cCard = Color(0xFF1E293B); // Slate 800
-  static const Color cCardInner = Color(0xFF0F172A); // Slate 900
-  static const Color cBorder = Color(0xFF334155); // Slate 700
-  static const Color cPrimary = Color(0xFFF43F5E); // Rose 500
-  static const Color cPrimaryGlow = Color(0x40F43F5E);
-  static const Color cEmerald = Color(0xFF10B981); // Emerald 500
-  static const Color cSky = Color(0xFF38BDF8); // Sky 400
-  static const Color cAmber = Color(0xFFF59E0B); // Amber 500
-  static const Color cTextMain = Color(0xFFF8FAFC); // Slate 50
-  static const Color cTextMuted = Color(0xFF94A3B8); // Slate 400
-  static const Color cTextDim = Color(0xFF64748B); // Slate 500
+  static const Color cBg = AppTheme.background;
+  static const Color cCard = AppTheme.surfaceContainerLow;
+  static const Color cCardInner = AppTheme.surfaceContainerLowest;
+  static const Color cBorder = AppTheme.outlineVariant;
+  static const Color cPrimary = AppTheme.primary;
+  static final Color cPrimaryGlow = AppTheme.primary.withValues(alpha: 0.25);
+  static const Color cEmerald = AppTheme.tertiaryContainer;
+  static const Color cSky = AppTheme.secondary;
+  static const Color cAmber = AppTheme.warningOrange;
+  static const Color cTextMain = AppTheme.pureWhite;
+  static const Color cTextMuted = AppTheme.mutedGray;
+  static const Color cTextDim = AppTheme.secondary;
 
   @override
   void initState() {
@@ -414,18 +413,18 @@ class _ConfiguracionGeneralScreenState
           ],
         ),
         backgroundColor: isError
-            ? const Color(0xFFE11D48) // Rose 600
+            ? AppTheme.errorRed
             : isSuccess
-                ? const Color(0xFF059669) // Emerald 600
-                : const Color(0xFF1E293B),
+                ? AppTheme.tertiary
+                : AppTheme.surfaceContainerLow,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
           side: BorderSide(
             color: isError
-                ? const Color(0xFFFB7185)
+                ? AppTheme.errorRed
                 : isSuccess
-                    ? const Color(0xFF34D399)
+                    ? AppTheme.successGreen
                     : cBorder,
           ),
         ),
@@ -1252,7 +1251,7 @@ class _ConfiguracionGeneralScreenState
       title: 'Seguridad y Registros de Auditoría',
       subtitle: 'Políticas de retención de trazas y protección contra ataques de fuerza bruta',
       icon: Symbols.shield,
-      accentColor: const Color(0xFFA855F7), // Purple 500
+      accentColor: AppTheme.secondary,
       children: [
         _buildTextField(
           keyName: 'dias_retencion_logs',
@@ -1457,11 +1456,14 @@ class _ConfiguracionGeneralScreenState
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: cPrimary, width: 1.5),
+              borderSide: const BorderSide(
+                color: AppTheme.activeOutline,
+                width: 1.5,
+              ),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.redAccent),
+              borderSide: const BorderSide(color: AppTheme.errorRed),
             ),
           ),
           validator: validator,

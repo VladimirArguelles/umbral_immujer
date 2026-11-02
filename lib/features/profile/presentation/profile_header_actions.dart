@@ -18,7 +18,7 @@ class ThemeModeToggleButton extends StatelessWidget {
           constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
           icon: Icon(
             isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-            color: isDark ? const Color(0xFFFFD166) : AppTheme.primary,
+            color: AppTheme.primary,
             size: 20,
           ),
           tooltip: isDark ? 'Cambiar a modo claro' : 'Cambiar a modo nocturno',

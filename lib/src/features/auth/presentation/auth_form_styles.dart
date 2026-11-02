@@ -4,8 +4,8 @@ import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 abstract final class AuthFormStyles {
   static const background = AppTheme.background;
   static const panel = AppTheme.surfaceContainerLow;
-  static const neonAccent = AppTheme.primaryContainer;
-  static const softAccent = AppTheme.primary;
+  static const neonAccent = AppTheme.primary;
+  static const softAccent = AppTheme.primaryContainer;
 
   static InputDecoration inputDecoration({
     required String hintText,
@@ -14,7 +14,7 @@ abstract final class AuthFormStyles {
   }) {
     final border = OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: softAccent),
+      borderSide: const BorderSide(color: AppTheme.outlineVariant),
     );
 
     return InputDecoration(
@@ -29,7 +29,7 @@ abstract final class AuthFormStyles {
       border: border,
       enabledBorder: border,
       focusedBorder: border.copyWith(
-        borderSide: const BorderSide(color: neonAccent, width: 2),
+        borderSide: const BorderSide(color: AppTheme.activeOutline, width: 2),
       ),
       errorBorder: border.copyWith(
         borderSide: const BorderSide(color: AppTheme.errorRed),

@@ -193,7 +193,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                     Icon(
                       isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
                       size: 18,
-                      color: isDark ? const Color(0xFFFFD166) : AppTheme.primary,
+                      color: AppTheme.primary,
                     ),
                     const SizedBox(width: 10),
                     Text(
@@ -485,7 +485,7 @@ class _TeacherSummaryTab extends StatelessWidget {
             title: 'GESTIÓN DE ALUMNOS',
             description: 'Listado de alumnos matriculados, temas de clase y solicitudes.',
             icon: Icons.people_alt_rounded,
-            accent: const Color(0xFF00796B),
+            accent: AppTheme.successGreen,
             actionLabel: 'IR A GESTIÓN DE ALUMNOS',
             onTap: () => onNavigate(4),
           ),
@@ -591,7 +591,7 @@ class _TeacherActionCard extends StatelessWidget {
               onPressed: onTap,
               style: FilledButton.styleFrom(
                 backgroundColor: accent,
-                foregroundColor: textColor ?? Colors.white,
+                foregroundColor: textColor ?? AppTheme.pureWhite,
                 minimumSize: const Size.fromHeight(40),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -1631,7 +1631,7 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.errorRed,
-                foregroundColor: Colors.white,
+                foregroundColor: AppTheme.pureWhite,
               ),
               onPressed: () async {
                 Navigator.pop(ctx);
@@ -2798,7 +2798,7 @@ class _GestionAlumnosTabState extends State<_GestionAlumnosTab> {
                       }
                     },
               icon: isSaving
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.pureWhite))
                   : const Icon(Icons.send_rounded, size: 16),
               label: const Text('Enviar a Coordinación'),
             ),
@@ -2951,7 +2951,7 @@ class _GestionAlumnosTabState extends State<_GestionAlumnosTab> {
                               }
                             },
                       icon: isSaving
-                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.pureWhite))
                           : const Icon(Icons.save_rounded, size: 18),
                       label: const Text('Guardar cambios', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),

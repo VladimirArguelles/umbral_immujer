@@ -182,7 +182,7 @@ class _ProfileModalState extends State<ProfileModal> {
         const SnackBar(
           content: Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.white),
+              Icon(Icons.check_circle, color: AppTheme.pureWhite),
               SizedBox(width: 8),
               Expanded(
                 child: Text('Perfil actualizado. Notificaciones enviadas a profesores y coordinadores.'),
@@ -224,7 +224,7 @@ class _ProfileModalState extends State<ProfileModal> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.errorRed,
-              foregroundColor: Colors.white,
+              foregroundColor: AppTheme.pureWhite,
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Cerrar Sesión'),
@@ -359,7 +359,7 @@ class _ProfileModalState extends State<ProfileModal> {
                             child: const Icon(
                               Icons.camera_alt_rounded,
                               size: 16,
-                              color: Colors.white,
+                              color: AppTheme.pureWhite,
                             ),
                           ),
                         ),
@@ -463,7 +463,7 @@ class _ProfileModalState extends State<ProfileModal> {
                     children: [
                       Icon(
                         isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-                        color: isDark ? const Color(0xFFFFD166) : AppTheme.primary,
+                        color: AppTheme.primary,
                         size: 22,
                       ),
                       const SizedBox(width: 12),
@@ -511,7 +511,7 @@ class _ProfileModalState extends State<ProfileModal> {
                           height: 18,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white,
+                            color: AppTheme.pureWhite,
                           ),
                         )
                       : const Icon(Icons.save_rounded, size: 20),

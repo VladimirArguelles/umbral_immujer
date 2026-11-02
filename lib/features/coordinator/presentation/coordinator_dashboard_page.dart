@@ -188,7 +188,7 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
                     Icon(
                       isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
                       size: 18,
-                      color: isDark ? const Color(0xFFFFD166) : AppTheme.primary,
+                      color: AppTheme.primary,
                     ),
                     const SizedBox(width: 10),
                     Text(
@@ -657,7 +657,7 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                                       label: const Text('Aprobar', style: TextStyle(fontSize: 12)),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: AppTheme.successGreen,
-                                        foregroundColor: Colors.white,
+                                        foregroundColor: AppTheme.pureWhite,
                                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                                       ),
                                       onPressed: () async {
@@ -1832,7 +1832,7 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppTheme.successGreen,
-                              foregroundColor: Colors.white,
+                              foregroundColor: AppTheme.pureWhite,
                             ),
                             onPressed: () async {
                               await widget.coordinatorRepository.updateJustificativoEstado(j.id, 'aprobado');

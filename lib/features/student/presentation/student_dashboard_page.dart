@@ -193,7 +193,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     Icon(
                       isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
                       size: 18,
-                      color: isDark ? const Color(0xFFFFD166) : AppTheme.primary,
+                      color: AppTheme.primary,
                     ),
                     const SizedBox(width: 10),
                     Text(
@@ -2094,7 +2094,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
               ),
               Flexible(
                 child: Container(
-                  color: Colors.black87,
+                  color: AppTheme.mutedGray,
                   child: InteractiveViewer(
                     minScale: 0.8,
                     maxScale: 4.0,
@@ -2105,7 +2105,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                           if (progress == null) return child;
                           return const Center(
                             child:
-                                CircularProgressIndicator(color: Colors.white),
+                                CircularProgressIndicator(color: AppTheme.pureWhite),
                           );
                         },
                         errorBuilder: (context, error, stackTrace) =>
@@ -2115,11 +2115,11 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(Icons.broken_image,
-                                  size: 48, color: Colors.white70),
+                                  size: 48, color: AppTheme.mutedGray),
                               SizedBox(height: 8),
                               Text(
                                 'No se pudo cargar la imagen del comprobante',
-                                style: TextStyle(color: Colors.white70),
+                                style: TextStyle(color: AppTheme.mutedGray),
                                 textAlign: TextAlign.center,
                               ),
                             ],
@@ -2824,7 +2824,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                     width: 20,
                                     height: 20,
                                     child: CircularProgressIndicator(
-                                      color: Colors.white,
+                                      color: AppTheme.pureWhite,
                                       strokeWidth: 2,
                                     ),
                                   )
@@ -2921,7 +2921,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                               ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppTheme.secondary,
-                                  foregroundColor: Colors.white,
+                                  foregroundColor: AppTheme.pureWhite,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 10,
                                     vertical: 6,
