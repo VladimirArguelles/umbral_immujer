@@ -2703,7 +2703,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                   const SizedBox(width: 4),
                                   Expanded(
                                     child: Text(
-                                      'Tasa BCV del día: Bs. ${enc.tasaBcvUsada!.toStringAsFixed(2)} / USD',
+                                      'Tasa BCV (Fecha Valor): Bs. ${enc.tasaBcvUsada!.toStringAsFixed(2)} / USD',
                                       style: const TextStyle(
                                         fontSize: 10.5,
                                         color: AppTheme.mintNeon,

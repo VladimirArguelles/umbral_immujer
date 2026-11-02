@@ -944,7 +944,7 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
     }
   }
 
-  void _mostrarCrearEncuestaDialog() {
+  Future<void> _mostrarCrearEncuestaDialog() async {
     if (_cursos.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -954,6 +954,9 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
       );
       return;
     }
+
+    final rateInfo = await widget.teacherRepository.getLatestBcvRateInfo();
+    if (!mounted) return;
 
     TeacherCourse selectedCourse = _cursos.first;
     final costoCtrl = TextEditingController();
@@ -1047,6 +1050,31 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
                           if (numVal == null || numVal <= 0) return 'Monto inválido';
                           return null;
                         },
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceBright,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppTheme.mintNeon.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.currency_exchange, size: 15, color: AppTheme.mintNeon),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Tasa BCV oficial (Fecha Valor${rateInfo.fechaValor != null ? ": ${rateInfo.fechaValor}" : ""}): Bs. ${rateInfo.tasa.toStringAsFixed(2)} / USD',
+                                style: const TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.mintNeon,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 14),
 
@@ -1313,7 +1341,10 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
     );
   }
 
-  void _mostrarEditarEncuestaDialog(TeacherSurvey survey) {
+  Future<void> _mostrarEditarEncuestaDialog(TeacherSurvey survey) async {
+    final rateInfo = await widget.teacherRepository.getLatestBcvRateInfo();
+    if (!mounted) return;
+
     final costoCtrl = TextEditingController(text: survey.costoTotalInsumos.toStringAsFixed(2));
     DateTime fechaClase = DateTime.tryParse(survey.fechaClase) ?? DateTime.now().add(const Duration(days: 3));
     DateTime fechaLimite = survey.fechaLimite;
@@ -1348,6 +1379,31 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
                           if (val == null || val <= 0) return 'Monto inválido';
                           return null;
                         },
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceBright,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppTheme.mintNeon.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.currency_exchange, size: 15, color: AppTheme.mintNeon),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Tasa BCV oficial (Fecha Valor${rateInfo.fechaValor != null ? ": ${rateInfo.fechaValor}" : ""}): Bs. ${rateInfo.tasa.toStringAsFixed(2)} / USD',
+                                style: const TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.mintNeon,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 14),
                       ListTile(
@@ -1990,15 +2046,6 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 4),
-                      IconButton(
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                        icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.errorRed, size: 20),
-                        tooltip: 'Eliminar Encuesta',
-                        onPressed: () => _confirmarEliminarEncuesta(survey),
-                      ),
                     ],
                   ),
                 ],
@@ -2079,7 +2126,7 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        'Tasa BCV del día: Bs. ${survey.tasaBcvUsada!.toStringAsFixed(2)} / USD',
+                        'Tasa BCV (Fecha Valor): Bs. ${survey.tasaBcvUsada!.toStringAsFixed(2)} / USD',
                         style: const TextStyle(
                           fontSize: 10.5,
                           color: AppTheme.mintNeon,

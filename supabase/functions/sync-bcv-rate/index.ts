@@ -7,6 +7,14 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
 };
 
+interface DolarVzlaResponse {
+  current?: {
+    date?: string;
+    usd?: number;
+    eur?: number;
+  };
+}
+
 interface RateResponse {
   promedio: number | string;
   fechaActualizacion?: string;
@@ -37,75 +45,77 @@ serve(async (req: Request) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // 1. Consultar Tasa Oficial BCV para USD
     let tasaUsd = 0;
-    let fechaActualizacion = "";
+    let tasaEur = 0;
+    let fechaValorOficial = "";
 
+    // 1. Endpoint primario CDN de alta fidelidad con Fecha Valor en tiempo real
     try {
-      const resUsd = await fetch("https://ve.dolarapi.com/v1/dolares/oficial", {
+      const resVzla = await fetch("https://rates.dolarvzla.com/bcv/current.json", {
         headers: { Accept: "application/json" },
       });
-      if (resUsd.ok) {
-        const dataUsd: RateResponse = await resUsd.json();
-        tasaUsd = parseFloat(String(dataUsd.promedio));
-        if (dataUsd.fechaActualizacion) {
-          fechaActualizacion = dataUsd.fechaActualizacion.split("T")[0];
+      if (resVzla.ok) {
+        const dataVzla: DolarVzlaResponse = await resVzla.json();
+        if (dataVzla.current?.usd && dataVzla.current.usd > 0) {
+          tasaUsd = Number(dataVzla.current.usd);
+          tasaEur = Number(dataVzla.current.eur || (tasaUsd * 1.08).toFixed(4));
+          if (dataVzla.current.date) {
+            fechaValorOficial = dataVzla.current.date.trim();
+          }
         }
       }
     } catch (e) {
-      console.warn("Fallo endpoint primario USD, reintentando fallback...", e);
+      console.warn("Fallo endpoint primario rates.dolarvzla.com, intentando scraping bcv...", e);
     }
 
-    // Fallback USD si es necesario
+    // 2. Consulta directa a la página oficial del BCV (bcv.org.ve)
     if (!tasaUsd || tasaUsd <= 0) {
       try {
-        const resFallback = await fetch("https://ve.dolarapi.com/v1/dolares", {
-          headers: { Accept: "application/json" },
+        const bcvRes = await fetch("https://www.bcv.org.ve/", {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          },
         });
-        if (resFallback.ok) {
-          const list: RateResponse[] = await resFallback.json();
-          const oficial = list.find((item) => item.fuente === "oficial") || list[0];
-          if (oficial) {
-            tasaUsd = parseFloat(String(oficial.promedio));
-            if (oficial.fechaActualizacion) {
-              fechaActualizacion = oficial.fechaActualizacion.split("T")[0];
-            }
+
+        if (bcvRes.ok) {
+          const html = await bcvRes.text();
+
+          const matchUsd = html.match(/id="dolar"[\s\S]*?<strong[^>]*>\s*([\d.,]+)\s*<\/strong>/i);
+          if (matchUsd && matchUsd[1]) {
+            tasaUsd = parseFloat(matchUsd[1].trim().replace(/\./g, "").replace(",", "."));
+          }
+
+          const matchEur = html.match(/id="euro"[\s\S]*?<strong[^>]*>\s*([\d.,]+)\s*<\/strong>/i);
+          if (matchEur && matchEur[1]) {
+            tasaEur = parseFloat(matchEur[1].trim().replace(/\./g, "").replace(",", "."));
+          }
+
+          const matchFecha = html.match(/content="(\d{4}-\d{2}-\d{2})T/i);
+          if (matchFecha && matchFecha[1]) {
+            fechaValorOficial = matchFecha[1];
           }
         }
       } catch (e) {
-        console.error("Error en fallback USD:", e);
+        console.warn("Fallo scraping directo bcv.org.ve, usando fallback DolarAPI...", e);
       }
     }
 
-    // 2. Consultar Tasa Oficial BCV para EUR
-    let tasaEur = 0;
-    try {
-      const resEur = await fetch("https://ve.dolarapi.com/v1/euros/oficial", {
-        headers: { Accept: "application/json" },
-      });
-      if (resEur.ok) {
-        const dataEur: RateResponse = await resEur.json();
-        tasaEur = parseFloat(String(dataEur.promedio));
-      }
-    } catch (e) {
-      console.warn("Fallo endpoint primario EUR...", e);
-    }
-
-    // Fallback EUR si es necesario
-    if (!tasaEur || tasaEur <= 0) {
+    // 3. Fallback secundario: DolarAPI
+    if (!tasaUsd || tasaUsd <= 0) {
       try {
-        const resFallbackEur = await fetch("https://ve.dolarapi.com/v1/euros", {
+        const resUsd = await fetch("https://ve.dolarapi.com/v1/dolares/oficial", {
           headers: { Accept: "application/json" },
         });
-        if (resFallbackEur.ok) {
-          const listEur: RateResponse[] = await resFallbackEur.json();
-          const oficialEur = listEur.find((item) => item.fuente === "oficial") || listEur[0];
-          if (oficialEur) {
-            tasaEur = parseFloat(String(oficialEur.promedio));
+        if (resUsd.ok) {
+          const dataUsd: RateResponse = await resUsd.json();
+          tasaUsd = parseFloat(String(dataUsd.promedio));
+          if (!fechaValorOficial && dataUsd.fechaActualizacion) {
+            fechaValorOficial = dataUsd.fechaActualizacion.split("T")[0];
           }
         }
       } catch (e) {
-        console.error("Error en fallback EUR:", e);
+        console.warn("Fallo fallback DolarAPI USD...", e);
       }
     }
 
@@ -116,44 +126,39 @@ serve(async (req: Request) => {
       tasaEur = Number((tasaUsd * 1.08).toFixed(4));
     }
 
-    // 3. Cálculo de la Fecha Efectiva en la Zona Horaria de Venezuela (America/Caracas, UTC-4)
-    // En la banca venezolana (BCV), los viernes por la tarde se fija la tasa con fecha valor Lunes.
-    // Durante viernes, sábado y domingo la tasa oficial vigente corresponde a la fecha del día lunes.
+    // 4. Cálculo de Fecha Valor en la Zona Horaria de Venezuela (America/Caracas, UTC-4)
     const nowCaracas = new Date(
       new Date().toLocaleString("en-US", { timeZone: "America/Caracas" })
     );
     const dayOfWeek = nowCaracas.getDay(); // 0 = Domingo, 1 = Lunes, ..., 5 = Viernes, 6 = Sábado
     const fechaHoy = formatDateIso(nowCaracas);
 
-    let fechaRegistro = fechaHoy;
+    let fechaRegistro = fechaValorOficial;
     let esFinDeSemana = false;
 
+    // Si es viernes (5), sábado (6) o domingo (0), la fecha valor bancaria oficial es el día Lunes
     if (dayOfWeek === 5) {
-      // Viernes -> Fecha valor Lunes (+3 días)
       const lunes = new Date(nowCaracas);
       lunes.setDate(nowCaracas.getDate() + 3);
       fechaRegistro = formatDateIso(lunes);
       esFinDeSemana = true;
     } else if (dayOfWeek === 6) {
-      // Sábado -> Fecha valor Lunes (+2 días)
       const lunes = new Date(nowCaracas);
       lunes.setDate(nowCaracas.getDate() + 2);
       fechaRegistro = formatDateIso(lunes);
       esFinDeSemana = true;
     } else if (dayOfWeek === 0) {
-      // Domingo -> Fecha valor Lunes (+1 día)
       const lunes = new Date(nowCaracas);
       lunes.setDate(nowCaracas.getDate() + 1);
       fechaRegistro = formatDateIso(lunes);
       esFinDeSemana = true;
     } else {
-      // Lunes a Jueves: respetar fecha oficial si es posterior/igual a hoy, o usar hoy
-      fechaRegistro = (fechaActualizacion && fechaActualizacion >= fechaHoy)
-        ? fechaActualizacion
-        : fechaHoy;
+      if (!fechaRegistro || fechaRegistro < fechaHoy) {
+        fechaRegistro = fechaHoy;
+      }
     }
 
-    // 4. Insertar o actualizar en tabla tasa_cambiaria
+    // 5. Insertar o actualizar en tabla tasa_cambiaria
     const rowsToUpsert = [
       {
         fecha: fechaRegistro,
@@ -163,8 +168,6 @@ serve(async (req: Request) => {
       },
     ];
 
-    // Si es fin de semana y la fecha de hoy es diferente a la del lunes,
-    // también aseguramos el registro para la fecha de hoy (evita vacíos al consultar por CURRENT_DATE)
     if (esFinDeSemana && fechaHoy !== fechaRegistro) {
       rowsToUpsert.push({
         fecha: fechaHoy,
@@ -183,7 +186,7 @@ serve(async (req: Request) => {
       throw upsertError;
     }
 
-    // 5. Actualización directa de la tasa en configuracion_general
+    // 6. Actualización directa de la tasa oficial en configuracion_general
     await supabase
       .from("configuracion_general")
       .update({
@@ -206,8 +209,8 @@ serve(async (req: Request) => {
       JSON.stringify({
         success: true,
         message: esFinDeSemana
-          ? `Tasas sincronizadas para fin de semana. Fecha valor asignada a día Lunes (${fechaRegistro}).`
-          : `Tasas sincronizadas correctamente con el BCV para ${fechaRegistro}.`,
+          ? `Tasa oficial BCV actualizada con Fecha Valor día Lunes (${fechaRegistro}): Bs. ${tasaUsd}.`
+          : `Tasa oficial BCV actualizada para ${fechaRegistro}: Bs. ${tasaUsd}.`,
         fecha: fechaRegistro,
         fecha_hoy: fechaHoy,
         es_fin_de_semana: esFinDeSemana,

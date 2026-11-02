@@ -157,6 +157,40 @@ class TeacherRepository {
         .upsert(records, onConflict: 'curso_id, alumno_id, fecha');
   }
 
+  /// Obtiene la tasa BCV oficial más reciente con Fecha Valor
+  Future<({double tasa, String? fechaValor})> getLatestBcvRateInfo() async {
+    try {
+      final res = await _supabase
+          .from('tasa_cambiaria')
+          .select('tasa_bcv, fecha')
+          .order('fecha', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      if (res != null && res['tasa_bcv'] != null) {
+        return (
+          tasa: (res['tasa_bcv'] as num).toDouble(),
+          fechaValor: res['fecha'] as String?,
+        );
+      }
+    } catch (_) {}
+
+    try {
+      final configRes = await _supabase
+          .from('configuracion_general')
+          .select('valor')
+          .eq('clave', 'tasa_cambio_oficial')
+          .maybeSingle();
+      if (configRes != null && configRes['valor'] != null) {
+        return (
+          tasa: (configRes['valor'] as num).toDouble(),
+          fechaValor: null,
+        );
+      }
+    } catch (_) {}
+
+    return (tasa: 1.0, fechaValor: null);
+  }
+
   /// Creación de Encuesta de Insumos por el Profesor
   Future<void> createSurvey({
     required String courseId,
@@ -166,18 +200,9 @@ class TeacherRepository {
   }) async {
     final uid = currentUserId;
 
-    // Obtener la tasa BCV oficial del día actual para congelarla en la encuesta
-    double tasaBcv = 1.0;
-    try {
-      final configRes = await _supabase
-          .from('configuracion_general')
-          .select('valor')
-          .eq('clave', 'tasa_cambio_oficial')
-          .maybeSingle();
-      if (configRes != null && configRes['valor'] != null) {
-        tasaBcv = (configRes['valor'] as num).toDouble();
-      }
-    } catch (_) {}
+    // Obtener la tasa BCV oficial con Fecha Valor para congelarla en la encuesta
+    final rateInfo = await getLatestBcvRateInfo();
+    final tasaBcv = rateInfo.tasa;
 
     await _supabase.from('encuestas_participacion').insert({
       'curso_id': courseId,
@@ -197,17 +222,8 @@ class TeacherRepository {
     required String surveyId,
     required double totalSupplyCost,
   }) async {
-    double tasaBcv = 1.0;
-    try {
-      final configRes = await _supabase
-          .from('configuracion_general')
-          .select('valor')
-          .eq('clave', 'tasa_cambio_oficial')
-          .maybeSingle();
-      if (configRes != null && configRes['valor'] != null) {
-        tasaBcv = (configRes['valor'] as num).toDouble();
-      }
-    } catch (_) {}
+    final rateInfo = await getLatestBcvRateInfo();
+    final tasaBcv = rateInfo.tasa;
 
     await _supabase.from('encuestas_participacion').update({
       'costo_total_insumos': totalSupplyCost,
@@ -282,17 +298,8 @@ class TeacherRepository {
     required String classDate,
     required DateTime deadline,
   }) async {
-    double tasaBcv = 1.0;
-    try {
-      final configRes = await _supabase
-          .from('configuracion_general')
-          .select('valor')
-          .eq('clave', 'tasa_cambio_oficial')
-          .maybeSingle();
-      if (configRes != null && configRes['valor'] != null) {
-        tasaBcv = (configRes['valor'] as num).toDouble();
-      }
-    } catch (_) {}
+    final rateInfo = await getLatestBcvRateInfo();
+    final tasaBcv = rateInfo.tasa;
 
     await _supabase.from('encuestas_participacion').update({
       'costo_total_insumos': totalSupplyCost,
