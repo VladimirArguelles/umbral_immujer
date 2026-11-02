@@ -11,6 +11,7 @@ import 'package:umbral_immujer/src/core/widgets/skeleton_loader.dart';
 import 'package:umbral_immujer/src/core/widgets/super_admin_nav_bar.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
 import 'package:umbral_immujer/features/profile/presentation/profile_header_actions.dart';
+import 'package:umbral_immujer/features/profile/presentation/profile_modal.dart';
 
 class TeacherDashboardPage extends StatefulWidget {
   final UserProfile profile;
@@ -67,16 +68,27 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
       child: PopupMenuButton<dynamic>(
         tooltip: 'Menú de opciones y navegación',
         offset: const Offset(0, 48),
-        onSelected: (value) {
+        onSelected: (value) async {
           if (value is int) {
             setState(() => _currentIndex = value);
+          } else if (value == 'profile') {
+            final updated = await ProfileModal.show(
+              context,
+              profile: _currentProfile,
+              onProfileUpdated: (p) => setState(() => _currentProfile = p),
+            );
+            if (updated != null) {
+              setState(() => _currentProfile = updated);
+            }
+          } else if (value == 'toggle_theme') {
+            ThemeController.toggleTheme();
           } else if (value is String) {
             context.go(value);
           }
         },
         child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
             color: AppTheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(20),
@@ -87,26 +99,25 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
             children: [
               Icon(
                 tabIcons[_currentIndex],
-                size: 16,
+                size: 15,
                 color: AppTheme.primary,
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 4),
               ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 96),
+                constraints: const BoxConstraints(maxWidth: 75),
                 child: Text(
                   tabTitles[_currentIndex],
                   style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: 11.5,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.onSurface,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(width: 2),
               const Icon(
                 Icons.arrow_drop_down_rounded,
-                size: 20,
+                size: 18,
                 color: AppTheme.onSurfaceVariant,
               ),
             ],
@@ -160,6 +171,40 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                 ],
               ),
             ),
+          const PopupMenuDivider(),
+          PopupMenuItem<dynamic>(
+            value: 'profile',
+            child: Row(
+              children: [
+                const Icon(Icons.person_rounded, size: 18, color: AppTheme.mintNeon),
+                const SizedBox(width: 10),
+                Text('Mi Perfil', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+              ],
+            ),
+          ),
+          PopupMenuItem<dynamic>(
+            value: 'toggle_theme',
+            child: ValueListenableBuilder<ThemeMode>(
+              valueListenable: ThemeController.themeMode,
+              builder: (context, mode, _) {
+                final isDark = mode == ThemeMode.dark;
+                return Row(
+                  children: [
+                    Icon(
+                      isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                      size: 18,
+                      color: isDark ? const Color(0xFFFFD166) : AppTheme.primary,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      isDark ? 'Modo Claro' : 'Modo Nocturno',
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
           if (isSuperAdmin) ...[
             const PopupMenuDivider(),
             const PopupMenuItem<dynamic>(

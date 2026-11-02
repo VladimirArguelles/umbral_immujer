@@ -13,6 +13,9 @@ class ThemeModeToggleButton extends StatelessWidget {
       builder: (context, mode, _) {
         final isDark = mode == ThemeMode.dark;
         return IconButton(
+          visualDensity: VisualDensity.compact,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
           icon: Icon(
             isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
             color: isDark ? const Color(0xFFFFD166) : AppTheme.primary,
@@ -48,42 +51,45 @@ class UserProfileAvatarButton extends StatelessWidget {
         : '?';
 
     return Padding(
-      padding: const EdgeInsets.only(right: 8, left: 2),
-      child: InkWell(
-        onTap: () async {
-          final updated = await ProfileModal.show(
-            context,
-            profile: profile,
-            onProfileUpdated: onProfileUpdated,
-          );
-          if (updated != null) {
-            onProfileUpdated?.call(updated);
-          }
-        },
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: AppTheme.mintNeon, width: 1.5),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.mintNeon.withValues(alpha: 0.2),
-                blurRadius: 6,
-                spreadRadius: 1,
-              ),
-            ],
-          ),
-          child: ClipOval(
-            child: (profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty)
-                ? Image.network(
-                    profile.avatarUrl!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        _buildFallback(initials),
-                  )
-                : _buildFallback(initials),
+      padding: const EdgeInsets.only(right: 6, left: 2),
+      child: Tooltip(
+        message: 'Mi Perfil • ${profile.fullName}',
+        child: InkWell(
+          onTap: () async {
+            final updated = await ProfileModal.show(
+              context,
+              profile: profile,
+              onProfileUpdated: onProfileUpdated,
+            );
+            if (updated != null) {
+              onProfileUpdated?.call(updated);
+            }
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: AppTheme.mintNeon, width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.mintNeon.withValues(alpha: 0.25),
+                  blurRadius: 6,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: ClipOval(
+              child: (profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty)
+                  ? Image.network(
+                      profile.avatarUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          _buildFallback(initials),
+                    )
+                  : _buildFallback(initials),
+            ),
           ),
         ),
       ),
