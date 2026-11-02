@@ -54,6 +54,7 @@ class UserProfile {
   final String? cedula;
   final String? telefono;
   final UserRole role;
+  final String? avatarUrl;
 
   UserProfile({
     required this.id,
@@ -62,6 +63,7 @@ class UserProfile {
     this.cedula,
     this.telefono,
     required this.role,
+    this.avatarUrl,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -72,6 +74,7 @@ class UserProfile {
       cedula: json['cedula'] as String?,
       telefono: json['telefono'] as String?,
       role: UserRole.fromString(json['rol'] as String?),
+      avatarUrl: json['avatar_url'] as String?,
     );
   }
 
@@ -83,6 +86,26 @@ class UserProfile {
       'cedula': cedula,
       'telefono': telefono,
       'rol': role.toDbString(),
+      'avatar_url': avatarUrl,
     };
+  }
+
+  UserProfile copyWith({
+    String? email,
+    String? fullName,
+    String? cedula,
+    String? telefono,
+    UserRole? role,
+    String? avatarUrl,
+  }) {
+    return UserProfile(
+      id: id,
+      email: email ?? this.email,
+      fullName: fullName ?? this.fullName,
+      cedula: cedula ?? this.cedula,
+      telefono: telefono ?? this.telefono,
+      role: role ?? this.role,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+    );
   }
 }

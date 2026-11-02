@@ -12,6 +12,7 @@ import 'package:umbral_immujer/features/coordinator/domain/coordinator_models.da
 import 'package:umbral_immujer/src/core/widgets/skeleton_loader.dart';
 import 'package:umbral_immujer/src/core/widgets/super_admin_nav_bar.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
+import 'package:umbral_immujer/features/profile/presentation/profile_header_actions.dart';
 
 class CoordinatorDashboardPage extends StatefulWidget {
   final UserProfile profile;
@@ -25,10 +26,12 @@ class CoordinatorDashboardPage extends StatefulWidget {
 class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
   int _currentIndex = 0;
   late final CoordinatorRepository _coordinatorRepository;
+  late UserProfile _currentProfile;
 
   @override
   void initState() {
     super.initState();
+    _currentProfile = widget.profile;
     _coordinatorRepository = CoordinatorRepository(SupabaseConfig.client);
   }
 
@@ -220,13 +223,6 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
     }
   }
 
-  void _handleSignOut() async {
-    await SupabaseConfig.client.auth.signOut();
-    if (mounted) {
-      context.go('/login');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final tabs = [
@@ -267,7 +263,7 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
               style: const TextStyle(fontSize: 16),
             ),
             Text(
-              widget.profile.fullName,
+              _currentProfile.fullName,
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.normal,
@@ -277,10 +273,10 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
         ),
         actions: [
           _buildDropdownNav(isSuperAdmin),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Cerrar Sesión',
-            onPressed: _handleSignOut,
+          const ThemeModeToggleButton(),
+          UserProfileAvatarButton(
+            profile: _currentProfile,
+            onProfileUpdated: (updated) => setState(() => _currentProfile = updated),
           ),
         ],
       ),

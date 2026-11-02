@@ -10,6 +10,7 @@ import 'package:umbral_immujer/src/core/widgets/formation_image_carousel.dart';
 import 'package:umbral_immujer/src/core/widgets/skeleton_loader.dart';
 import 'package:umbral_immujer/src/core/widgets/super_admin_nav_bar.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
+import 'package:umbral_immujer/features/profile/presentation/profile_header_actions.dart';
 
 class TeacherDashboardPage extends StatefulWidget {
   final UserProfile profile;
@@ -27,10 +28,12 @@ class TeacherDashboardPage extends StatefulWidget {
 class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   late int _currentIndex;
   late final TeacherRepository _teacherRepository;
+  late UserProfile _currentProfile;
 
   @override
   void initState() {
     super.initState();
+    _currentProfile = widget.profile;
     _currentIndex = widget.initialIndex.clamp(0, 4);
     _teacherRepository = TeacherRepository(SupabaseConfig.client);
   }
@@ -225,13 +228,6 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
     }
   }
 
-  void _handleSignOut() async {
-    await SupabaseConfig.client.auth.signOut();
-    if (mounted) {
-      context.go('/login');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final isSuperAdmin = widget.profile.role == UserRole.superAdmin;
@@ -309,7 +305,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                 ],
               ),
               Text(
-                widget.profile.fullName,
+                _currentProfile.fullName,
                 style: const TextStyle(
                   fontSize: 11.5,
                   color: AppTheme.onSurfaceVariant,
@@ -322,10 +318,10 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
           ),
           actions: [
             _buildDropdownNav(isSuperAdmin),
-            IconButton(
-              icon: const Icon(Icons.logout),
-              tooltip: 'Cerrar Sesión',
-              onPressed: _handleSignOut,
+            const ThemeModeToggleButton(),
+            UserProfileAvatarButton(
+              profile: _currentProfile,
+              onProfileUpdated: (updated) => setState(() => _currentProfile = updated),
             ),
           ],
         ),

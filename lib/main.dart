@@ -18,11 +18,18 @@ class UmbralApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'UMBRAL - IMMUJER',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      routerConfig: appRouter,
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: ThemeController.themeMode,
+      builder: (context, currentMode, _) {
+        return MaterialApp.router(
+          title: 'UMBRAL - IMMUJER',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: currentMode,
+          routerConfig: appRouter,
+        );
+      },
     );
   }
 }

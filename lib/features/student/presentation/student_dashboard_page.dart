@@ -12,6 +12,7 @@ import 'package:umbral_immujer/features/student/presentation/student_summary_tab
 import 'package:umbral_immujer/src/core/widgets/skeleton_loader.dart';
 import 'package:umbral_immujer/src/core/widgets/super_admin_nav_bar.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
+import 'package:umbral_immujer/features/profile/presentation/profile_header_actions.dart';
 
 class StudentDashboardPage extends StatefulWidget {
   final UserProfile profile;
@@ -29,10 +30,12 @@ class StudentDashboardPage extends StatefulWidget {
 class _StudentDashboardPageState extends State<StudentDashboardPage> {
   late int _currentIndex;
   late final StudentRepository _studentRepository;
+  late UserProfile _currentProfile;
 
   @override
   void initState() {
     super.initState();
+    _currentProfile = widget.profile;
     _currentIndex = widget.initialIndex.clamp(0, 3);
     _studentRepository = StudentRepository(SupabaseConfig.client);
   }
@@ -225,13 +228,6 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     }
   }
 
-  void _handleSignOut() async {
-    await SupabaseConfig.client.auth.signOut();
-    if (mounted) {
-      context.go('/login');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final isSuperAdmin = widget.profile.role == UserRole.superAdmin;
@@ -280,7 +276,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
               style: const TextStyle(fontSize: 16),
             ),
             Text(
-              widget.profile.fullName,
+              _currentProfile.fullName,
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.normal,
@@ -290,10 +286,10 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
         ),
         actions: [
           _buildDropdownNav(isSuperAdmin),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Cerrar Sesión',
-            onPressed: _handleSignOut,
+          const ThemeModeToggleButton(),
+          UserProfileAvatarButton(
+            profile: _currentProfile,
+            onProfileUpdated: (updated) => setState(() => _currentProfile = updated),
           ),
         ],
       ),
