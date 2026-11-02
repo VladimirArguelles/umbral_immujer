@@ -58,10 +58,10 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     return Theme(
       data: Theme.of(context).copyWith(
         popupMenuTheme: PopupMenuThemeData(
-          color: AppTheme.surfaceContainerLow,
+          color: AppTheme.dynamicCard,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: AppTheme.outlineVariant),
+            side: BorderSide(color: AppTheme.dynamicBorder),
           ),
         ),
       ),
@@ -90,9 +90,9 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
           margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceContainerLow,
+            color: AppTheme.dynamicCard,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppTheme.outlineVariant),
+            border: Border.all(color: AppTheme.dynamicBorder),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -107,18 +107,18 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                 constraints: const BoxConstraints(maxWidth: 75),
                 child: Text(
                   tabTitles[_currentIndex],
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11.5,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.onSurface,
+                    color: AppTheme.dynamicText,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.arrow_drop_down_rounded,
                 size: 18,
-                color: AppTheme.onSurfaceVariant,
+                color: AppTheme.dynamicTextMuted,
               ),
             ],
           ),
@@ -146,7 +146,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     size: 18,
                     color: _currentIndex == i
                         ? AppTheme.primary
-                        : AppTheme.onSurfaceVariant,
+                        : AppTheme.dynamicTextMuted,
                   ),
                   const SizedBox(width: 10),
                   Text(
@@ -157,7 +157,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                           : FontWeight.normal,
                       color: _currentIndex == i
                           ? AppTheme.primary
-                          : AppTheme.onSurface,
+                          : AppTheme.dynamicText,
                     ),
                   ),
                   if (_currentIndex == i) ...[
@@ -546,10 +546,10 @@ class _MisCursosTabState extends State<_MisCursosTab>
                           Expanded(
                             child: Text(
                               c.nombre,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: AppTheme.onSurface,
+                                color: AppTheme.dynamicText,
                               ),
                             ),
                           ),
@@ -561,7 +561,7 @@ class _MisCursosTabState extends State<_MisCursosTab>
                             decoration: BoxDecoration(
                               color: isActivo
                                   ? AppTheme.tertiary.withValues(alpha: 0.15)
-                                  : AppTheme.surfaceBright,
+                                  : AppTheme.dynamicSurfaceBright,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -571,7 +571,7 @@ class _MisCursosTabState extends State<_MisCursosTab>
                                 fontWeight: FontWeight.bold,
                                 color: isActivo
                                     ? AppTheme.successGreen
-                                    : AppTheme.onSurfaceVariant,
+                                    : AppTheme.dynamicTextMuted,
                               ),
                             ),
                           ),
@@ -582,9 +582,9 @@ class _MisCursosTabState extends State<_MisCursosTab>
                         const SizedBox(height: 8),
                         Text(
                           c.descripcion!,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
-                            color: AppTheme.onSurface,
+                            color: AppTheme.dynamicText,
                           ),
                         ),
                       ],
@@ -1010,17 +1010,17 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
 
               if (resumen.historial.isEmpty)
                 Card(
-                  color: AppTheme.anthraciteCard,
+                  color: AppTheme.dynamicCard,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(color: AppTheme.outlineVariant),
+                    side: BorderSide(color: AppTheme.dynamicBorder),
                   ),
-                  child: const Padding(
-                    padding: EdgeInsets.all(20.0),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
                     child: Center(
                       child: Text(
                         'Aún no se han registrado asistencias para este curso.',
-                        style: TextStyle(color: AppTheme.mutedGray),
+                        style: TextStyle(color: AppTheme.dynamicTextMuted),
                       ),
                     ),
                   ),
@@ -1032,13 +1032,13 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
 
                   return Card(
                     margin: const EdgeInsets.only(bottom: 8),
-                    color: AppTheme.anthraciteCard,
+                    color: AppTheme.dynamicCard,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                       side: BorderSide(
                         color: just != null && just.isAprobado
                             ? AppTheme.mintNeon.withValues(alpha: 0.4)
-                            : AppTheme.outlineVariant,
+                            : AppTheme.dynamicBorder,
                       ),
                     ),
                     child: Padding(
@@ -1074,9 +1074,9 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
                                   children: [
                                     Text(
                                       'Fecha: ${reg.fecha}',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontWeight: FontWeight.w600,
-                                        color: AppTheme.pureWhite,
+                                        color: AppTheme.dynamicText,
                                         fontSize: 14,
                                       ),
                                     ),
@@ -1216,18 +1216,18 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
 
               if (_justificativos.isEmpty)
                 Card(
-                  color: AppTheme.anthraciteCard,
+                  color: AppTheme.dynamicCard,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(color: AppTheme.outlineVariant),
+                    side: BorderSide(color: AppTheme.dynamicBorder),
                   ),
-                  child: const Padding(
-                    padding: EdgeInsets.all(16.0),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
                     child: Center(
                       child: Text(
                         'No has enviado justificativos médicos para este curso.',
                         style: TextStyle(
-                          color: AppTheme.mutedGray,
+                          color: AppTheme.dynamicTextMuted,
                           fontSize: 13,
                         ),
                       ),
@@ -1244,10 +1244,10 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
 
                   return Card(
                     margin: const EdgeInsets.only(bottom: 10),
-                    color: AppTheme.anthraciteCard,
+                    color: AppTheme.dynamicCard,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
-                      side: const BorderSide(color: AppTheme.outlineVariant),
+                      side: BorderSide(color: AppTheme.dynamicBorder),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(14),
@@ -1263,8 +1263,8 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
                                   const SizedBox(width: 6),
                                   Text(
                                     'Fecha de falta: ${just.fecha}',
-                                    style: const TextStyle(
-                                      color: AppTheme.pureWhite,
+                                    style: TextStyle(
+                                      color: AppTheme.dynamicText,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 13,
                                     ),
@@ -1292,8 +1292,8 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
                           const SizedBox(height: 8),
                           Text(
                             just.motivo,
-                            style: const TextStyle(
-                              color: AppTheme.pureWhite,
+                            style: TextStyle(
+                              color: AppTheme.dynamicText,
                               fontSize: 13,
                               height: 1.3,
                             ),
@@ -1304,21 +1304,21 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: AppTheme.anthraciteElevated,
+                                color: AppTheme.dynamicSurfaceHigh,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Icon(Icons.rate_review_outlined,
-                                      size: 16, color: AppTheme.mutedGray),
+                                  Icon(Icons.rate_review_outlined,
+                                      size: 16, color: AppTheme.dynamicTextMuted),
                                   const SizedBox(width: 6),
                                   Expanded(
                                     child: Text(
                                       'Respuesta de Coordinación: ${just.comentariosRevision}',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12,
-                                        color: AppTheme.mutedGray,
+                                        color: AppTheme.dynamicTextMuted,
                                       ),
                                     ),
                                   ),
@@ -2159,10 +2159,10 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerLow,
-        border: const Border(
+        color: AppTheme.dynamicCard,
+        border: Border(
           bottom: BorderSide(
-            color: AppTheme.outlineVariant,
+            color: AppTheme.dynamicBorder,
             width: 0.5,
           ),
         ),
@@ -2170,20 +2170,20 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.tune_rounded,
                 size: 16,
                 color: AppTheme.primary,
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Text(
                 'Filtro de Selección:',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.onSurfaceVariant,
+                  color: AppTheme.dynamicTextMuted,
                   letterSpacing: 0.3,
                 ),
               ),
@@ -2193,9 +2193,9 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
-              color: AppTheme.surfaceBright,
+              color: AppTheme.dynamicSurfaceBright,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.outlineVariant),
+              border: Border.all(color: AppTheme.dynamicBorder),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<int>(
@@ -2205,7 +2205,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                   Icons.keyboard_arrow_down_rounded,
                   color: AppTheme.primary,
                 ),
-                dropdownColor: AppTheme.surfaceBright,
+                dropdownColor: AppTheme.dynamicCard,
                 borderRadius: BorderRadius.circular(12),
                 items: const [
                   DropdownMenuItem<int>(
@@ -2358,7 +2358,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                     width: 1.2,
                   ),
                 ),
-                color: AppTheme.surfaceContainerLow,
+                color: AppTheme.dynamicCard,
                 child: Padding(
                   padding: const EdgeInsets.all(18.0),
                   child: Column(
@@ -2398,10 +2398,10 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                     Expanded(
                                       child: Text(
                                         enc.cursoNombre,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
-                                          color: AppTheme.onSurface,
+                                          color: AppTheme.dynamicText,
                                         ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -2416,10 +2416,10 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                       const SizedBox(width: 4),
                                       Text(
                                         'Docente: ${enc.profesorNombre}',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w500,
-                                          color: AppTheme.onSurfaceVariant,
+                                          color: AppTheme.dynamicTextMuted,
                                         ),
                                       ),
                                     ],

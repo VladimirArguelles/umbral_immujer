@@ -53,10 +53,10 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
     return Theme(
       data: Theme.of(context).copyWith(
         popupMenuTheme: PopupMenuThemeData(
-          color: AppTheme.surfaceContainerLow,
+          color: AppTheme.dynamicCard,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: AppTheme.outlineVariant),
+            side: BorderSide(color: AppTheme.dynamicBorder),
           ),
         ),
       ),
@@ -85,9 +85,9 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
           margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceContainerLow,
+            color: AppTheme.dynamicCard,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppTheme.outlineVariant),
+            border: Border.all(color: AppTheme.dynamicBorder),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -102,18 +102,18 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
                 constraints: const BoxConstraints(maxWidth: 75),
                 child: Text(
                   tabTitles[_currentIndex],
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11.5,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.onSurface,
+                    color: AppTheme.dynamicText,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.arrow_drop_down_rounded,
                 size: 18,
-                color: AppTheme.onSurfaceVariant,
+                color: AppTheme.dynamicTextMuted,
               ),
             ],
           ),
@@ -141,7 +141,7 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
                     size: 18,
                     color: _currentIndex == i
                         ? AppTheme.primary
-                        : AppTheme.onSurfaceVariant,
+                        : AppTheme.dynamicTextMuted,
                   ),
                   const SizedBox(width: 10),
                   Text(
@@ -152,7 +152,7 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
                           : FontWeight.normal,
                       color: _currentIndex == i
                           ? AppTheme.primary
-                          : AppTheme.onSurface,
+                          : AppTheme.dynamicText,
                     ),
                   ),
                   if (_currentIndex == i) ...[
@@ -1220,12 +1220,12 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.onSurface,
+                      color: AppTheme.dynamicText,
                     ),
                   ),
                   Text(
                     '${cursos.length} cursos',
-                    style: const TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant),
+                    style: TextStyle(fontSize: 12, color: AppTheme.dynamicTextMuted),
                   ),
                 ],
               ),
@@ -1248,7 +1248,7 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                       side: BorderSide(
                         color: c.ausenciasHoy > 0
                             ? AppTheme.errorRed.withValues(alpha: 0.5)
-                            : AppTheme.outlineVariant.withValues(alpha: 0.5),
+                            : AppTheme.dynamicBorder,
                         width: c.ausenciasHoy > 0 ? 1.5 : 1,
                       ),
                     ),
@@ -1295,7 +1295,7 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
-                              color: AppTheme.onSurface,
+                              color: AppTheme.dynamicText,
                             ),
                           ),
                           if (c.horario != null && c.horario!.isNotEmpty) ...[
@@ -1306,7 +1306,7 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                                 const SizedBox(width: 6),
                                 Text(
                                   c.horario!,
-                                  style: const TextStyle(fontSize: 13, color: AppTheme.onSurfaceVariant),
+                                  style: TextStyle(fontSize: 13, color: AppTheme.dynamicTextMuted),
                                 ),
                               ],
                             ),
@@ -1455,7 +1455,7 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceContainerLow,
+            color: AppTheme.dynamicCard,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color: AppTheme.primary.withValues(alpha: 0.35),
@@ -1496,14 +1496,14 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.onSurface,
+                            color: AppTheme.dynamicText,
                           ),
                         ),
                         Text(
                           'Recaudación global consolidada en Bolívares (Tasa Oficial BCV)',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
-                            color: AppTheme.onSurfaceVariant,
+                            color: AppTheme.dynamicTextMuted,
                           ),
                         ),
                       ],
@@ -1583,9 +1583,9 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerLow,
+        color: AppTheme.dynamicCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.outlineVariant),
+        border: Border.all(color: AppTheme.dynamicBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1593,7 +1593,7 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: const TextStyle(fontSize: 11, color: AppTheme.onSurfaceVariant)),
+              Text(title, style: TextStyle(fontSize: 11, color: AppTheme.dynamicTextMuted)),
               Icon(icon, size: 16, color: color),
             ],
           ),
@@ -1607,7 +1607,7 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
             ),
           ),
           const SizedBox(height: 4),
-          Text(subtitle, style: const TextStyle(fontSize: 10, color: AppTheme.onSurfaceVariant)),
+          Text(subtitle, style: TextStyle(fontSize: 10, color: AppTheme.dynamicTextMuted)),
         ],
       ),
     );

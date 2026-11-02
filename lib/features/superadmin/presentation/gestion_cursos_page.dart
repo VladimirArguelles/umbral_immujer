@@ -791,9 +791,9 @@ onReorder: (oldIndex, newIndex) {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.dynamicBackground,
       appBar: AppBar(
-        backgroundColor: AppTheme.surfaceContainerLow,
+        backgroundColor: AppTheme.dynamicCard,
         elevation: 0,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -803,14 +803,14 @@ onReorder: (oldIndex, newIndex) {
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
-                color: AppTheme.onSurface,
+                color: AppTheme.dynamicText,
               ),
             ),
             Text(
               'Super Admin • Control de cursos, horarios, asignaciones y estados',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12,
-                color: AppTheme.onSurfaceVariant,
+                color: AppTheme.dynamicTextMuted,
               ),
             ),
           ],
@@ -829,9 +829,9 @@ onReorder: (oldIndex, newIndex) {
           // Barra de controles y filtros superiores
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: AppTheme.surfaceContainerLow,
-              border: Border(bottom: BorderSide(color: AppTheme.outlineVariant)),
+            decoration: BoxDecoration(
+              color: AppTheme.dynamicCard,
+              border: Border(bottom: BorderSide(color: AppTheme.dynamicBorder)),
             ),
             child: Column(
               children: [

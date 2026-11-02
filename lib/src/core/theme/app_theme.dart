@@ -1,17 +1,81 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeController {
+  static const String _prefKey = 'umbral_theme_mode';
   static final ValueNotifier<ThemeMode> themeMode = ValueNotifier(ThemeMode.dark);
 
   static bool get isDark => themeMode.value == ThemeMode.dark;
 
-  static void toggleTheme() {
-    themeMode.value = isDark ? ThemeMode.light : ThemeMode.dark;
+  static Future<void> initialize() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString(_prefKey);
+      if (saved == 'light') {
+        themeMode.value = ThemeMode.light;
+      } else if (saved == 'dark') {
+        themeMode.value = ThemeMode.dark;
+      }
+    } catch (_) {}
+  }
+
+  static Future<void> toggleTheme() async {
+    final nextMode = isDark ? ThemeMode.light : ThemeMode.dark;
+    themeMode.value = nextMode;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_prefKey, nextMode == ThemeMode.light ? 'light' : 'dark');
+    } catch (_) {}
+  }
+
+  static Future<void> setTheme(ThemeMode mode) async {
+    themeMode.value = mode;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_prefKey, mode == ThemeMode.light ? 'light' : 'dark');
+    } catch (_) {}
   }
 }
 
 abstract final class AppTheme {
+  // ===========================================================================
+  // SELECTORES DINÁMICOS DE TEMA (CLARO / OSCURO)
+  // Permiten reactividad instantánea al cambiar de modo sin romper const existentes
+  // ===========================================================================
+
+  static bool get isDark => ThemeController.isDark;
+
+  /// Fondo principal de vistas y Scaffold
+  static Color get dynamicBackground => isDark ? anthraciteDark : const Color(0xFFF4F6F9);
+
+  /// Fondo de tarjetas principales y contenedores modulares
+  static Color get dynamicCard => isDark ? anthraciteCard : Colors.white;
+
+  /// Fondo de contenedores secundarios / interiores
+  static Color get dynamicSurfaceContainer => isDark ? anthracite : const Color(0xFFF8FAFC);
+
+  /// Fondo de elementos elevados o resaltados
+  static Color get dynamicSurfaceHigh => isDark ? anthraciteElevated : const Color(0xFFF1F5F9);
+
+  /// Fondo de list tiles, chips y cajas secundarias
+  static Color get dynamicSurfaceBright => isDark ? const Color(0xFF363941) : const Color(0xFFF1F5F9);
+
+  /// Fondo de badges e indicadores de progreso inactivos
+  static Color get dynamicSurfaceHighest => isDark ? const Color(0xFF32353D) : const Color(0xFFE2E8F0);
+
+  /// Color de texto principal (títulos, encabezados, valores)
+  static Color get dynamicText => isDark ? pureWhite : const Color(0xFF1E232A);
+
+  /// Color de texto secundario (subtítulos, etiquetas, leyendas)
+  static Color get dynamicTextMuted => isDark ? mutedGray : const Color(0xFF64748B);
+
+  /// Color de bordes y separadores sutiles
+  static Color get dynamicBorder => isDark ? outlineVariant : const Color(0xFFE2E8F0);
+
+  /// Color de bordes interactivos y contornos
+  static Color get dynamicOutline => isDark ? outline : const Color(0xFFCBD5E1);
+
   // ===========================================================================
   // PALETA OFICIAL UMBRAL - IMMUJER
   // ===========================================================================
@@ -384,6 +448,13 @@ abstract final class AppTheme {
         error: Color(0xFFDC2626),
         onError: Colors.white,
         surface: lightSurface,
+        surfaceDim: Color(0xFFEDEFEF),
+        surfaceBright: Colors.white,
+        surfaceContainerLowest: Colors.white,
+        surfaceContainerLow: Colors.white,
+        surfaceContainer: Color(0xFFF8FAFC),
+        surfaceContainerHigh: Color(0xFFF1F5F9),
+        surfaceContainerHighest: Color(0xFFE2E8F0),
         onSurface: lightOnSurface,
         onSurfaceVariant: lightOnSurfaceVariant,
         outline: lightOutline,
@@ -391,6 +462,19 @@ abstract final class AppTheme {
       ),
       scaffoldBackgroundColor: lightBackground,
       textTheme: textTheme,
+      tabBarTheme: TabBarThemeData(
+        labelColor: lightPrimary,
+        unselectedLabelColor: lightOnSurfaceVariant,
+        indicatorColor: lightPrimary,
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: lightSurface,
+        indicatorColor: lightPrimary.withValues(alpha: 0.12),
+        surfaceTintColor: Colors.transparent,
+        labelTextStyle: WidgetStatePropertyAll(
+          textTheme.labelSmall?.copyWith(color: lightOnSurfaceVariant),
+        ),
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: lightSurface,
         foregroundColor: lightOnSurface,

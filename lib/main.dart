@@ -10,6 +10,9 @@ Future<void> main() async {
   // Inicializa Supabase con valores de compilación recibidos mediante --dart-define.
   await SupabaseConfig.initialize();
 
+  // Inicializa y recupera la preferencia de tema guardada (claro/oscuro).
+  await ThemeController.initialize();
+
   runApp(const UmbralApp());
 }
 

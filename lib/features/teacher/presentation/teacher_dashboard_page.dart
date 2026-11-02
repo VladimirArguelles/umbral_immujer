@@ -58,10 +58,10 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
     return Theme(
       data: Theme.of(context).copyWith(
         popupMenuTheme: PopupMenuThemeData(
-          color: AppTheme.surfaceContainerLow,
+          color: AppTheme.dynamicCard,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: AppTheme.outlineVariant),
+            side: BorderSide(color: AppTheme.dynamicBorder),
           ),
         ),
       ),
@@ -90,9 +90,9 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
           margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceContainerLow,
+            color: AppTheme.dynamicCard,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppTheme.outlineVariant),
+            border: Border.all(color: AppTheme.dynamicBorder),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -107,18 +107,18 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                 constraints: const BoxConstraints(maxWidth: 75),
                 child: Text(
                   tabTitles[_currentIndex],
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11.5,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.onSurface,
+                    color: AppTheme.dynamicText,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.arrow_drop_down_rounded,
                 size: 18,
-                color: AppTheme.onSurfaceVariant,
+                color: AppTheme.dynamicTextMuted,
               ),
             ],
           ),
@@ -146,7 +146,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                     size: 18,
                     color: _currentIndex == i
                         ? AppTheme.primary
-                        : AppTheme.onSurfaceVariant,
+                        : AppTheme.dynamicTextMuted,
                   ),
                   const SizedBox(width: 10),
                   Text(
@@ -157,7 +157,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                           : FontWeight.normal,
                       color: _currentIndex == i
                           ? AppTheme.primary
-                          : AppTheme.onSurface,
+                          : AppTheme.dynamicText,
                     ),
                   ),
                   if (_currentIndex == i) ...[
@@ -398,7 +398,7 @@ class _TeacherSummaryTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: AppTheme.background,
+      color: AppTheme.dynamicBackground,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
         children: [
@@ -421,7 +421,7 @@ class _TeacherSummaryTab extends StatelessWidget {
                     Text(
                       'Hola, $teacherName',
                       style: GoogleFonts.plusJakartaSans(
-                        color: AppTheme.onSurface,
+                        color: AppTheme.dynamicText,
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
                       ),
@@ -432,7 +432,7 @@ class _TeacherSummaryTab extends StatelessWidget {
                           ? 'Supervisión de docencia, asistencias y planeación'
                           : 'Panel de gestión académica y control de clases',
                       style: GoogleFonts.plusJakartaSans(
-                        color: AppTheme.onSurfaceVariant,
+                        color: AppTheme.dynamicTextMuted,
                         fontSize: 12,
                       ),
                     ),
@@ -531,12 +531,12 @@ class _TeacherActionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerLow,
+        color: AppTheme.dynamicCard,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.outlineVariant),
+        border: Border.all(color: AppTheme.dynamicBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: Colors.black.withValues(alpha: AppTheme.isDark ? 0.06 : 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -565,7 +565,7 @@ class _TeacherActionCard extends StatelessWidget {
                     Text(
                       title,
                       style: GoogleFonts.plusJakartaSans(
-                        color: AppTheme.onSurface,
+                        color: AppTheme.dynamicText,
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
                       ),
@@ -574,7 +574,7 @@ class _TeacherActionCard extends StatelessWidget {
                     Text(
                       description,
                       style: GoogleFonts.plusJakartaSans(
-                        color: AppTheme.onSurfaceVariant,
+                        color: AppTheme.dynamicTextMuted,
                         fontSize: 11.5,
                         height: 1.35,
                       ),
@@ -908,7 +908,7 @@ class _PaseListaTabState extends State<_PaseListaTab> {
         // Botón Inferior para Guardar Lista
         Container(
           padding: const EdgeInsets.all(16),
-          color: AppTheme.surfaceContainerLow,
+          color: AppTheme.dynamicCard,
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -2020,10 +2020,10 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
           margin: const EdgeInsets.only(bottom: 16),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceBright,
+            color: AppTheme.dynamicCard,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: survey.hasExpired ? AppTheme.outlineVariant : AppTheme.mintNeon.withValues(alpha: 0.35),
+              color: survey.hasExpired ? AppTheme.dynamicBorder : AppTheme.mintNeon.withValues(alpha: 0.35),
             ),
           ),
           child: Column(
@@ -2058,10 +2058,10 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
                         const SizedBox(height: 2),
                         Text(
                           survey.cursoNombre,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.onSurface,
+                            color: AppTheme.dynamicText,
                           ),
                         ),
                       ],
@@ -2259,9 +2259,9 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
           margin: const EdgeInsets.only(bottom: 14),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceBright,
+            color: AppTheme.dynamicCard,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.outlineVariant),
+            border: Border.all(color: AppTheme.dynamicBorder),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -2272,19 +2272,19 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
                   Expanded(
                     child: Text(
                       survey.cursoNombre,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.dynamicText),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceContainerHighest,
+                      color: AppTheme.dynamicSurfaceHighest,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       survey.estado.toUpperCase(),
-                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.onSurfaceVariant),
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.dynamicTextMuted),
                     ),
                   ),
                 ],

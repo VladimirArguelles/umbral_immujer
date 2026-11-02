@@ -17,7 +17,7 @@ class StudentSummaryTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: AppTheme.background,
+      color: AppTheme.dynamicBackground,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final horizontalPadding = constraints.maxWidth > 720 ? 28.0 : 16.0;
@@ -32,7 +32,7 @@ class StudentSummaryTab extends StatelessWidget {
               Text(
                 'Hola, $studentName',
                 style: GoogleFonts.plusJakartaSans(
-                  color: AppTheme.onSurface,
+                  color: AppTheme.dynamicText,
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
                 ),
@@ -41,7 +41,7 @@ class StudentSummaryTab extends StatelessWidget {
               Text(
                 'Este es el resumen de tu experiencia formativa.',
                 style: GoogleFonts.plusJakartaSans(
-                  color: AppTheme.onSurfaceVariant,
+                  color: AppTheme.dynamicTextMuted,
                   fontSize: 13,
                 ),
               ),
@@ -54,7 +54,7 @@ class StudentSummaryTab extends StatelessWidget {
                     child: Text(
                       'Módulos de alumno',
                       style: GoogleFonts.plusJakartaSans(
-                        color: AppTheme.onSurface,
+                        color: AppTheme.dynamicText,
                         fontSize: 17,
                         fontWeight: FontWeight.w800,
                       ),
@@ -63,7 +63,7 @@ class StudentSummaryTab extends StatelessWidget {
                   Text(
                     'Tu espacio',
                     style: GoogleFonts.plusJakartaSans(
-                      color: AppTheme.onSurfaceVariant,
+                      color: AppTheme.dynamicTextMuted,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
@@ -191,16 +191,17 @@ class _FormationCarouselState extends State<_FormationCarousel> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
-        gradient: const LinearGradient(
+        border: Border.all(color: AppTheme.dynamicBorder),
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppTheme.surfaceContainer, AppTheme.surfaceContainerLow],
+          colors: [AppTheme.dynamicSurfaceContainer, AppTheme.dynamicCard],
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
+            color: Colors.black.withValues(alpha: AppTheme.isDark ? 0.12 : 0.05),
             blurRadius: 16,
-            offset: Offset(0, 8),
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -219,7 +220,7 @@ class _FormationCarouselState extends State<_FormationCarousel> {
                 child: Text(
                   'FORMACIONES IMMUJER',
                   style: GoogleFonts.plusJakartaSans(
-                    color: AppTheme.onSurface,
+                    color: AppTheme.dynamicText,
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1.1,
@@ -242,7 +243,7 @@ class _FormationCarouselState extends State<_FormationCarousel> {
           Text(
             'Explora las áreas formativas para impulsar tu autonomía profesional.',
             style: GoogleFonts.plusJakartaSans(
-              color: AppTheme.onSurfaceVariant,
+              color: AppTheme.dynamicTextMuted,
               fontSize: 12,
               height: 1.45,
             ),
@@ -462,14 +463,14 @@ class _ModuleCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerLow,
+        color: AppTheme.dynamicCard,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.outlineVariant),
+        border: Border.all(color: AppTheme.dynamicBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: Colors.black.withValues(alpha: AppTheme.isDark ? 0.08 : 0.04),
             blurRadius: 12,
-            offset: Offset(0, 5),
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -496,7 +497,7 @@ class _ModuleCard extends StatelessWidget {
                     Text(
                       title,
                       style: GoogleFonts.plusJakartaSans(
-                        color: AppTheme.onSurface,
+                        color: AppTheme.dynamicText,
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
                       ),
@@ -505,7 +506,7 @@ class _ModuleCard extends StatelessWidget {
                     Text(
                       description,
                       style: GoogleFonts.plusJakartaSans(
-                        color: AppTheme.onSurfaceVariant,
+                        color: AppTheme.dynamicTextMuted,
                         fontSize: 11,
                         height: 1.4,
                       ),
@@ -558,20 +559,24 @@ class _OpportunityBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppTheme.surfaceContainer,
+      color: AppTheme.dynamicCard,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(18),
-        child: Padding(
+        child: Container(
           padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppTheme.dynamicBorder),
+          ),
           child: Row(
             children: [
               Container(
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: AppTheme.surfaceBright,
+                  color: AppTheme.dynamicSurfaceBright,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
@@ -597,7 +602,7 @@ class _OpportunityBanner extends StatelessWidget {
                     Text(
                       'Conoce las novedades de tus cursos',
                       style: GoogleFonts.plusJakartaSans(
-                        color: AppTheme.onSurface,
+                        color: AppTheme.dynamicText,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
@@ -605,7 +610,7 @@ class _OpportunityBanner extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded, color: AppTheme.onSurfaceVariant),
+              Icon(Icons.chevron_right_rounded, color: AppTheme.dynamicTextMuted),
             ],
           ),
         ),

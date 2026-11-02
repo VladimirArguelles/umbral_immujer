@@ -15,10 +15,10 @@ class SuperAdminBottomNavBar extends StatelessWidget {
     required this.currentIndex,
   });
 
-  static const Color _cCard = AppTheme.surfaceContainerLow;
-  static const Color _cBorder = AppTheme.outlineVariant;
+  static Color get _cCard => AppTheme.dynamicCard;
+  static Color get _cBorder => AppTheme.dynamicBorder;
   static const Color _cAccent = AppTheme.primaryContainer;
-  static const Color _cTextMuted = AppTheme.onSurfaceVariant;
+  static Color get _cTextMuted => AppTheme.dynamicTextMuted;
 
   static const _navItems = [
     (icon: Symbols.dashboard, label: 'General', route: '/superadmin'),
@@ -44,11 +44,11 @@ class SuperAdminBottomNavBar extends StatelessWidget {
             width: 1,
           ),
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x66000000),
+            color: Colors.black.withValues(alpha: AppTheme.isDark ? 0.4 : 0.08),
             blurRadius: 16,
-            offset: Offset(0, -4),
+            offset: const Offset(0, -4),
           ),
         ],
       ),
