@@ -1541,83 +1541,105 @@ class _ConfiguracionGeneralScreenState
   }
 
   Widget _buildBottomActionBar(int modifiedCount) {
-    return Container(
-      decoration: BoxDecoration(
-        color: cCard.withAlpha(245),
-        border: const Border(top: BorderSide(color: cBorder)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x66000000),
-            blurRadius: 18,
-            offset: Offset(0, -4),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 460;
+        final isVeryNarrow = constraints.maxWidth < 360;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: cCard.withAlpha(245),
+            border: const Border(top: BorderSide(color: cBorder)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x66000000),
+                blurRadius: 18,
+                offset: Offset(0, -4),
+              ),
+            ],
           ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      child: SafeArea(
-        child: Row(
-          children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+          padding: EdgeInsets.symmetric(
+            horizontal: isCompact ? 12 : 20,
+            vertical: isCompact ? 10 : 14,
+          ),
+          child: SafeArea(
+            top: false,
+            child: Row(
               children: [
-                Text(
-                  modifiedCount > 0
-                      ? '$modifiedCount cambio(s) pendiente(s)'
-                      : 'Sin cambios pendientes',
-                  style: GoogleFonts.plusJakartaSans(
-                    color: modifiedCount > 0 ? cAmber : cTextMuted,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12.5,
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        modifiedCount > 0
+                            ? '$modifiedCount cambio(s) pendiente(s)'
+                            : 'Sin cambios pendientes',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: modifiedCount > 0 ? cAmber : cTextMuted,
+                          fontWeight: FontWeight.bold,
+                          fontSize: isCompact ? 11.5 : 12.5,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        isCompact
+                            ? 'public.configuracion_general'
+                            : 'Tabla: public.configuracion_general',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: cTextDim,
+                          fontSize: isCompact ? 9.5 : 10.5,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
-                Text(
-                  'Tabla: public.configuracion_general',
-                  style: GoogleFonts.plusJakartaSans(
-                    color: cTextDim,
-                    fontSize: 10.5,
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: cPrimary,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isCompact ? 14 : 22,
+                      vertical: isCompact ? 10 : 14,
+                    ),
+                    minimumSize: Size(0, isCompact ? 40 : 46),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 3,
+                    shadowColor: cPrimaryGlow,
+                  ),
+                  onPressed: _isSaving ? null : _saveChanges,
+                  icon: _isSaving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Icon(Icons.save_rounded, size: isCompact ? 18 : 20),
+                  label: Text(
+                    _isSaving
+                        ? 'Guardando...'
+                        : (isVeryNarrow ? 'Guardar' : 'Guardar Cambios'),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w800,
+                      fontSize: isCompact ? 12 : 13,
+                      letterSpacing: 0.2,
+                    ),
                   ),
                 ),
               ],
             ),
-            const Spacer(),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: cPrimary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 14,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                elevation: 4,
-                shadowColor: cPrimaryGlow,
-              ),
-              onPressed: _isSaving ? null : _saveChanges,
-              icon: _isSaving
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.save_rounded, size: 20),
-              label: Text(
-                _isSaving ? 'Guardando en Supabase...' : 'Guardar Cambios',
-                style: GoogleFonts.plusJakartaSans(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 13,
-                  letterSpacing: 0.3,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
