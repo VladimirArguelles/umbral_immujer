@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:umbral_immujer/src/core/utils/app_logger.dart';
 
 import '../domain/user_profile.dart';
 
@@ -27,7 +28,7 @@ class AuthRepository {
 
   User? get currentUser => _supabase.auth.currentUser;
 
-  /// Valida si el alumno existe en la tabla Alumnos Y si posee inscripción activa
+  /// Valida si el alumno existe en el padrón institucional y si posee inscripción activa.
   Future<AlumnoValidationResult> validateAlumnoEligibility({
     required String cedula,
     String? email,
@@ -35,8 +36,78 @@ class AuthRepository {
     final cleanCedula = cedula.trim().replaceAll(RegExp(r'[^0-9a-zA-Z]'), '');
     final numericCedula = cedula.trim().replaceAll(RegExp(r'[^0-9]'), '');
 
-    // 1. Buscar en alumnos por cédula (numérica limpia o alfanumérica)
+    try {
+      final alumnoData = await _findAlumnoRecord(
+        cleanCedula: cleanCedula,
+        numericCedula: numericCedula,
+        email: email,
+      );
+
+      if (alumnoData == null) {
+        AppLogger.warning(
+          'Validación fallida: Cédula $cedula no encontrada en el padrón de alumnos',
+          tag: 'AUTH_VALIDATION',
+        );
+        return AlumnoValidationResult(
+          foundInAlumnos: false,
+          hasActiveInscripcion: false,
+          errorMessage:
+              'Acceso denegado: El documento $cedula no se encuentra registrado en el padrón de alumnos de IMMUJER.',
+        );
+      }
+
+      if (alumnoData['user_id'] != null) {
+        return AlumnoValidationResult(
+          foundInAlumnos: true,
+          hasActiveInscripcion: false,
+          isLinked: true,
+          data: alumnoData,
+          errorMessage:
+              'Este registro ya está vinculado a una cuenta. Inicia sesión o recupera el acceso existente.',
+        );
+      }
+
+      final alumnoId = alumnoData['id'] as String;
+      final hasActiveEnrollment = await _hasActiveInscripcion(alumnoId);
+
+      if (!hasActiveEnrollment) {
+        return AlumnoValidationResult(
+          foundInAlumnos: true,
+          hasActiveInscripcion: false,
+          data: alumnoData,
+          errorMessage:
+              'Acceso denegado: El alumno figura en el padrón, pero no cuenta con una inscripción activa en ningún curso. Debe formalizar su inscripción primero.',
+        );
+      }
+
+      return AlumnoValidationResult(
+        foundInAlumnos: true,
+        hasActiveInscripcion: true,
+        data: alumnoData,
+      );
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'Error durante validación de elegibilidad de alumno ($cedula)',
+        tag: 'AUTH_VALIDATION',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      return AlumnoValidationResult(
+        foundInAlumnos: false,
+        hasActiveInscripcion: false,
+        errorMessage: 'Error de conexión al verificar el padrón de alumnos: $e',
+      );
+    }
+  }
+
+  /// Búsqueda modular de registro de alumno en base de datos
+  Future<Map<String, dynamic>?> _findAlumnoRecord({
+    required String cleanCedula,
+    required String numericCedula,
+    String? email,
+  }) async {
     Map<String, dynamic>? alumnoData;
+
     if (numericCedula.isNotEmpty) {
       alumnoData = await _supabase
           .from('alumnos')
@@ -67,49 +138,18 @@ class AuthRepository {
           .maybeSingle();
     }
 
-    if (alumnoData == null) {
-      return AlumnoValidationResult(
-        foundInAlumnos: false,
-        hasActiveInscripcion: false,
-        errorMessage:
-            'Acceso denegado: El documento $cedula no se encuentra registrado en el padrón de alumnos de IMMUJER.',
-      );
-    }
+    return alumnoData;
+  }
 
-    final alumnoId = alumnoData['id'] as String;
-    if (alumnoData['user_id'] != null) {
-      return AlumnoValidationResult(
-        foundInAlumnos: true,
-        hasActiveInscripcion: false,
-        isLinked: true,
-        data: alumnoData,
-        errorMessage:
-            'Este registro ya está vinculado a una cuenta. Inicia sesión o recupera el acceso existente.',
-      );
-    }
-
-    // 2. Validar si está inscrito en al menos un curso
+  /// Verifica si el alumno cuenta con inscripción activa no eliminada
+  Future<bool> _hasActiveInscripcion(String alumnoId) async {
     final List<dynamic> inscripciones = await _supabase
         .from('inscripciones')
         .select('id, curso_id, estado')
         .eq('alumno_id', alumnoId)
         .filter('deleted_at', 'is', null);
 
-    if (inscripciones.isEmpty) {
-      return AlumnoValidationResult(
-        foundInAlumnos: true,
-        hasActiveInscripcion: false,
-        data: alumnoData,
-        errorMessage:
-            'Acceso denegado: El alumno figura en el padrón, pero no cuenta con una inscripción activa en ningún curso. Debe formalizar su inscripción primero.',
-      );
-    }
-
-    return AlumnoValidationResult(
-      foundInAlumnos: true,
-      hasActiveInscripcion: true,
-      data: alumnoData,
-    );
+    return inscripciones.isNotEmpty;
   }
 
   /// Método compatible con código anterior: retorna los datos si es elegible
@@ -127,7 +167,7 @@ class AuthRepository {
     return result.data;
   }
 
-  /// Valida si la cédula, teléfono o correo existe en el padrón de Profesores autorizados (perfiles o profesores)
+  /// Valida si el docente existe en el padrón de Profesores autorizados (perfiles o profesores)
   Future<Map<String, dynamic>?> checkProfesorPreRegistered({
     required String cedula,
     String? email,
@@ -138,8 +178,51 @@ class AuthRepository {
     final cleanPhone =
         telefono?.trim().replaceAll(RegExp(r'[^0-9]'), '') ?? '';
 
-    // 1. Buscar en perfiles (profesores pre-registrados en perfiles)
+    try {
+      // 1. Buscar en perfiles (profesores pre-registrados en perfiles)
+      final profile = await _findProfesorInPerfiles(
+        cleanCedula: cleanCedula,
+        numericCedula: numericCedula,
+        cleanPhone: cleanPhone,
+        email: email,
+      );
+
+      if (profile != null) {
+        final isAlreadyLinked = profile['user_id'] != null;
+        if (!isAlreadyLinked ||
+            profile['correo'] == null ||
+            (profile['correo'] as String).isEmpty) {
+          return profile;
+        }
+        return null;
+      }
+
+      // 2. Retrocompatibilidad: buscar en la tabla 'profesores'
+      return await _findProfesorInLegacyTable(
+        cleanCedula: cleanCedula,
+        numericCedula: numericCedula,
+        cleanPhone: cleanPhone,
+        email: email,
+      );
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'Error al buscar profesor pre-registrado ($cedula)',
+        tag: 'AUTH_PROFESOR',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> _findProfesorInPerfiles({
+    required String cleanCedula,
+    required String numericCedula,
+    required String cleanPhone,
+    String? email,
+  }) async {
     Map<String, dynamic>? profile;
+
     if (numericCedula.isNotEmpty) {
       profile = await _supabase
           .from('perfiles')
@@ -165,7 +248,6 @@ class AuthRepository {
           .maybeSingle();
     }
 
-    // Búsqueda por teléfono si no se localizó por cédula
     if (profile == null && cleanPhone.length >= 7) {
       profile = await _supabase
           .from('perfiles')
@@ -175,7 +257,6 @@ class AuthRepository {
           .maybeSingle();
     }
 
-    // Búsqueda por correo si fue provisto
     if (profile == null && email != null && email.trim().isNotEmpty) {
       profile = await _supabase
           .from('perfiles')
@@ -185,19 +266,17 @@ class AuthRepository {
           .maybeSingle();
     }
 
-    // Si se encuentra en perfiles y califica como registro disponible para primer ingreso
-    if (profile != null) {
-      final isAlreadyLinked = profile['user_id'] != null;
-      if (!isAlreadyLinked ||
-          profile['correo'] == null ||
-          (profile['correo'] as String).isEmpty) {
-        return profile;
-      }
-      return null;
-    }
+    return profile;
+  }
 
-    // 2. Retrocompatibilidad: buscar en la tabla 'profesores'
+  Future<Map<String, dynamic>?> _findProfesorInLegacyTable({
+    required String cleanCedula,
+    required String numericCedula,
+    required String cleanPhone,
+    String? email,
+  }) async {
     Map<String, dynamic>? res;
+
     if (numericCedula.isNotEmpty) {
       res = await _supabase
           .from('profesores')
@@ -242,7 +321,7 @@ class AuthRepository {
     return null;
   }
 
-  /// Registro de usuario con validación estricta y vinculación automática sin duplicidad
+  /// Registro de usuario con validación estricta y vinculación atómica
   Future<UserProfile> registerUser({
     required String email,
     required String password,
@@ -280,93 +359,153 @@ class AuthRepository {
       rosterId = profesorData['id'];
     }
 
-    // 1. Registro en Supabase Auth
-    // Al insertarse el usuario en auth.users, el trigger PostgreSQL handle_new_user()
-    // enlaza atómicamente el perfil existente en 'perfiles' (o 'profesores')
-    // actualizando su ID y asignando su email sin violar restricciones UNIQUE.
-    final response = await _supabase.auth.signUp(
-      email: email.trim(),
-      password: password,
-      data: {
-        'nombre_completo': nombreCompleto.trim(),
-        'cedula': cleanCedula,
-        'telefono': telefono.trim(),
-        'rol': role.toDbString(),
-      },
-    );
+    try {
+      // 1. Registro en Supabase Auth
+      final response = await _supabase.auth.signUp(
+        email: email.trim(),
+        password: password,
+        data: {
+          'nombre_completo': nombreCompleto.trim(),
+          'cedula': cleanCedula,
+          'telefono': telefono.trim(),
+          'rol': role.toDbString(),
+        },
+      );
 
-    final user = response.user;
-    if (user == null) {
-      throw Exception('No se pudo completar el registro.');
+      final user = response.user;
+      if (user == null) {
+        throw Exception('No se pudo completar el registro.');
+      }
+
+      // 2. Sincronización del perfil principal
+      await _syncUserProfile(
+        userId: user.id,
+        email: email,
+        nombreCompleto: nombreCompleto,
+        cedula: cleanCedula,
+        telefono: telefono,
+        role: role,
+      );
+
+      // 3. Vinculación complementaria de resguardo
+      await _linkAuxiliaryTables(
+        userId: user.id,
+        email: email,
+        role: role,
+        rosterId: rosterId,
+      );
+
+      AppLogger.info(
+        'Usuario registrado exitosamente: ${user.id} ($email) con rol ${role.name}',
+        tag: 'AUTH_REGISTER',
+      );
+
+      return UserProfile(
+        id: user.id,
+        email: email,
+        fullName: nombreCompleto,
+        cedula: cleanCedula,
+        telefono: telefono,
+        role: role,
+      );
+    } on AuthException catch (e) {
+      AppLogger.warning('Error de autenticación en signUp: ${e.message}', tag: 'AUTH_SIGNUP', error: e);
+      throw Exception(e.message);
+    } catch (e, stackTrace) {
+      AppLogger.error('Fallo general en registerUser', tag: 'AUTH_REGISTER', error: e, stackTrace: stackTrace);
+      rethrow;
     }
+  }
 
-    // 2. Actualización segura e idempotente sobre el perfil vinculado por el trigger
-    // Usamos update por id = user.id en vez de un insert a ciegas para evitar colisiones
+  Future<void> _syncUserProfile({
+    required String userId,
+    required String email,
+    required String nombreCompleto,
+    required String cedula,
+    required String telefono,
+    required UserRole role,
+  }) async {
     try {
       await _supabase.from('perfiles').update({
-        'user_id': user.id,
+        'user_id': userId,
         'nombre_completo': nombreCompleto.trim(),
-        'cedula': cleanCedula,
+        'cedula': cedula,
         'telefono': telefono.trim(),
         'correo': email.trim(),
         'email': email.trim(),
         'rol': role.toDbString(),
         'updated_at': DateTime.now().toUtc().toIso8601String(),
-      }).eq('id', user.id);
-    } catch (_) {
-      // El perfil ya fue generado y sincronizado de forma atómica por el trigger
+      }).eq('id', userId);
+    } catch (e) {
+      AppLogger.warning(
+        'Aviso: Sincronización de perfil atendida por trigger institucional: $e',
+        tag: 'AUTH_SYNC_PROFILE',
+      );
     }
+  }
 
-    // 3. Vinculación complementaria de resguardo para tablas auxiliares
+  Future<void> _linkAuxiliaryTables({
+    required String userId,
+    required String email,
+    required UserRole role,
+    required Object? rosterId,
+  }) async {
+    if (rosterId is! String) return;
     try {
-      if (role == UserRole.alumno && rosterId is String) {
+      if (role == UserRole.alumno) {
         await _supabase
             .from('alumnos')
-            .update({'user_id': user.id, 'correo': email.trim()})
+            .update({'user_id': userId, 'correo': email.trim()})
             .eq('id', rosterId)
             .isFilter('user_id', null);
-      } else if (role == UserRole.profesor && rosterId is String) {
+      } else if (role == UserRole.profesor) {
         await _supabase
             .from('profesores')
-            .update({'user_id': user.id, 'correo': email.trim()})
+            .update({'user_id': userId, 'correo': email.trim()})
             .eq('id', rosterId)
             .isFilter('user_id', null);
       }
-    } catch (_) {
-      // La vinculación ya fue efectuada por el trigger institucional
+    } catch (e) {
+      AppLogger.warning(
+        'Aviso: Vinculación auxiliar atendida previamente por triggers: $e',
+        tag: 'AUTH_LINK_AUX',
+      );
     }
-
-    return UserProfile(
-      id: user.id,
-      email: email,
-      fullName: nombreCompleto,
-      cedula: cleanCedula,
-      telefono: telefono,
-      role: role,
-    );
   }
 
-  /// Inicio de sesión estándar
+  /// Inicio de sesión estándar con captura segura de excepciones
   Future<UserProfile> signIn({
     required String email,
     required String password,
   }) async {
-    final response = await _supabase.auth.signInWithPassword(
-      email: email.trim(),
-      password: password,
-    );
+    try {
+      final response = await _supabase.auth.signInWithPassword(
+        email: email.trim(),
+        password: password,
+      );
 
-    final user = response.user;
-    if (user == null) {
-      throw Exception('Credenciales incorrectas');
+      final user = response.user;
+      if (user == null) {
+        throw Exception('Credenciales incorrectas');
+      }
+
+      final profile = await getCurrentProfile();
+      if (profile == null) {
+        throw Exception('Perfil de usuario no encontrado en la base de datos.');
+      }
+
+      AppLogger.info('Inicio de sesión exitoso: ${profile.email} (${profile.rol.displayName})', tag: 'AUTH_SIGNIN');
+      return profile;
+    } on AuthException catch (e) {
+      AppLogger.warning('Fallo en autenticación: ${e.message}', tag: 'AUTH_SIGNIN');
+      if (e.message.toLowerCase().contains('invalid login credentials')) {
+        throw Exception('Correo o contraseña incorrectos. Verifica tus datos.');
+      }
+      throw Exception(e.message);
+    } catch (e, stackTrace) {
+      AppLogger.error('Excepción no controlada durante signIn', tag: 'AUTH_SIGNIN', error: e, stackTrace: stackTrace);
+      rethrow;
     }
-
-    final profile = await getCurrentProfile();
-    if (profile == null) {
-      throw Exception('Perfil de usuario no encontrado en la base de datos.');
-    }
-
-    return profile;
   }
 
   /// Obtener perfil actual desde la base de datos
@@ -381,8 +520,13 @@ class AuthRepository {
           .select()
           .eq('id', user.id)
           .maybeSingle();
-    } catch (_) {
-      // Si la consulta falla temporalmente, se procede con la metadata del usuario de Auth
+    } catch (e, stackTrace) {
+      AppLogger.warning(
+        'Aviso: Falla al consultar perfiles, recurriendo a userMetadata',
+        tag: 'AUTH_PROFILE',
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
 
     if (data == null) {
@@ -402,6 +546,12 @@ class AuthRepository {
   }
 
   Future<void> signOut() async {
-    await _supabase.auth.signOut();
+    try {
+      await _supabase.auth.signOut();
+      AppLogger.info('Sesión cerrada correctamente', tag: 'AUTH_SIGNOUT');
+    } catch (e, stackTrace) {
+      AppLogger.error('Error al cerrar sesión', tag: 'AUTH_SIGNOUT', error: e, stackTrace: stackTrace);
+      rethrow;
+    }
   }
 }

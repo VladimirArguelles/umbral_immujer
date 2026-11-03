@@ -10,11 +10,16 @@ enum UserRole {
       case 'superadmin':
         return UserRole.superAdmin;
       case 'profesor':
+      case 'teacher':
         return UserRole.profesor;
       case 'coordinador':
+      case 'coordinator':
       case 'administrador':
       case 'admin':
         return UserRole.coordinador;
+      case 'alumno':
+      case 'student':
+        return UserRole.alumno;
       default:
         return UserRole.alumno;
     }
@@ -55,6 +60,14 @@ class UserProfile {
   final String? telefono;
   final UserRole role;
   final String? avatarUrl;
+
+  /// Alias de conveniencia para compatibilidad con esquemas de base de datos
+  UserRole get rol => role;
+
+  /// Helpers de autorización de roles
+  bool get isSuperAdmin => role == UserRole.superAdmin;
+  bool get isCoordinador => role == UserRole.coordinador || isSuperAdmin;
+  bool get isProfesor => role == UserRole.profesor || isCoordinador;
 
   UserProfile({
     required this.id,
