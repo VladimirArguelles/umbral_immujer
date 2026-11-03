@@ -106,7 +106,6 @@ class _ConfiguracionGeneralScreenState
       _ensureDefault('formatos_permitidos_comprobantes', ['jpg', 'jpeg', 'png', 'pdf']);
       _ensureDefault('compresion_imagenes_activa', true);
       _ensureDefault('modo_mantenimiento', false);
-      _ensureDefault('version_minima_app', '1.0.0');
       _ensureDefault('tasa_cambio_oficial', 36.50);
       _ensureDefault('dias_retencion_logs', 90);
       _ensureDefault('limite_intentos_login', 5);
@@ -143,7 +142,6 @@ class _ConfiguracionGeneralScreenState
     _setControllerText('recordatorio_pagos_dias_previos', _currentValues['recordatorio_pagos_dias_previos']?.toString() ?? '2');
     _setControllerText('plantilla_mensaje_bienvenida', _currentValues['plantilla_mensaje_bienvenida']?.toString() ?? '');
     _setControllerText('max_file_size_mb_comprobante', _currentValues['max_file_size_mb_comprobante']?.toString() ?? '5');
-    _setControllerText('version_minima_app', _currentValues['version_minima_app']?.toString() ?? '1.0.0');
     _setControllerText('tasa_cambio_oficial', _currentValues['tasa_cambio_oficial']?.toString() ?? '36.50');
     _setControllerText('dias_retencion_logs', _currentValues['dias_retencion_logs']?.toString() ?? '90');
     _setControllerText('limite_intentos_login', _currentValues['limite_intentos_login']?.toString() ?? '5');
@@ -1190,7 +1188,7 @@ class _ConfiguracionGeneralScreenState
 
     return _buildSectionCard(
       title: 'Entorno del Sistema y Mantenimiento',
-      subtitle: 'Control de disponibilidad operacional, versión mínima y tasa cambiaria',
+      subtitle: 'Control de disponibilidad operacional y tasa cambiaria oficial',
       icon: Symbols.tune,
       accentColor: cAmber,
       children: [
@@ -1203,24 +1201,6 @@ class _ConfiguracionGeneralScreenState
           value: modoMantenimiento,
           activeColor: cAmber,
           onChanged: (val) => _toggleModoMantenimiento(val),
-        ),
-        const SizedBox(height: 16),
-        _buildTextField(
-          keyName: 'version_minima_app',
-          label: 'Versión Mínima Requerida de la App',
-          helperText: 'Clientes móviles con versiones inferiores forzarán actualización.',
-          icon: Symbols.phone_android,
-          validator: (v) {
-            if (v == null || v.trim().isEmpty) return 'La versión es requerida';
-            if (!RegExp(r'^\d+\.\d+\.\d+$').hasMatch(v.trim())) {
-              return 'Formato semántico requerido: Mayor.Menor.Parche (ej: 1.0.0)';
-            }
-            return null;
-          },
-          onChanged: (val) {
-            _currentValues['version_minima_app'] = val.trim();
-            setState(() {});
-          },
         ),
         const SizedBox(height: 16),
         _buildTextField(
