@@ -352,6 +352,7 @@ class CoordinatorRepository {
               nombre
             )
           ''')
+          .eq('estado', 'activa')
           .order('fecha_clase', ascending: false);
 
       return (data as List).map((item) {

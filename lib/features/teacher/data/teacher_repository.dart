@@ -314,12 +314,24 @@ class TeacherRepository {
     } catch (_) {}
   }
 
-  /// Elimina una encuesta de participación
+  /// Elimina una encuesta de participación y sus respuestas asociadas
   Future<void> deleteSurvey(String surveyId) async {
-    await _supabase
+    try {
+      await _supabase
+          .from('respuestas_encuesta')
+          .delete()
+          .eq('encuesta_id', surveyId);
+    } catch (_) {}
+
+    final deleted = await _supabase
         .from('encuestas_participacion')
         .delete()
-        .eq('id', surveyId);
+        .eq('id', surveyId)
+        .select('id');
+
+    if ((deleted as List).isEmpty) {
+      throw Exception('No se pudo eliminar la encuesta de la base de datos (0 registros afectados).');
+    }
   }
 
   /// Checklist de recaudación para una encuesta dada
