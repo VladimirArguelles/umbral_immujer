@@ -1518,10 +1518,10 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                 children: [
                   Text(
                     'Bs. ${Formatters.currency(granTotalBs)}',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
-                      color: AppTheme.successGreen,
+                      color: AppTheme.mintNeon,
                       letterSpacing: -0.5,
                     ),
                   ),
