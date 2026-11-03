@@ -7,6 +7,7 @@ import 'package:umbral_immujer/features/superadmin/presentation/gestion_profesor
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/core/utils/formatters.dart';
+import 'package:umbral_immujer/src/core/utils/responsive.dart';
 import 'package:umbral_immujer/features/coordinator/data/coordinator_repository.dart';
 import 'package:umbral_immujer/features/coordinator/domain/coordinator_models.dart';
 import 'package:umbral_immujer/src/core/widgets/skeleton_loader.dart';
@@ -280,6 +281,8 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
     ];
 
     final isSuperAdmin = widget.profile.role == UserRole.superAdmin;
+    final isDesktopOrTablet =
+        Responsive.isTablet(context) || Responsive.isDesktop(context);
 
     return PopScope(
       canPop: _currentIndex == 0 && !isSuperAdmin,
@@ -298,108 +301,217 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
                   onPressed: _handleBackNavigation,
                 )
               : null,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              isSuperAdmin
-                  ? 'UMBRAL • Coordinación (Super Admin)'
-                  : 'UMBRAL • Coordinación General',
-              style: const TextStyle(fontSize: 16),
-            ),
-            Text(
-              _currentProfile.fullName,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.normal,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isSuperAdmin
+                    ? 'UMBRAL • Coordinación (Super Admin)'
+                    : 'UMBRAL • Coordinación General',
+                style: const TextStyle(fontSize: 16),
               ),
+              Text(
+                _currentProfile.fullName,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            _buildDropdownNav(isSuperAdmin),
+            const ThemeModeToggleButton(),
+            UserProfileAvatarButton(
+              profile: _currentProfile,
+              onProfileUpdated: (updated) =>
+                  setState(() => _currentProfile = updated),
             ),
           ],
         ),
-        actions: [
-          _buildDropdownNav(isSuperAdmin),
-          const ThemeModeToggleButton(),
-          UserProfileAvatarButton(
-            profile: _currentProfile,
-            onProfileUpdated: (updated) => setState(() => _currentProfile = updated),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          if (isSuperAdmin)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryContainer.withValues(alpha: 0.25),
-                border: const Border(
-                  bottom: BorderSide(
-                    color: AppTheme.outlineVariant,
-                    width: 0.5,
-                  ),
-                ),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.admin_panel_settings_outlined,
-                    size: 18,
-                    color: AppTheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text(
-                      'Modo Super Admin • Módulo Coordinación',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.onSurface,
-                      ),
+        body: Row(
+          children: [
+            if (isDesktopOrTablet)
+              NavigationRail(
+                selectedIndex: _currentIndex,
+                onDestinationSelected: (val) =>
+                    setState(() => _currentIndex = val),
+                labelType: NavigationRailLabelType.all,
+                backgroundColor: AppTheme.dynamicCard,
+                minWidth: 76,
+                leading: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.admin_panel_settings_rounded,
+                      color: AppTheme.primary,
+                      size: 24,
                     ),
                   ),
-                  InkWell(
-                    onTap: () => context.go('/superadmin'),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
+                ),
+                destinations: const [
+                  NavigationRailDestination(
+                    icon: Icon(Icons.dashboard_outlined),
+                    selectedIcon: Icon(Icons.dashboard_rounded),
+                    label: Text('Cursos'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.sensors_outlined),
+                    selectedIcon: Icon(Icons.sensors_rounded),
+                    label: Text('En Vivo'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.badge_outlined),
+                    selectedIcon: Icon(Icons.badge_rounded),
+                    label: Text('Profesores'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.monetization_on_outlined),
+                    selectedIcon: Icon(Icons.monetization_on_rounded),
+                    label: Text('Insumos'),
+                  ),
+                ],
+              ),
+            if (isDesktopOrTablet)
+              const VerticalDivider(
+                thickness: 1,
+                width: 1,
+                color: AppTheme.outlineVariant,
+              ),
+            Expanded(
+              child: Column(
+                children: [
+                  if (isSuperAdmin)
+                    Container(
+                      width: double.infinity,
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
+                        horizontal: 16,
+                        vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: AppTheme.primary,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.arrow_back_rounded,
-                            size: 14,
-                            color: AppTheme.onPrimary,
+                        color: AppTheme.primaryContainer.withValues(alpha: 0.25),
+                        border: const Border(
+                          bottom: BorderSide(
+                            color: AppTheme.outlineVariant,
+                            width: 0.5,
                           ),
-                          SizedBox(width: 4),
-                          Text(
-                            'Volver al Panel',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.onPrimary,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.admin_panel_settings_outlined,
+                            size: 18,
+                            color: AppTheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'Modo Super Admin • Módulo Coordinación',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.onSurface,
+                              ),
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () => context.go('/superadmin'),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primary,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.arrow_back_rounded,
+                                    size: 14,
+                                    color: AppTheme.onPrimary,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Volver al Panel',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.onPrimary,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
+                  Expanded(
+                    child: Responsive.constrainedContainer(
+                      maxWidth: 1400,
+                      child: tabs[_currentIndex],
+                    ),
                   ),
                 ],
               ),
             ),
-          Expanded(child: tabs[_currentIndex]),
-        ],
-      ),
-      bottomNavigationBar: isSuperAdmin
-          ? const SuperAdminBottomNavBar(currentIndex: 3)
-          : null,
+          ],
+        ),
+        bottomNavigationBar: !isDesktopOrTablet
+            ? (isSuperAdmin
+                ? const SuperAdminBottomNavBar(currentIndex: 3)
+                : NavigationBar(
+                    selectedIndex: _currentIndex,
+                    onDestinationSelected: (val) =>
+                        setState(() => _currentIndex = val),
+                    backgroundColor: AppTheme.dynamicCard,
+                    indicatorColor: AppTheme.primary.withValues(alpha: 0.2),
+                    destinations: const [
+                      NavigationDestination(
+                        icon: Icon(Icons.dashboard_outlined),
+                        selectedIcon: Icon(
+                          Icons.dashboard_rounded,
+                          color: AppTheme.primary,
+                        ),
+                        label: 'Cursos',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.sensors_outlined),
+                        selectedIcon: Icon(
+                          Icons.sensors_rounded,
+                          color: AppTheme.primary,
+                        ),
+                        label: 'En Vivo',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.badge_outlined),
+                        selectedIcon: Icon(
+                          Icons.badge_rounded,
+                          color: AppTheme.primary,
+                        ),
+                        label: 'Profesores',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.monetization_on_outlined),
+                        selectedIcon: Icon(
+                          Icons.monetization_on_rounded,
+                          color: AppTheme.primary,
+                        ),
+                        label: 'Insumos',
+                      ),
+                    ],
+                  ))
+            : null,
       ),
     );
   }
@@ -1172,38 +1284,54 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
               const SizedBox(height: 16),
 
               // KPI CARDS
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildMetricCard(
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompact = constraints.maxWidth < 420;
+                  final cards = [
+                    _buildMetricCard(
                       title: 'Cursos Activos',
                       value: '${cursos.length}',
                       subtitle: '$cursosOperandoHoy activos hoy',
                       icon: Icons.calendar_today_rounded,
                       color: AppTheme.primary,
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _buildMetricCard(
+                    _buildMetricCard(
                       title: '% Asistencia',
                       value: '${asistenciaPromedio.toStringAsFixed(1)}%',
                       subtitle: '$totalPresentes presentes',
                       icon: Icons.pie_chart_rounded,
                       color: AppTheme.successGreen,
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _buildMetricCard(
+                    _buildMetricCard(
                       title: 'Ausencias Hoy',
                       value: '$totalAusencias',
                       subtitle: totalAusencias > 0 ? 'Alerta activa' : 'Sin faltas',
                       icon: Icons.warning_amber_rounded,
                       color: totalAusencias > 0 ? AppTheme.errorRed : AppTheme.outlineVariant,
                     ),
-                  ),
-                ],
+                  ];
+
+                  if (isCompact) {
+                    return Column(
+                      children: cards
+                          .map((card) => Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: card,
+                              ))
+                          .toList(),
+                    );
+                  }
+
+                  return Row(
+                    children: [
+                      Expanded(child: cards[0]),
+                      const SizedBox(width: 10),
+                      Expanded(child: cards[1]),
+                      const SizedBox(width: 10),
+                      Expanded(child: cards[2]),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 16),
 
@@ -1239,163 +1367,28 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                   ),
                 )
               else
-                ...cursos.map((c) {
-                  final isActiveNow = _isCourseActiveNow(c.horario);
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(
-                        color: c.ausenciasHoy > 0
-                            ? AppTheme.errorRed.withValues(alpha: 0.5)
-                            : AppTheme.dynamicBorder,
-                        width: c.ausenciasHoy > 0 ? 1.5 : 1,
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: isActiveNow
-                                      ? AppTheme.successGreen.withValues(alpha: 0.2)
-                                      : AppTheme.primaryContainer.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      isActiveNow ? Icons.sensors_rounded : Icons.calendar_month_rounded,
-                                      size: 14,
-                                      color: isActiveNow ? AppTheme.successGreen : AppTheme.primary,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      isActiveNow ? 'EN CURSO HOY' : 'PROGRAMADO',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: isActiveNow ? AppTheme.successGreen : AppTheme.primary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            c.nombre,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.dynamicText,
-                            ),
-                          ),
-                          if (c.horario != null && c.horario!.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                const Icon(Icons.schedule, size: 14, color: AppTheme.secondary),
-                                const SizedBox(width: 6),
-                                Text(
-                                  c.horario!,
-                                  style: TextStyle(fontSize: 13, color: AppTheme.dynamicTextMuted),
-                                ),
-                              ],
-                            ),
-                          ],
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              const Icon(Icons.person_pin, size: 16, color: AppTheme.primary),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  'Docente: ${c.profesorNombre ?? "Sin asignar"}',
-                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          // Alerta de Ausencias
-                          if (c.ausenciasHoy > 0) ...[
-                            const SizedBox(height: 10),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: AppTheme.errorRed.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: AppTheme.errorRed.withValues(alpha: 0.4)),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.warning_amber_rounded, size: 16, color: AppTheme.errorRed),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '${c.ausenciasHoy} alumno(s) ausente(s) registrados hoy',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.errorRed,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-
-                          const SizedBox(height: 12),
-                          // Barra de Asistencia
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(4),
-                                  child: LinearProgressIndicator(
-                                    value: (c.porcentajeAsistencia / 100).clamp(0.0, 1.0),
-                                    backgroundColor: AppTheme.surfaceContainerHighest,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      c.porcentajeAsistencia >= 80 ? AppTheme.successGreen : AppTheme.primary,
-                                    ),
-                                    minHeight: 6,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                '${c.porcentajeAsistencia.toStringAsFixed(0)}% Asistencia',
-                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                          const Divider(height: 24),
-
-                          // Botón Plantilla Alumnos y Temas
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton.icon(
-                              icon: const Icon(Icons.menu_book_rounded, size: 18),
-                              label: const Text('Plantilla Alumnos y Temas del Curso'),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                side: const BorderSide(color: AppTheme.primary),
-                              ),
-                              onPressed: () => _abrirPlantillaAlumnosYTemas(c),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (constraints.maxWidth >= 720) {
+                      return GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: constraints.maxWidth >= 1050 ? 3 : 2,
+                          crossAxisSpacing: 14,
+                          mainAxisSpacing: 14,
+                          mainAxisExtent: 310,
+                        ),
+                        itemCount: cursos.length,
+                        itemBuilder: (context, index) =>
+                            _buildCourseCard(cursos[index]),
+                      );
+                    }
+                    return Column(
+                      children: cursos.map((c) => _buildCourseCard(c)).toList(),
+                    );
+                  },
+                ),
 
               const SizedBox(height: 24),
 
@@ -1512,20 +1505,25 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                 ],
               ),
               const SizedBox(height: 14),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 12,
+                runSpacing: 8,
                 children: [
-                  Text(
-                    'Bs. ${Formatters.currency(granTotalBs)}',
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      color: AppTheme.mintNeon,
-                      letterSpacing: -0.5,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Bs. ${Formatters.currency(granTotalBs)}',
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: AppTheme.mintNeon,
+                        letterSpacing: -0.5,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 10),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
@@ -1577,6 +1575,196 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
     );
   }
 
+  Widget _buildCourseCard(CourseDashboardItem c) {
+    final isActiveNow = _isCourseActiveNow(c.horario);
+    return Card(
+      margin: const EdgeInsets.only(bottom: 14),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: c.ausenciasHoy > 0
+              ? AppTheme.errorRed.withValues(alpha: 0.5)
+              : AppTheme.dynamicBorder,
+          width: c.ausenciasHoy > 0 ? 1.5 : 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isActiveNow
+                        ? AppTheme.successGreen.withValues(alpha: 0.2)
+                        : AppTheme.primaryContainer.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isActiveNow
+                            ? Icons.sensors_rounded
+                            : Icons.calendar_month_rounded,
+                        size: 14,
+                        color: isActiveNow
+                            ? AppTheme.successGreen
+                            : AppTheme.primary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isActiveNow ? 'EN CURSO HOY' : 'PROGRAMADO',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: isActiveNow
+                              ? AppTheme.successGreen
+                              : AppTheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              c.nombre,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.dynamicText,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (c.horario != null && c.horario!.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(Icons.schedule,
+                      size: 14, color: AppTheme.secondary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      c.horario!,
+                      style: TextStyle(
+                          fontSize: 12.5, color: AppTheme.dynamicTextMuted),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.person_pin, size: 16, color: AppTheme.primary),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Docente: ${c.profesorNombre ?? "Sin asignar"}',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 13),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+
+            // Alerta de Ausencias
+            if (c.ausenciasHoy > 0) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppTheme.errorRed.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                      color: AppTheme.errorRed.withValues(alpha: 0.4)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded,
+                        size: 16, color: AppTheme.errorRed),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${c.ausenciasHoy} alumno(s) ausente(s) registrados hoy',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.errorRed,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 12),
+            // Barra de Asistencia
+            Row(
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: (c.porcentajeAsistencia / 100).clamp(0.0, 1.0),
+                      backgroundColor: AppTheme.surfaceContainerHighest,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        c.porcentajeAsistencia >= 80
+                            ? AppTheme.successGreen
+                            : AppTheme.primary,
+                      ),
+                      minHeight: 6,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  '${c.porcentajeAsistencia.toStringAsFixed(0)}% Asistencia',
+                  style: const TextStyle(
+                      fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const Divider(height: 20),
+
+            // Botón Plantilla Alumnos y Temas
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.menu_book_rounded, size: 16),
+                label: const FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text('Plantilla Alumnos y Temas'),
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  side: const BorderSide(color: AppTheme.primary),
+                ),
+                onPressed: () => _abrirPlantillaAlumnosYTemas(c),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildMetricCard({
     required String title,
     required String value,
@@ -1593,25 +1781,42 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: TextStyle(fontSize: 11, color: AppTheme.dynamicTextMuted)),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(fontSize: 11, color: AppTheme.dynamicTextMuted),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               Icon(icon, size: 16, color: color),
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            value,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: color,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
           ),
           const SizedBox(height: 4),
-          Text(subtitle, style: TextStyle(fontSize: 10, color: AppTheme.dynamicTextMuted)),
+          Text(
+            subtitle,
+            style: TextStyle(fontSize: 10, color: AppTheme.dynamicTextMuted),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );
@@ -1678,8 +1883,11 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                     const SizedBox(height: 4),
                     Text('Alumnos Confirmados: ${a.totalConfirmados}', style: const TextStyle(fontSize: 12)),
                     const Divider(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 10,
+                      runSpacing: 6,
                       children: [
                         Text(
                           'Cuota por Alumno: Bs. ${Formatters.currency(a.cuotaBs)}',
@@ -1689,12 +1897,15 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                             color: AppTheme.successGreen,
                           ),
                         ),
-                        Text(
-                          'Total: Bs. ${Formatters.currency(a.totalAporteBs)}',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.successGreen,
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Total: Bs. ${Formatters.currency(a.totalAporteBs)}',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.successGreen,
+                            ),
                           ),
                         ),
                       ],
@@ -2099,6 +2310,138 @@ class _AuditoriaInsumosTab extends StatelessWidget {
   final CoordinatorRepository coordinatorRepository;
   const _AuditoriaInsumosTab({required this.coordinatorRepository});
 
+  Widget _buildAuditCard(SurveyAudit e) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: AppTheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    e.cursoNombre,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppTheme.secondaryContainer,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'Clase: ${e.fechaClase}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                Expanded(
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Presupuesto Total',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppTheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          Formatters.currency(e.costoTotal),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Confirmados',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppTheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          '${e.totalConfirmados}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Cuota por Alumno',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppTheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          Formatters.currency(e.montoIndividual),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.successGreen,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<SurveyAudit>>(
@@ -2114,103 +2457,30 @@ class _AuditoriaInsumosTab extends StatelessWidget {
           );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: encuestas.length,
-          itemBuilder: (context, idx) {
-            final e = encuestas[idx];
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            e.cursoNombre,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          'Fecha: ${e.fechaClase}',
-                          style: const TextStyle(
-                            color: AppTheme.onSurfaceVariant,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        Column(
-                          children: [
-                            const Text(
-                              'Presupuesto Total',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: AppTheme.onSurfaceVariant,
-                              ),
-                            ),
-                            Text(
-                              Formatters.currency(e.costoTotal),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Column(
-                          children: [
-                            const Text(
-                              'Confirmados',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: AppTheme.onSurfaceVariant,
-                              ),
-                            ),
-                            Text(
-                              '${e.totalConfirmados}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Column(
-                          children: [
-                            const Text(
-                              'Cuota por Alumno',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: AppTheme.onSurfaceVariant,
-                              ),
-                            ),
-                            Text(
-                              Formatters.currency(e.montoIndividual),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.successGreen,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
+        return Responsive.constrainedContainer(
+          maxWidth: 1200,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth >= Responsive.tabletBreakpoint) {
+                return GridView.builder(
+                  padding: Responsive.screenPadding(context),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 14,
+                    mainAxisSpacing: 14,
+                    mainAxisExtent: 140,
+                  ),
+                  itemCount: encuestas.length,
+                  itemBuilder: (context, idx) => _buildAuditCard(encuestas[idx]),
+                );
+              }
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: encuestas.length,
+                itemBuilder: (context, idx) => _buildAuditCard(encuestas[idx]),
+              );
+            },
+          ),
         );
       },
     );

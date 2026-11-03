@@ -7,6 +7,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
+import 'package:umbral_immujer/src/core/utils/responsive.dart';
 import 'package:umbral_immujer/src/core/widgets/skeleton_loader.dart';
 import 'package:umbral_immujer/src/core/widgets/super_admin_nav_bar.dart';
 
@@ -484,26 +485,69 @@ class _ConfiguracionGeneralScreenState
                   )
                 : Form(
                     key: _formKey,
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 1040),
-                        child: ListView(
-                          padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
-                          children: [
-                            if (modifiedCount > 0) _buildPendingChangesBanner(modifiedCount),
-                            _buildBcvQuickHeaderCard(),
-                            _buildAcademicSection(),
-                            const SizedBox(height: 20),
-                            _buildAutomationSection(),
-                            const SizedBox(height: 20),
-                            _buildStorageSection(),
-                            const SizedBox(height: 20),
-                            _buildEnvironmentSection(),
-                            const SizedBox(height: 20),
-                            _buildSecuritySection(),
-                            const SizedBox(height: 20),
-                          ],
-                        ),
+                    child: Responsive.constrainedContainer(
+                      maxWidth: 1200,
+                      child: ResponsiveBuilder(
+                        builder: (context, screenType, constraints) {
+                          final isMultiCol = screenType != ScreenType.mobile;
+                          final padding = Responsive.screenPadding(context);
+
+                          if (isMultiCol) {
+                            return ListView(
+                              padding: EdgeInsets.fromLTRB(padding.left, 20, padding.right, 100),
+                              children: [
+                                if (modifiedCount > 0) _buildPendingChangesBanner(modifiedCount),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Columna Izquierda: Parámetros Académicos y Archivos
+                                    Expanded(
+                                      child: Column(
+                                        children: [
+                                          _buildBcvQuickHeaderCard(),
+                                          _buildAcademicSection(),
+                                          const SizedBox(height: 20),
+                                          _buildStorageSection(),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 20),
+                                    // Columna Derecha: Automatización, Sistema y Seguridad
+                                    Expanded(
+                                      child: Column(
+                                        children: [
+                                          _buildAutomationSection(),
+                                          const SizedBox(height: 20),
+                                          _buildEnvironmentSection(),
+                                          const SizedBox(height: 20),
+                                          _buildSecuritySection(),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            );
+                          }
+
+                          return ListView(
+                            padding: EdgeInsets.fromLTRB(padding.left, 20, padding.right, 100),
+                            children: [
+                              if (modifiedCount > 0) _buildPendingChangesBanner(modifiedCount),
+                              _buildBcvQuickHeaderCard(),
+                              _buildAcademicSection(),
+                              const SizedBox(height: 20),
+                              _buildAutomationSection(),
+                              const SizedBox(height: 20),
+                              _buildStorageSection(),
+                              const SizedBox(height: 20),
+                              _buildEnvironmentSection(),
+                              const SizedBox(height: 20),
+                              _buildSecuritySection(),
+                              const SizedBox(height: 20),
+                            ],
+                          );
+                        },
                       ),
                     ),
                   ),
@@ -673,76 +717,116 @@ class _ConfiguracionGeneralScreenState
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: cEmerald.withAlpha(30),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(Symbols.price_check, color: cEmerald, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      'Tasa Oficial BCV: ',
-                      style: GoogleFonts.plusJakartaSans(
-                        color: cTextMuted,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 420;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: cEmerald.withAlpha(30),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    Text(
-                      'Bs. $tasaStr / USD',
-                      style: GoogleFonts.plusJakartaSans(
-                        color: cEmerald,
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w800,
+                    child: const Icon(Symbols.price_check, color: cEmerald, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 2,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          'Tasa Oficial BCV:',
+                          style: GoogleFonts.plusJakartaSans(
+                            color: cTextMuted,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Bs. $tasaStr / USD',
+                            style: GoogleFonts.plusJakartaSans(
+                              color: cEmerald,
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (!isNarrow) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: cEmerald.withAlpha(20),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: cEmerald.withAlpha(60)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Symbols.schedule, size: 14, color: cEmerald),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Automática',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 11,
+                              color: cEmerald,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Sincronización automatizada diaria activa a las 9:00 AM (Caracas).',
+                style: GoogleFonts.plusJakartaSans(
+                  color: cTextDim,
+                  fontSize: 11,
                 ),
-                Text(
-                  'Sincronización automatizada diaria activa a las 9:00 AM (Caracas).',
-                  style: GoogleFonts.plusJakartaSans(
-                    color: cTextDim,
-                    fontSize: 11,
+              ),
+              if (isNarrow) ...[
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: cEmerald.withAlpha(20),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: cEmerald.withAlpha(60)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Symbols.schedule, size: 12, color: cEmerald),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Sincronización Automática',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 10.5,
+                          color: cEmerald,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: cEmerald.withAlpha(20),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: cEmerald.withAlpha(60)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Symbols.schedule, size: 14, color: cEmerald),
-                const SizedBox(width: 4),
-                Text(
-                  'Automática',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 11,
-                    color: cEmerald,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
