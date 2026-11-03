@@ -1521,7 +1521,7 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
-                      color: AppTheme.primary,
+                      color: AppTheme.successGreen,
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -1537,7 +1537,7 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.onSecondaryContainer,
+                        color: AppTheme.successGreen,
                       ),
                     ),
                   ),
@@ -1560,7 +1560,11 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                       ),
                       child: Text(
                         '${a.cursoNombre}: Bs. ${Formatters.currency(a.totalAporteBs)}',
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.successGreen,
+                        ),
                       ),
                     );
                   }).toList(),
@@ -1679,14 +1683,18 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                       children: [
                         Text(
                           'Cuota por Alumno: Bs. ${Formatters.currency(a.cuotaBs)}',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.successGreen,
+                          ),
                         ),
                         Text(
                           'Total: Bs. ${Formatters.currency(a.totalAporteBs)}',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.primary,
+                            color: AppTheme.successGreen,
                           ),
                         ),
                       ],
@@ -2191,7 +2199,7 @@ class _AuditoriaInsumosTab extends StatelessWidget {
                               Formatters.currency(e.montoIndividual),
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: AppTheme.secondary,
+                                color: AppTheme.successGreen,
                               ),
                             ),
                           ],

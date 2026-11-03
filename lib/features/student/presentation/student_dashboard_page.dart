@@ -3115,7 +3115,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                 style: const TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.bold,
-                                  color: AppTheme.secondary,
+                                  color: AppTheme.successGreen,
                                 ),
                               ),
                             ],
@@ -3433,7 +3433,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                                   style: const TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w900,
-                                    color: AppTheme.secondary,
+                                    color: AppTheme.successGreen,
                                   ),
                                 ),
                               ],

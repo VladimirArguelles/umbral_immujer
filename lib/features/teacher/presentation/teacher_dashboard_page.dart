@@ -1769,7 +1769,25 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
                                       ],
                                     ),
                                     const SizedBox(height: 4),
-                                    Text('Cédula: ${item.cedula} • Cuota: Bs. ${item.monto.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11.5, color: AppTheme.onSurfaceVariant)),
+                                    Text.rich(
+                                      TextSpan(
+                                        style: const TextStyle(
+                                          fontSize: 11.5,
+                                          color: AppTheme.onSurfaceVariant,
+                                        ),
+                                        children: [
+                                          TextSpan(
+                                            text: 'Cédula: ${item.cedula} • Cuota: Bs. ',
+                                          ),
+                                          TextSpan(
+                                            text: item.monto.toStringAsFixed(2),
+                                            style: const TextStyle(
+                                              color: AppTheme.successGreen,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                     if (item.comprobanteUrl != null) ...[
                                       const SizedBox(height: 8),
                                       Row(
@@ -2126,7 +2144,7 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
               if (survey.totalConfirmados > 0)
                 Text(
                   '~ \$${survey.montoIndividualCalculado.toStringAsFixed(2)} USD por alumno',
-                  style: const TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant),
+                  style: const TextStyle(fontSize: 12, color: AppTheme.successGreen),
                 ),
               const SizedBox(height: 10),
 
@@ -2292,7 +2310,21 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
               const SizedBox(height: 8),
               Text('Práctica: $fechaClaseStr • Presupuesto: \$${survey.costoTotalInsumos.toStringAsFixed(2)} USD', style: const TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant)),
               const SizedBox(height: 4),
-              Text('Confirmados: ${survey.totalConfirmados} alumnos • Cuota final: \$${survey.montoIndividualCalculado.toStringAsFixed(2)} USD', style: const TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant)),
+              Text.rich(
+                TextSpan(
+                  style: const TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant),
+                  children: [
+                    TextSpan(
+                      text: 'Confirmados: ${survey.totalConfirmados} alumnos • Cuota final: \$',
+                    ),
+                    TextSpan(
+                      text: survey.montoIndividualCalculado.toStringAsFixed(2),
+                      style: const TextStyle(color: AppTheme.successGreen),
+                    ),
+                    const TextSpan(text: ' USD'),
+                  ],
+                ),
+              ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
                 icon: const Icon(Icons.receipt_long_rounded, size: 16),
@@ -2527,7 +2559,7 @@ class _AuditoriaRecaudacionTabState extends State<_AuditoriaRecaudacionTab> {
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
-                                    color: AppTheme.secondary,
+                                    color: AppTheme.successGreen,
                                   ),
                                 ),
                               ],
