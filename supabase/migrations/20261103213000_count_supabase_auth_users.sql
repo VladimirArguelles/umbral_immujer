@@ -1,22 +1,12 @@
 CREATE OR REPLACE FUNCTION public.count_authenticated_users()
 RETURNS bigint
-LANGUAGE plpgsql
+LANGUAGE sql
 STABLE
 SECURITY DEFINER
-SET search_path = ''
+SET search_path = public, auth
 AS $$
-BEGIN
-    IF NOT public.is_super_admin() THEN
-        RAISE EXCEPTION 'Solo Super Admin puede consultar esta métrica.'
-            USING ERRCODE = '42501';
-    END IF;
-
-    RETURN (
-        SELECT COUNT(*)
-        FROM auth.users AS auth_user
-    );
-END;
+    SELECT count(*) FROM auth.users;
 $$;
 
 REVOKE ALL ON FUNCTION public.count_authenticated_users() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.count_authenticated_users() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.count_authenticated_users() TO anon, authenticated, service_role;

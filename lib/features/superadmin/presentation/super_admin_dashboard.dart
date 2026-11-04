@@ -48,12 +48,10 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
   int? _totalProfesores;
   int? _totalCoordinadores;
   int? _totalUsuarios;
-  int? _onlineUsers;
   int? _totalAsistencias;
   int? _totalPresentes;
   bool _isLoadingMetrics = true;
   Object? _metricsError;
-  StreamSubscription<int?>? _onlineUsersSubscription;
 
   // Ajustes de configuración
   String _platformName = 'UMBRAL IMMUJER';
@@ -77,21 +75,11 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
   @override
   void initState() {
     super.initState();
-    final presenceService = OnlineUserPresenceService.instance;
-    _onlineUsers = presenceService.onlineUserCount;
-    _onlineUsersSubscription = presenceService.onlineUserCountStream.listen((
-      count,
-    ) {
-      if (mounted && _onlineUsers != count) {
-        setState(() => _onlineUsers = count);
-      }
-    });
     _loadMetrics();
   }
 
   @override
   void dispose() {
-    unawaited(_onlineUsersSubscription?.cancel());
     super.dispose();
   }
 
@@ -847,19 +835,27 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                 ),
               ),
               const SizedBox(height: 4),
-              RichText(
-                text: TextSpan(
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: cTextMuted,
+              Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                children: [
+                  RichText(
+                    text: TextSpan(
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: cTextMuted,
+                      ),
+                      children: const [
+                        TextSpan(text: 'Sede Central '),
+                        TextSpan(text: '• ', style: TextStyle(color: cTextDim)),
+                        TextSpan(text: 'Telemetría global en vivo'),
+                      ],
+                    ),
                   ),
-                  children: const [
-                    TextSpan(text: 'Sede Central '),
-                    TextSpan(text: '• ', style: TextStyle(color: cTextDim)),
-                    TextSpan(text: 'Telemetría global en vivo'),
-                  ],
-                ),
+                  const Text('•', style: TextStyle(color: cTextDim)),
+                  _buildOnlineUsersStreamText(fontSize: 12),
+                ],
               ),
             ],
           ),
@@ -933,23 +929,28 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionLabel('MÉTRICAS GENERALES'),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _buildSectionLabel('MÉTRICAS GENERALES'),
+            _buildOnlineUsersStreamText(),
+          ],
+        ),
         const SizedBox(height: 14),
         LayoutBuilder(
           builder: (context, constraints) {
-            final cardWidth = (constraints.maxWidth - 32) / 3;
+            final columns = constraints.maxWidth >= 1050 ? 4 : 2;
+            final spacing = 16.0;
+            final cardWidth =
+                (constraints.maxWidth - spacing * (columns - 1)) / columns;
             return Wrap(
-              spacing: 16,
-              runSpacing: 16,
+              spacing: spacing,
+              runSpacing: spacing,
               children: [
                 SizedBox(width: cardWidth, child: _buildMetricCardUsers()),
                 SizedBox(width: cardWidth, child: _buildMetricCardCourses()),
                 SizedBox(width: cardWidth, child: _buildMetricCardAttendance()),
                 SizedBox(width: cardWidth, child: _buildMetricCardRevenue()),
-                SizedBox(
-                  width: cardWidth,
-                  child: _buildMetricCardOnlineUsers(),
-                ),
               ],
             );
           },
@@ -1267,30 +1268,14 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             _buildSectionLabel('MÉTRICAS GENERALES'),
-            Tooltip(
-              message: _metricsError == null
-                  ? 'Las métricas se consultan desde Supabase.'
-                  : 'Error al cargar las métricas: $_metricsError',
-              child: Text(
-                _isLoadingMetrics
-                    ? 'Consultando…'
-                    : _metricsError == null
-                    ? 'Consulta completada'
-                    : 'Datos no disponibles',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: _metricsError == null ? cTextMuted : AppTheme.errorRed,
-                ),
-              ),
-            ),
+            _buildOnlineUsersStreamText(fontSize: 11),
           ],
         ),
         const SizedBox(height: 12),
 
         LayoutBuilder(
           builder: (context, constraints) {
-            final columns = isTablet ? 3 : 2;
+            final columns = isTablet ? 4 : 2;
             final spacing = 12.0;
             final cardWidth =
                 (constraints.maxWidth - spacing * (columns - 1)) / columns;
@@ -1302,10 +1287,6 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                 SizedBox(width: cardWidth, child: _buildMetricCardCourses()),
                 SizedBox(width: cardWidth, child: _buildMetricCardAttendance()),
                 SizedBox(width: cardWidth, child: _buildMetricCardRevenue()),
-                SizedBox(
-                  width: cardWidth,
-                  child: _buildMetricCardOnlineUsers(),
-                ),
               ],
             );
           },
@@ -1473,7 +1454,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           ),
           const Spacer(),
           Text(
-            'Cuentas registradas en Supabase Auth',
+            'Usuarios autenticados en Supabase',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 10.5,
               fontWeight: FontWeight.w600,
@@ -1486,71 +1467,48 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     );
   }
 
-  Widget _buildMetricCardOnlineUsers() {
-    final onlineUsers = _onlineUsers;
-    return Container(
-      height: 132,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: cCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cBorder.withValues(alpha: 0.7)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x59000000),
-            blurRadius: 14,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Flexible(
-                child: Text(
-                  'Usuarios en línea',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    color: cTextMuted,
+  // Stream en vivo: Usuarios en línea en texto amarillo
+  Widget _buildOnlineUsersStreamText({double fontSize = 12}) {
+    return StreamBuilder<int?>(
+      stream: OnlineUserPresenceService.instance.onlineUserCountStream,
+      initialData: OnlineUserPresenceService.instance.onlineUserCount,
+      builder: (context, snapshot) {
+        final count = snapshot.data;
+        final text = count == null
+            ? 'Usuarios en línea: —'
+            : count == 1
+                ? '1 usuario en línea'
+                : '$count usuarios en línea';
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 7,
+              height: 7,
+              decoration: const BoxDecoration(
+                color: Color(0xFFFACC15),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x66FACC15),
+                    blurRadius: 6,
+                    spreadRadius: 1,
                   ),
-                  overflow: TextOverflow.ellipsis,
-                ),
+                ],
               ),
-              Icon(
-                Symbols.group,
-                size: 16,
-                color: onlineUsers == null ? cTextMuted : cMintBright,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              text,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: fontSize,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFFFACC15),
               ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            onlineUsers == null ? '—' : _formatMetric(onlineUsers),
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              color: cTextMain,
             ),
-          ),
-          const Spacer(),
-          Text(
-            onlineUsers == null
-                ? 'Presencia no disponible'
-                : 'En línea: ${_formatMetric(onlineUsers)} '
-                      '${onlineUsers == 1 ? 'usuario' : 'usuarios'}',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w600,
-              color: cTextMuted,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
+          ],
+        );
+      },
     );
   }
 
