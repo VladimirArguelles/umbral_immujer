@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'core/router/app_router.dart';
 import 'src/core/config/supabase_config.dart';
+import 'src/core/services/online_user_presence_service.dart';
 import 'src/core/theme/app_theme.dart';
 
 Future<void> main() async {
@@ -9,6 +10,7 @@ Future<void> main() async {
 
   // Inicializa Supabase con valores de compilación recibidos mediante --dart-define.
   await SupabaseConfig.initialize();
+  await OnlineUserPresenceService.instance.initialize(SupabaseConfig.client);
 
   // Inicializa y recupera la preferencia de tema guardada (claro/oscuro).
   await ThemeController.initialize();

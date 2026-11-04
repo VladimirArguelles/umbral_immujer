@@ -1,11 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
+import 'package:umbral_immujer/src/core/services/online_user_presence_service.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/core/widgets/super_admin_nav_bar.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
+
 import 'gestion_alumnos_page.dart';
 import 'gestion_cursos_page.dart';
 import 'gestion_profesores_page.dart';
@@ -44,10 +48,12 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
   int? _totalProfesores;
   int? _totalCoordinadores;
   int? _totalUsuarios;
+  int? _onlineUsers;
   int? _totalAsistencias;
   int? _totalPresentes;
   bool _isLoadingMetrics = true;
   Object? _metricsError;
+  StreamSubscription<int?>? _onlineUsersSubscription;
 
   // Ajustes de configuración
   String _platformName = 'UMBRAL IMMUJER';
@@ -71,42 +77,57 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
   @override
   void initState() {
     super.initState();
+    final presenceService = OnlineUserPresenceService.instance;
+    _onlineUsers = presenceService.onlineUserCount;
+    _onlineUsersSubscription = presenceService.onlineUserCountStream.listen((
+      count,
+    ) {
+      if (mounted && _onlineUsers != count) {
+        setState(() => _onlineUsers = count);
+      }
+    });
     _loadMetrics();
+  }
+
+  @override
+  void dispose() {
+    unawaited(_onlineUsersSubscription?.cancel());
+    super.dispose();
   }
 
   Future<void> _loadMetrics() async {
     try {
       final client = SupabaseConfig.client;
 
+      Object? authenticatedUsersError;
+      final authenticatedUsersFuture = client
+          .rpc<int>('count_authenticated_users')
+          .then<int?>((count) => count)
+          .catchError((Object error) {
+            authenticatedUsersError = error;
+            return null;
+          });
       final futures = await Future.wait([
         client.from('alumnos').select('id').count(),
         client.from('cursos').select('id').eq('estado', 'activo').count(),
-        client
-            .from('perfiles')
-            .select('id')
-            .eq('rol', 'profesor')
-            .count(),
-        client.from('perfiles').select('id').count(),
+        client.from('perfiles').select('id').eq('rol', 'profesor').count(),
         client.from('perfiles').select('id').eq('rol', 'coordinador').count(),
         client.from('asistencia').select('id').count(),
-        client
-            .from('asistencia')
-            .select('id')
-            .eq('estado', 'Presente')
-            .count(),
+        client.from('asistencia').select('id').eq('estado', 'Presente').count(),
       ]);
+      final authenticatedUsers = await authenticatedUsersFuture;
 
       if (mounted) {
         setState(() {
           _totalAlumnos = futures[0].count;
           _totalCursos = futures[1].count;
           _totalProfesores = futures[2].count;
-          _totalUsuarios = futures[3].count;
-          _totalCoordinadores = futures[4].count;
-          _totalAsistencias = futures[5].count;
-          _totalPresentes = futures[6].count;
+          _totalUsuarios = authenticatedUsers;
+          _totalCoordinadores = futures[3].count;
+          _totalAsistencias = futures[4].count;
+          _totalPresentes = futures[5].count;
           _isLoadingMetrics = false;
-          _metricsError = null;
+          _metricsError = authenticatedUsersError;
         });
       }
     } catch (error) {
@@ -907,23 +928,31 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     );
   }
 
-  // ── Grid de métricas escritorio (4 columnas) ──────────────────────────────
+  // ── Grid de métricas escritorio ────────────────────────────────────────────
   Widget _buildDesktopMetricsGrid() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionLabel('MÉTRICAS GENERALES'),
         const SizedBox(height: 14),
-        Row(
-          children: [
-            Expanded(child: _buildMetricCardUsers()),
-            const SizedBox(width: 16),
-            Expanded(child: _buildMetricCardCourses()),
-            const SizedBox(width: 16),
-            Expanded(child: _buildMetricCardAttendance()),
-            const SizedBox(width: 16),
-            Expanded(child: _buildMetricCardRevenue()),
-          ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final cardWidth = (constraints.maxWidth - 32) / 3;
+            return Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              children: [
+                SizedBox(width: cardWidth, child: _buildMetricCardUsers()),
+                SizedBox(width: cardWidth, child: _buildMetricCardCourses()),
+                SizedBox(width: cardWidth, child: _buildMetricCardAttendance()),
+                SizedBox(width: cardWidth, child: _buildMetricCardRevenue()),
+                SizedBox(
+                  width: cardWidth,
+                  child: _buildMetricCardOnlineUsers(),
+                ),
+              ],
+            );
+          },
         ),
       ],
     );
@@ -1259,36 +1288,28 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
         ),
         const SizedBox(height: 12),
 
-        // En tablet: grid 4 columnas; en mobile: grid 2x2
-        if (isTablet)
-          Row(
-            children: [
-              Expanded(child: _buildMetricCardUsers()),
-              const SizedBox(width: 12),
-              Expanded(child: _buildMetricCardCourses()),
-              const SizedBox(width: 12),
-              Expanded(child: _buildMetricCardAttendance()),
-              const SizedBox(width: 12),
-              Expanded(child: _buildMetricCardRevenue()),
-            ],
-          )
-        else ...[
-          Row(
-            children: [
-              Expanded(child: _buildMetricCardUsers()),
-              const SizedBox(width: 12),
-              Expanded(child: _buildMetricCardCourses()),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: _buildMetricCardAttendance()),
-              const SizedBox(width: 12),
-              Expanded(child: _buildMetricCardRevenue()),
-            ],
-          ),
-        ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final columns = isTablet ? 3 : 2;
+            final spacing = 12.0;
+            final cardWidth =
+                (constraints.maxWidth - spacing * (columns - 1)) / columns;
+            return Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: [
+                SizedBox(width: cardWidth, child: _buildMetricCardUsers()),
+                SizedBox(width: cardWidth, child: _buildMetricCardCourses()),
+                SizedBox(width: cardWidth, child: _buildMetricCardAttendance()),
+                SizedBox(width: cardWidth, child: _buildMetricCardRevenue()),
+                SizedBox(
+                  width: cardWidth,
+                  child: _buildMetricCardOnlineUsers(),
+                ),
+              ],
+            );
+          },
+        ),
       ],
     );
   }
@@ -1452,7 +1473,74 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           ),
           const Spacer(),
           Text(
-            'Perfiles registrados en la plataforma',
+            'Usuarios con registro y sesión iniciada',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+              color: cTextMuted,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetricCardOnlineUsers() {
+    final onlineUsers = _onlineUsers;
+    return Container(
+      height: 132,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cBorder.withValues(alpha: 0.7)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x59000000),
+            blurRadius: 14,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Text(
+                  'Usuarios en línea',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: cTextMuted,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Icon(
+                Symbols.group,
+                size: 16,
+                color: onlineUsers == null ? cTextMuted : cMintBright,
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            onlineUsers == null ? '—' : _formatMetric(onlineUsers),
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: cTextMain,
+            ),
+          ),
+          const Spacer(),
+          Text(
+            onlineUsers == null
+                ? 'Presencia no disponible'
+                : 'Activos ahora',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 10.5,
               fontWeight: FontWeight.w600,
