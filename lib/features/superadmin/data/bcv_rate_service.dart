@@ -108,16 +108,13 @@ class BcvRateService {
 
   static DateTime _calculateEffectiveDate(String? rawDate) {
     final now = DateTime.now();
-    if (now.weekday == DateTime.friday) {
-      return DateTime(now.year, now.month, now.day + 3);
-    } else if (now.weekday == DateTime.saturday) {
-      return DateTime(now.year, now.month, now.day + 2);
-    } else if (now.weekday == DateTime.sunday) {
-      return DateTime(now.year, now.month, now.day + 1);
+    if (rawDate != null) {
+      final parsed = DateTime.tryParse(rawDate);
+      if (parsed != null) {
+        return parsed.toLocal();
+      }
     }
-    return rawDate != null
-        ? (DateTime.tryParse(rawDate)?.toLocal() ?? now)
-        : now;
+    return now;
   }
 
   static double _parseRate(dynamic value) {
