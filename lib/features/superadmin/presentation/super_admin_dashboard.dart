@@ -1473,7 +1473,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           ),
           const Spacer(),
           Text(
-            'Usuarios que iniciaron sesión',
+            'Cuentas registradas en Supabase Auth',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 10.5,
               fontWeight: FontWeight.w600,

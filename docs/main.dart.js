@@ -124196,7 +124196,7 @@ return A.a2(A.b([s.EU("M\xd3DULOS DE GESTI\xd3N"),B.F,s.v3(B.dC,s.jT(s.e)+" alum
 EU(a){var s=null
 return A.n(a,s,s,s,s,A.ao().$4$color$fontSize$fontWeight$letterSpacing(B.p,11,B.aq,0.8),s,s,s)},
 Zm(){var s=null,r=A.M(16),q=A.bf(B.H.aj(0.7),B.o,1),p=t.p
-return A.a5(s,A.a2(A.b([A.U(A.b([new A.dq(1,B.aZ,A.n("Usuarios Registrados",s,B.K,s,s,A.ao().$3$color$fontSize$fontWeight(B.y,11.5,B.a6),s,s,s),s),B.YV],p),B.h,B.ar,B.f,0,s,s),B.b8,A.n(this.jT(this.x),s,s,s,s,A.ao().$3$color$fontSize$fontWeight(B.i,22,B.cH),s,s,s),B.bO,A.n("Usuarios que iniciaron sesi\xf3n",s,B.K,s,s,A.ao().$3$color$fontSize$fontWeight(B.y,10.5,B.a6),s,s,s)],p),B.w,B.d,B.f,0,B.k),B.j,s,s,new A.a4(B.B,s,q,r,B.j7,s,B.q),s,132,s,s,B.bw,s,s,s)},
+return A.a5(s,A.a2(A.b([A.U(A.b([new A.dq(1,B.aZ,A.n("Usuarios Registrados",s,B.K,s,s,A.ao().$3$color$fontSize$fontWeight(B.y,11.5,B.a6),s,s,s),s),B.YV],p),B.h,B.ar,B.f,0,s,s),B.b8,A.n(this.jT(this.x),s,s,s,s,A.ao().$3$color$fontSize$fontWeight(B.i,22,B.cH),s,s,s),B.bO,A.n("Cuentas registradas en Supabase Auth",s,B.K,s,s,A.ao().$3$color$fontSize$fontWeight(B.y,10.5,B.a6),s,s,s)],p),B.w,B.d,B.f,0,B.k),B.j,s,s,new A.a4(B.B,s,q,r,B.j7,s,B.q),s,132,s,s,B.bw,s,s,s)},
 Zk(){var s,r,q=null,p=this.y,o=A.M(16),n=A.bf(B.H.aj(0.7),B.o,1),m=A.n("Usuarios en l\xednea",q,B.K,q,q,A.ao().$3$color$fontSize$fontWeight(B.y,11.5,B.a6),q,q,q),l=p==null,k=t.p
 m=A.U(A.b([new A.dq(1,B.aZ,m,q),A.c0(B.VN,l?B.y:B.r,q,16)],k),B.h,B.ar,B.f,0,q,q)
 s=l?"\u2014":this.jT(p)
