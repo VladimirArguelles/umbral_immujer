@@ -1473,7 +1473,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           ),
           const Spacer(),
           Text(
-            'Usuarios con registro y sesión iniciada',
+            'Usuarios que iniciaron sesión',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 10.5,
               fontWeight: FontWeight.w600,
@@ -1540,7 +1540,8 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           Text(
             onlineUsers == null
                 ? 'Presencia no disponible'
-                : 'Activos ahora',
+                : 'En línea: ${_formatMetric(onlineUsers)} '
+                      '${onlineUsers == 1 ? 'usuario' : 'usuarios'}',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 10.5,
               fontWeight: FontWeight.w600,
@@ -1985,7 +1986,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
   String _formatMetric(int? number) {
-    if (number == null || _metricsError != null) return '—';
+    if (number == null) return '—';
     return _formatNumber(number);
   }
 
