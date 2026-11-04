@@ -2,9 +2,50 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// =============================================================================
+// PALETA DE COLORES OFICIAL MODO CLARO (APPCOLORS)
+// =============================================================================
+class AppColors {
+  // ==========================================
+  // 1. Colores Principales y Estructura
+  // ==========================================
+  static const Color primaryBlueStart = Color(0xFF2A3A93);
+  static const Color primaryBlueEnd   = Color(0xFF3E4BA6);
+  static const Color background       = Color(0xFFF4F6FB);
+  static const Color surfaceWhite     = Color(0xFFFFFFFF);
+
+  // ==========================================
+  // 2. Colores de Iconos y Acentos (Acceso Rápido)
+  // ==========================================
+  static const Color blueViolet   = Color(0xFF5B4BD7);
+  static const Color warmOrange   = Color(0xFFFF7A1A);
+  static const Color lightBlue    = Color(0xFF2B82FB);
+  static const Color emeraldGreen = Color(0xFF10B981);
+  static const Color pinkMagenta  = Color(0xFFFF4B72);
+  static const Color goldenYellow = Color(0xFFF59E0B);
+
+  // ==========================================
+  // 3. Fondos Pasteles de Tarjetas
+  // ==========================================
+  static const Color softPurple     = Color(0xFFECE9FF);
+  static const Color softOrange     = Color(0xFFFFF0E5);
+  static const Color softBlue       = Color(0xFFEBF3FF);
+  static const Color softMint       = Color(0xFFE6F7F0);
+  static const Color softPink       = Color(0xFFFFEBF0);
+  static const Color softCreamYellow = Color(0xFFFEF8E7);
+
+  // ==========================================
+  // 4. Tipografía y Textos
+  // ==========================================
+  static const Color textDark    = Color(0xFF111827);
+  static const Color textGray    = Color(0xFF6B7280);
+  static const Color textPrimary = Color(0xFF4F46E5);
+}
+
 class ThemeController {
   static const String _prefKey = 'umbral_theme_mode';
-  static final ValueNotifier<ThemeMode> themeMode = ValueNotifier(ThemeMode.dark);
+  // MODO CLARO ES EL PREDETERMINADO
+  static final ValueNotifier<ThemeMode> themeMode = ValueNotifier(ThemeMode.light);
 
   static bool get isDark => themeMode.value == ThemeMode.dark;
 
@@ -12,12 +53,16 @@ class ThemeController {
     try {
       final prefs = await SharedPreferences.getInstance();
       final saved = prefs.getString(_prefKey);
-      if (saved == 'light') {
-        themeMode.value = ThemeMode.light;
-      } else if (saved == 'dark') {
+      if (saved == 'dark') {
         themeMode.value = ThemeMode.dark;
+      } else if (saved == 'light') {
+        themeMode.value = ThemeMode.light;
+      } else {
+        themeMode.value = ThemeMode.light; // Predeterminado claro
       }
-    } catch (_) {}
+    } catch (_) {
+      themeMode.value = ThemeMode.light;
+    }
   }
 
   static Future<void> toggleTheme() async {
@@ -47,37 +92,55 @@ abstract final class AppTheme {
   static bool get isDark => ThemeController.isDark;
 
   /// Fondo principal de vistas y Scaffold
-  static Color get dynamicBackground => isDark ? anthraciteDark : const Color(0xFFF4F6F9);
+  static Color get dynamicBackground => isDark ? anthraciteDark : AppColors.background;
 
   /// Fondo de tarjetas principales y contenedores modulares
-  static Color get dynamicCard => isDark ? anthraciteCard : Colors.white;
+  static Color get dynamicCard => isDark ? anthraciteCard : AppColors.surfaceWhite;
 
   /// Fondo de contenedores secundarios / interiores
-  static Color get dynamicSurfaceContainer => isDark ? anthracite : const Color(0xFFF8FAFC);
+  static Color get dynamicSurfaceContainer => isDark ? anthracite : AppColors.softBlue;
 
   /// Fondo de elementos elevados o resaltados
-  static Color get dynamicSurfaceHigh => isDark ? anthraciteElevated : const Color(0xFFF1F5F9);
+  static Color get dynamicSurfaceHigh => isDark ? anthraciteElevated : AppColors.softPurple;
 
   /// Fondo de list tiles, chips y cajas secundarias
-  static Color get dynamicSurfaceBright => isDark ? surfaceBright : const Color(0xFFF1F5F9);
+  static Color get dynamicSurfaceBright => isDark ? surfaceBright : AppColors.softBlue;
 
   /// Fondo de badges e indicadores de progreso inactivos
-  static Color get dynamicSurfaceHighest => isDark ? surfaceContainerHighest : const Color(0xFFE2E8F0);
+  static Color get dynamicSurfaceHighest => isDark ? surfaceContainerHighest : const Color(0xFFE5E7EB);
 
   /// Color de texto principal (títulos, encabezados, valores)
-  static Color get dynamicText => isDark ? pureWhite : const Color(0xFF1E232A);
+  static Color get dynamicText => isDark ? pureWhite : AppColors.textDark;
 
   /// Color de texto secundario (subtítulos, etiquetas, leyendas)
-  static Color get dynamicTextMuted => isDark ? mutedGray : const Color(0xFF64748B);
+  static Color get dynamicTextMuted => isDark ? mutedGray : AppColors.textGray;
+
+  /// Color de texto primario / enlaces
+  static Color get dynamicTextPrimary => isDark ? coralFuchsia : AppColors.textPrimary;
 
   /// Color de bordes y separadores sutiles
-  static Color get dynamicBorder => isDark ? outlineVariant : const Color(0xFFE2E8F0);
+  static Color get dynamicBorder => isDark ? outlineVariant : const Color(0xFFE5E7EB);
 
   /// Color de bordes interactivos y contornos
-  static Color get dynamicOutline => isDark ? outline : const Color(0xFFCBD5E1);
+  static Color get dynamicOutline => isDark ? outline : const Color(0xFFD1D5DB);
+
+  /// Color primario dinámico de la interfaz
+  static Color get dynamicPrimary => isDark ? coralFuchsia : AppColors.primaryBlueStart;
+
+  /// Color primario degradado fin
+  static Color get dynamicPrimaryEnd => isDark ? coralFuchsiaSoft : AppColors.primaryBlueEnd;
+
+  /// Color secundario dinámico
+  static Color get dynamicSecondary => isDark ? secondary : AppColors.blueViolet;
+
+  /// Color de éxito dinámico
+  static Color get dynamicSuccess => isDark ? mintNeon : AppColors.emeraldGreen;
+
+  /// Color de advertencia dinámico
+  static Color get dynamicWarning => isDark ? warningOrange : AppColors.goldenYellow;
 
   // ===========================================================================
-  // PALETA OFICIAL UMBRAL - IMMUJER
+  // PALETA OFICIAL UMBRAL - IMMUJER (MODO OSCURO)
   // ===========================================================================
 
   /// Gris Oscuro / Antracita: Color de contenedores, tarjetas de métricas y módulos.
@@ -365,12 +428,13 @@ abstract final class AppTheme {
   }
 
   static ThemeData _buildLightTheme() {
-    const lightBackground = Color(0xFFF4F6F9);
-    const lightSurface = Colors.white;
-    const lightOnSurface = Color(0xFF1E232A);
-    const lightOnSurfaceVariant = Color(0xFF64748B);
-    const lightOutline = Color(0xFFE2E8F0);
-    const lightPrimary = coralFuchsia;
+    const lightBackground = AppColors.background;
+    const lightSurface = AppColors.surfaceWhite;
+    const lightOnSurface = AppColors.textDark;
+    const lightOnSurfaceVariant = AppColors.textGray;
+    const lightOutline = Color(0xFFE5E7EB);
+    const lightOutlineVariant = Color(0xFFD1D5DB);
+    const lightPrimary = AppColors.primaryBlueStart;
 
     final baseTextTheme = GoogleFonts.plusJakartaSansTextTheme(
       ThemeData.light().textTheme,
@@ -383,51 +447,61 @@ abstract final class AppTheme {
         fontSize: 32,
         fontWeight: FontWeight.w700,
         height: 40 / 32,
+        color: lightOnSurface,
       ),
       headlineMedium: baseTextTheme.headlineMedium?.copyWith(
         fontSize: 22,
         fontWeight: FontWeight.w700,
         height: 28 / 22,
+        color: lightOnSurface,
       ),
       headlineSmall: baseTextTheme.headlineSmall?.copyWith(
         fontSize: 18,
         fontWeight: FontWeight.w600,
         height: 24 / 18,
+        color: lightOnSurface,
       ),
       titleMedium: baseTextTheme.titleMedium?.copyWith(
         fontSize: 16,
         fontWeight: FontWeight.w600,
         height: 22 / 16,
+        color: lightOnSurface,
       ),
       bodyLarge: baseTextTheme.bodyLarge?.copyWith(
         fontSize: 16,
         fontWeight: FontWeight.w400,
         height: 24 / 16,
+        color: lightOnSurface,
       ),
       bodyMedium: baseTextTheme.bodyMedium?.copyWith(
         fontSize: 14,
         fontWeight: FontWeight.w400,
         height: 20 / 14,
+        color: lightOnSurface,
       ),
       bodySmall: baseTextTheme.bodySmall?.copyWith(
         fontSize: 12,
         fontWeight: FontWeight.w400,
         height: 16 / 12,
+        color: lightOnSurfaceVariant,
       ),
       labelLarge: baseTextTheme.labelLarge?.copyWith(
         fontSize: 14,
         fontWeight: FontWeight.w700,
         height: 18 / 14,
+        color: lightOnSurface,
       ),
       labelMedium: baseTextTheme.labelMedium?.copyWith(
         fontSize: 12,
         fontWeight: FontWeight.w600,
         height: 16 / 12,
+        color: lightOnSurfaceVariant,
       ),
       labelSmall: baseTextTheme.labelSmall?.copyWith(
         fontSize: 11,
         fontWeight: FontWeight.w700,
         height: 14 / 11,
+        color: lightOnSurfaceVariant,
       ),
     );
 
@@ -438,15 +512,15 @@ abstract final class AppTheme {
         brightness: Brightness.light,
         primary: lightPrimary,
         onPrimary: Colors.white,
-        primaryContainer: coralFuchsiaSoft,
-        onPrimaryContainer: Color(0xFF0F172A),
-        secondary: Color(0xFF475569),
+        primaryContainer: AppColors.softBlue,
+        onPrimaryContainer: AppColors.primaryBlueStart,
+        secondary: AppColors.blueViolet,
         onSecondary: Colors.white,
-        secondaryContainer: Color(0xFFE2E8F0),
-        onSecondaryContainer: Color(0xFF1E293B),
-        tertiary: mintNeon,
+        secondaryContainer: AppColors.softPurple,
+        onSecondaryContainer: AppColors.textDark,
+        tertiary: AppColors.emeraldGreen,
         onTertiary: Colors.white,
-        tertiaryContainer: Color(0xFF10B981),
+        tertiaryContainer: AppColors.softMint,
         onTertiaryContainer: Color(0xFF065F46),
         error: errorRed,
         onError: Colors.white,
@@ -455,13 +529,13 @@ abstract final class AppTheme {
         surfaceBright: Colors.white,
         surfaceContainerLowest: Colors.white,
         surfaceContainerLow: Colors.white,
-        surfaceContainer: Color(0xFFF8FAFC),
-        surfaceContainerHigh: Color(0xFFF1F5F9),
-        surfaceContainerHighest: Color(0xFFE2E8F0),
+        surfaceContainer: AppColors.softBlue,
+        surfaceContainerHigh: AppColors.softPurple,
+        surfaceContainerHighest: Color(0xFFE5E7EB),
         onSurface: lightOnSurface,
         onSurfaceVariant: lightOnSurfaceVariant,
         outline: lightOutline,
-        outlineVariant: activeOutline,
+        outlineVariant: lightOutlineVariant,
       ),
       scaffoldBackgroundColor: lightBackground,
       textTheme: textTheme,
@@ -517,9 +591,9 @@ abstract final class AppTheme {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: lightOutline),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: activeOutline, width: 2),
+        focusedBorder: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+          borderSide: BorderSide(color: lightPrimary, width: 2),
         ),
       ),
       cardTheme: CardThemeData(
