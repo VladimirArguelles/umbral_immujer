@@ -1,5 +1,5 @@
 -- Migration: 20261104143000_update_bcv_cron_and_trigger.sql
--- AUTOMATED BCV SYNC & TRIGGER ENHANCEMENT
+-- AUTOMATED BCV SYNC & TRIGGER ENHANCEMENT (4 RUNS DAILY)
 
 -- 1. Actualizar función trigger para sincronizar USD y EUR en configuracion_general
 CREATE OR REPLACE FUNCTION public.actualizar_config_tasa_bcv()
@@ -39,49 +39,27 @@ CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA extensions;
 DO $$
 BEGIN
     PERFORM cron.unschedule('sync-bcv-rate-daily');
-EXCEPTION
-    WHEN OTHERS THEN
-        NULL;
+EXCEPTION WHEN OTHERS THEN NULL;
 END $$;
 
 DO $$
 BEGIN
     PERFORM cron.unschedule('sync-bcv-rate-publication-window');
-EXCEPTION
-    WHEN OTHERS THEN
-        NULL;
+EXCEPTION WHEN OTHERS THEN NULL;
 END $$;
 
--- 4. Programación Automática Diaria:
--- Job A: Ejecución matutina a las 9:00 AM hora de Caracas (13:00 UTC) todos los días
-SELECT cron.schedule(
-    'sync-bcv-rate-daily',
-    '0 13 * * *',
-    $$
-    SELECT net.http_post(
-        url := COALESCE(
-            current_setting('app.settings.supabase_url', true),
-            'https://kkgacvhbcxgoxjpnkxmw.supabase.co'
-        ) || '/functions/v1/sync-bcv-rate',
-        headers := jsonb_build_object(
-            'Content-Type', 'application/json',
-            'Authorization', 'Bearer ' || COALESCE(
-                current_setting('app.settings.service_role_key', true),
-                current_setting('supabase.service_role_key', true),
-                (SELECT valor->>0 FROM public.configuracion_general WHERE clave = 'service_role_key' LIMIT 1),
-                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9'
-            )
-        ),
-        body := '{}'::jsonb
-    );
-    $$
-);
+DO $$
+BEGIN
+    PERFORM cron.unschedule('sync-bcv-rate-4x-daily');
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 
--- Job B: Ejecución en ventana vespertina de publicación oficial del BCV
--- Cada 15 minutos entre las 4:00 PM y las 7:45 PM hora de Caracas (20:00 - 23:45 UTC) todos los días
+-- 4. Programación Automática Diaria (4 ejecuciones al día):
+-- Mañana: 08:00 AM (12:00 UTC) y 11:00 AM (15:00 UTC)
+-- Tarde: 02:00 PM (18:00 UTC) y 05:00 PM (21:00 UTC - posterior a las 4:00 PM tras publicación oficial BCV)
 SELECT cron.schedule(
-    'sync-bcv-rate-publication-window',
-    '*/15 20-23 * * *',
+    'sync-bcv-rate-4x-daily',
+    '0 12,15,18,21 * * *',
     $$
     SELECT net.http_post(
         url := COALESCE(

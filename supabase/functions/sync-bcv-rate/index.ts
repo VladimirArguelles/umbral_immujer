@@ -227,6 +227,26 @@ serve(async (req: Request) => {
     const nowCaracas = new Date(
       new Date().toLocaleString("en-US", { timeZone: "America/Caracas" })
     );
+    const hourCaracas = nowCaracas.getHours();
+    const horaCaracasStr = nowCaracas.toLocaleTimeString("es-VE", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    // Identificación de franja horaria dentro del ciclo de 4 sincronizaciones diarias:
+    // Mañana 1 (~08:00 AM), Mañana 2 (~11:00 AM), Tarde 1 (~02:00 PM), Tarde 2 (~05:00 PM - Post 04:00 PM Fecha Valor)
+    let franjaSincronizacion = "Sincronización Manual / Extra";
+    if (hourCaracas >= 6 && hourCaracas < 10) {
+      franjaSincronizacion = "Mañana 1 (Apertura 08:00 AM VET)";
+    } else if (hourCaracas >= 10 && hourCaracas < 13) {
+      franjaSincronizacion = "Mañana 2 (Media Mañana 11:00 AM VET)";
+    } else if (hourCaracas >= 13 && hourCaracas < 16) {
+      franjaSincronizacion = "Tarde 1 (Cierre Bancario 02:00 PM VET)";
+    } else if (hourCaracas >= 16) {
+      franjaSincronizacion = "Tarde 2 (Post 04:00 PM - Publicación Oficial Fecha Valor BCV)";
+    }
+
     const fechaFinal = fechaValorOficial || formatDateIso(nowCaracas);
 
     // 5. Persistencia (Upsert) en tabla tasa_cambiaria
@@ -269,7 +289,9 @@ serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Tasa oficial BCV sincronizada con Fecha Valor oficial (${fechaFinal}): USD Bs. ${tasaUsd}, EUR Bs. ${tasaEur}.`,
+        message: `Tasa oficial BCV sincronizada [${franjaSincronizacion} - ${horaCaracasStr}] con Fecha Valor oficial (${fechaFinal}): USD Bs. ${tasaUsd}, EUR Bs. ${tasaEur}.`,
+        franja: franjaSincronizacion,
+        hora_caracas: horaCaracasStr,
         fecha_valor: fechaFinal,
         tasa_bcv: tasaUsd,
         tasa_eur: tasaEur,

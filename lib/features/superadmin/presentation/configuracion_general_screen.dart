@@ -1267,7 +1267,7 @@ class _ConfiguracionGeneralScreenState
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Sincronización desasistida diaria automática vía Edge Function (sync-bcv-rate) y pg_cron (9:00 AM y ventana vespertina de publicación BCV).',
+                      'Sincronización desasistida automática 4 veces al día vía Edge Function (sync-bcv-rate) y pg_cron: 8:00 AM, 11:00 AM, 2:00 PM y 5:00 PM (captura de Fecha Valor oficial).',
                       style: GoogleFonts.plusJakartaSans(
                         color: cTextMuted,
                         fontSize: 11.5,
