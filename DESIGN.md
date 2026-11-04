@@ -4,81 +4,72 @@ Documento constitucional de diseño y guía de estilos semánticos para la aplic
 
 ---
 
-## 1. Paleta Oficial Modo Claro (Predeterminada - `AppColors`)
+## 1. Paleta de Colores Oficial
 
-Esta es la paleta cromática oficial configurada como predeterminada (`ThemeMode.light`):
+Esta es la paleta cromática mandatoria a utilizar en todas las interfaces, vistas y componentes del sistema:
 
-### 1.1 Estructura y Superficies
-| Token | Hex | Rol y Uso |
+| Nombre del Color | Hex / Token Flutter | Rol y Uso Exclusivo en la Interfaz |
 | :--- | :--- | :--- |
-| `AppColors.primaryBlueStart` | `#2A3A93` | Color primario, inicio de gradientes y botones destacados. |
-| `AppColors.primaryBlueEnd` | `#3E4BA6` | Fin de gradientes y contenedores primarios. |
-| `AppColors.background` | `#F4F6FB` | Fondo general de vistas y Scaffold. |
-| `AppColors.surfaceWhite` | `#FFFFFF` | Tarjetas, paneles elevados y contenedores modulares. |
-
-### 1.2 Iconos y Acentos de Acceso Rápido
-| Token | Hex | Rol y Uso |
-| :--- | :--- | :--- |
-| `AppColors.blueViolet` | `#5B4BD7` | Acento violeta y elementos interactivos secundarios. |
-| `AppColors.warmOrange` | `#FFFF7A1A` | Acento cálido y llamadas secundarias. |
-| `AppColors.lightBlue` | `#2B82FB` | Acento azul claro e indicadores de enlaces. |
-| `AppColors.emeraldGreen` | `#10B981` | Indicadores de estado positivo, confirmación y éxito. |
-| `AppColors.pinkMagenta` | `#FFFF4B72` | Notificaciones, insignias y alertas vibrantes. |
-| `AppColors.goldenYellow` | `#F59E0B` | Advertencias y métricas en observación. |
-
-### 1.3 Fondos Pasteles para Tarjetas
-| Token | Hex | Rol y Uso |
-| :--- | :--- | :--- |
-| `AppColors.softPurple` | `#ECE9FF` | Fondo pastel de métricas y tarjetas de acceso rápido. |
-| `AppColors.softOrange` | `#FFF0E5` | Fondo pastel cálido para avisos y cursos. |
-| `AppColors.softBlue` | `#EBF3FF` | Fondo pastel para módulos interactivos y chips. |
-| `AppColors.softMint` | `#E6F7F0` | Fondo pastel para estados completados o aprobados. |
-| `AppColors.softPink` | `#FFEBF0` | Fondo pastel para avisos de atención o eventos. |
-| `AppColors.softCreamYellow` | `#FEF8E7` | Fondo pastel para balances o pendientes. |
-
-### 1.4 Tipografía y Textos
-| Token | Hex | Rol y Uso |
-| :--- | :--- | :--- |
-| `AppColors.textDark` | `#111827` | Texto principal, títulos destacados y encabezados. |
-| `AppColors.textGray` | `#6B7280` | Texto secundario, subtítulos, etiquetas y metadatos. |
-| `AppColors.textPrimary` | `#4F46E5` | Enlaces interactivos y texto acentuado. |
+| **Fondo profundo** | `#0F172A` (`AppTheme.background` / `AppTheme.anthraciteDark`)<br>`#0B0E15` (`AppTheme.surfaceContainerLowest`) | **Superficies**: Fondo general de páginas y contenedores internos, list tiles y chips. |
+| **Paneles y tarjetas** | `#1E293B` (`AppTheme.surfaceContainerLow`)<br>`#1D1F27` (`AppTheme.surfaceContainer`)<br>`#272A32` (`AppTheme.surfaceContainerHigh`) | **Profundidad**: Tarjetas, paneles, contenedores y elementos interactivos elevados. |
+| **Verde de éxito** | `#0BD984` (`AppTheme.mintNeon` / `AppTheme.tertiary`)<br>`#10B981` (`AppTheme.tertiaryContainer`)<br>`#00A572` (`AppTheme.successGreenVariant`) | **Métricas y Éxito**: Indicadores positivos, gráficos, porcentajes, confirmaciones y progreso. |
+| **Rosa / Magenta** | `#FF1493` (`AppTheme.primary` / `AppTheme.coralFuchsia`)<br>`#D42F8C` (`AppTheme.primaryContainer` / `AppTheme.coralFuchsiaSoft`)<br>`#E11D48` (`AppTheme.inversePrimary`) | **Acciones**: Botones primarios, estados activos, selecciones y acentos complementarios. |
+| **Blanco Puro** | `#FFFFFF` (`AppTheme.pureWhite` / `AppTheme.onSurface`) | **Tipografía Principal**: Títulos principales, valores numéricos de métricas destacadas y encabezados de secciones. |
+| **Gris Claro / Atenuado** | `#A1A1AA` (`AppTheme.mutedGray` / `AppTheme.onSurfaceVariant`) | **Tipografía Secundaria**: Textos secundarios, descripciones de módulos, fechas, etiquetas auxiliares y subtítulos. |
+| **Texto auxiliar** | `#B0B8CD` (`AppTheme.onSecondaryContainer`)<br>`#BFC6DC` (`AppTheme.secondary`) | **Apoyo**: Texto auxiliar y elementos secundarios. |
+| **Bordes** | `#2B2D38` (`AppTheme.outlineVariant`)<br>`#334155` (`AppTheme.activeOutline`)<br>`#3F424E` (`AppTheme.outline`) | **Contornos**: Separadores sutiles y contornos activos/enfocados. |
+| **Estados** | `#F59E0B` (`AppTheme.warningOrange`)<br>`#DC2626` (`AppTheme.errorRed`)<br>`#93000A` (`AppTheme.errorContainer`) | **Avisos y errores**: Alertas moderadas, errores y superficies de error. |
 
 ---
 
-## 2. Paleta Oficial Modo Oscuro (`AppTheme`)
+## 2. Definición en Código Dart (`AppTheme`)
 
-Se mantiene intacta la paleta de alto contraste para el modo oscuro (`ThemeMode.dark`):
-
-| Nombre del Color | Hex / Token Flutter | Rol y Uso |
-| :--- | :--- | :--- |
-| **Fondo profundo** | `#0F172A` (`AppTheme.anthraciteDark`) | Fondo general del Scaffold. |
-| **Paneles y tarjetas** | `#1E293B` (`AppTheme.anthraciteCard`)<br>`#1D1F27` (`AppTheme.anthracite`) | Tarjetas y contenedores elevados. |
-| **Verde Neón** | `#0BD984` (`AppTheme.mintNeon`) | Éxito, confirmaciones y progreso. |
-| **Rosa Coral / Fucsia** | `#FF1493` (`AppTheme.coralFuchsia`) | Llamadas a la acción (CTA) y botones principales. |
-| **Blanco Puro** | `#FFFFFF` (`AppTheme.pureWhite`) | Títulos principales y métricas. |
-| **Gris Atenuado** | `#A1A1AA` (`AppTheme.mutedGray`) | Textos secundarios y leyendas. |
-
----
-
-## 3. Consumo Dinámico Reactivo (`AppTheme`)
-
-Las pantallas acceden a la paleta mediante los selectores dinámicos en [`lib/src/core/theme/app_theme.dart`](file:///c:/DESARROLLO%20APLICACIONES/umbral_immujer/lib/src/core/theme/app_theme.dart), garantizando adaptación automática al cambiar de tema:
+Todos los componentes deben consumir directamente los tokens de [`lib/src/core/theme/app_theme.dart`](file:///c:/DESARROLLO%20APLICACIONES/umbral_immujer/lib/src/core/theme/app_theme.dart):
 
 ```dart
-// Fondos y Superficies
-AppTheme.dynamicBackground          // #F4F6FB (Claro) | #0F172A (Oscuro)
-AppTheme.dynamicCard                // #FFFFFF (Claro) | #1E293B (Oscuro)
-AppTheme.dynamicSurfaceContainer    // #EBF3FF (Claro) | #1D1F27 (Oscuro)
-AppTheme.dynamicSurfaceHigh         // #ECE9FF (Claro) | #272A32 (Oscuro)
+// Tokens Semánticos Canónicos:
+AppTheme.background       // Fondo principal (#0F172A)
+AppTheme.surfaceContainerLow // Tarjetas y paneles (#1E293B)
+AppTheme.surfaceContainerLowest // Contenedores internos y chips (#0B0E15)
+AppTheme.primary          // CTA principal (#FF1493)
+AppTheme.primaryContainer // Variante secundaria/hover (#D42F8C)
+AppTheme.successGreen     // Indicadores positivos y progreso (#0BD984)
+AppTheme.pureWhite        // Títulos y valores destacados (#FFFFFF)
+AppTheme.mutedGray        // Descripciones y subtítulos (#A1A1AA)
 
-// Tipografías
-AppTheme.dynamicText                // #111827 (Claro) | #FFFFFF (Oscuro)
-AppTheme.dynamicTextMuted           // #6B7280 (Claro) | #A1A1AA (Oscuro)
-AppTheme.dynamicTextPrimary         // #4F46E5 (Claro) | #FF1493 (Oscuro)
-
-// Acentos y Acciones
-AppTheme.dynamicPrimary             // #2A3A93 (Claro) | #FF1493 (Oscuro)
-AppTheme.dynamicSecondary           // #5B4BD7 (Claro) | #BFC6DC (Oscuro)
-AppTheme.dynamicSuccess             // #10B981 (Claro) | #0BD984 (Oscuro)
-AppTheme.dynamicWarning             // #F59E0B (Claro) | #F59E0B (Oscuro)
+// Mapeo en Theme y ColorScheme de Material 3:
+Theme.of(context).colorScheme.surfaceContainer // Superficie de paneles (#1D1F27)
+Theme.of(context).colorScheme.tertiary         // Éxito y progreso (#0BD984)
+Theme.of(context).colorScheme.primary          // Rosa / Magenta (#FF1493)
+Theme.of(context).colorScheme.onSurface        // Blanco Puro
+Theme.of(context).colorScheme.onSurfaceVariant // Gris Claro / Atenuado
 ```
+
+---
+
+## 3. Jerarquía y Reglas de Aplicación
+
+1. **Contenedores y Paneles**:
+   - Fondo general oscuro: `AppTheme.background` (`#0F172A`).
+   - Tarjetas: `AppTheme.surfaceContainerLow` (`#1E293B`) o `AppTheme.surfaceContainer` (`#1D1F27`).
+   - Contenedores internos: `AppTheme.surfaceContainerLowest` (`#0B0E15`).
+   - Paneles elevados: `AppTheme.surfaceContainerHigh` (`#272A32`).
+   - Bordes: `AppTheme.outlineVariant` (`#2B2D38`); enfocados: `AppTheme.activeOutline` (`#334155`) o `AppTheme.outline` (`#3F424E`).
+
+2. **Tipografía y Legibilidad**:
+   - Títulos, números grandes e indicadores clave: **Blanco Puro** (`#FFFFFF`), `FontWeight.w700` a `FontWeight.w900`.
+   - Subtítulos, labels y metadatos: **Gris Claro / Atenuado** (`#A1A1AA`), `FontWeight.w400` a `FontWeight.w600`.
+
+3. **Acciones y Notificaciones (CTA)**:
+   - Botón primario de envío o confirmación: Fondo **Rosa / Magenta** (`#FF1493`), texto con contraste adecuado.
+   - Variantes secundarias y hover: `#D42F8C` o `#E11D48`.
+   - Puntos de notificación y selecciones activas: `AppTheme.primary`.
+
+4. **Progreso y Estadísticas Positivas**:
+   - Barras de asistencia, porcentajes alcanzados, métrica "Presente" y gráficos ascendentes: `AppTheme.successGreen` (`#0BD984`), con variantes `#10B981` y `#00A572`.
+   - Advertencias: `AppTheme.warningOrange` (`#F59E0B`); errores: `AppTheme.errorRed` (`#DC2626`) y `AppTheme.errorContainer` (`#93000A`).
+
+5. **Consistencia entre pantallas**:
+   - Las páginas deben consumir los tokens de `AppTheme`; no se deben definir paletas locales.
+   - El modo claro conserva sus superficies claras, pero comparte los acentos, estados y tokens semánticos del sistema.
+   - Los skeleton loaders conservan sus tonos propios de shimmer para diferenciar el estado de carga.
