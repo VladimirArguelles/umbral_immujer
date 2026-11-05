@@ -168,11 +168,11 @@ class _GestionCursosPageState extends State<GestionCursosPage> {
                     controller: horarioCtrl,
                     style: const TextStyle(color: AppTheme.onSurface),
                     decoration: InputDecoration(
-                      labelText: 'Horario y Días',
+                      labelText: 'Días y horario del curso',
                       prefixIcon: const Icon(Symbols.schedule),
                       suffixIcon: IconButton(
                         icon: const Icon(Symbols.calendar_clock, color: AppTheme.primary),
-                        tooltip: 'Elegir Día y Hora',
+                        tooltip: 'Elegir día, inicio y culminación',
                         onPressed: () => _pickDiaYHora(ctx, horarioCtrl, setDialogState),
                       ),
                     ),
@@ -189,7 +189,7 @@ class _GestionCursosPageState extends State<GestionCursosPage> {
                       ),
                       onPressed: () => _pickDiaYHora(ctx, horarioCtrl, setDialogState),
                       icon: const Icon(Symbols.calendar_month, size: 16),
-                      label: const Text('Elegir Día y Hora (Calendario y Reloj)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                      label: const Text('Elegir día, hora de inicio y culminación', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -231,7 +231,9 @@ class _GestionCursosPageState extends State<GestionCursosPage> {
                       DropdownMenuItem(value: 'finalizado', child: Text('Finalizado')),
                     ],
                     onChanged: (val) {
-                      if (val != null) setDialogState(() => selectedEstado = val);
+                      if (val != null) {
+                        setDialogState(() => selectedEstado = val);
+                      }
                     },
                   ),
                 ],
@@ -332,11 +334,11 @@ class _GestionCursosPageState extends State<GestionCursosPage> {
                     controller: horarioCtrl,
                     style: const TextStyle(color: AppTheme.onSurface),
                     decoration: InputDecoration(
-                      labelText: 'Horario y Días',
+                      labelText: 'Días y horario del curso',
                       prefixIcon: const Icon(Symbols.schedule),
                       suffixIcon: IconButton(
                         icon: const Icon(Symbols.calendar_clock, color: AppTheme.primary),
-                        tooltip: 'Elegir Día y Hora',
+                        tooltip: 'Elegir día, inicio y culminación',
                         onPressed: () => _pickDiaYHora(ctx, horarioCtrl, setDialogState),
                       ),
                     ),
@@ -353,7 +355,7 @@ class _GestionCursosPageState extends State<GestionCursosPage> {
                       ),
                       onPressed: () => _pickDiaYHora(ctx, horarioCtrl, setDialogState),
                       icon: const Icon(Symbols.calendar_month, size: 16),
-                      label: const Text('Elegir Día y Hora (Calendario y Reloj)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                      label: const Text('Elegir día, hora de inicio y culminación', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -395,7 +397,9 @@ class _GestionCursosPageState extends State<GestionCursosPage> {
                       DropdownMenuItem(value: 'finalizado', child: Text('Finalizado')),
                     ],
                     onChanged: (val) {
-                      if (val != null) setDialogState(() => selectedEstado = val);
+                      if (val != null) {
+                        setDialogState(() => selectedEstado = val);
+                      }
                     },
                   ),
                 ],
@@ -457,39 +461,113 @@ class _GestionCursosPageState extends State<GestionCursosPage> {
       lastDate: DateTime.now().add(const Duration(days: 365)),
       helpText: 'SELECCIONA EL DÍA DE LA CLASE',
       cancelText: 'CANCELAR',
-      confirmText: 'SIGUIENTE: HORA',
+      confirmText: 'SIGUIENTE: INICIO',
     );
 
     if (pickedDate != null && context.mounted) {
-      final pickedTime = await showTimePicker(
+      final startTime = await showTimePicker(
         context: context,
         initialTime: const TimeOfDay(hour: 8, minute: 0),
-        helpText: 'SELECCIONA LA HORA DE LA CLASE',
+        helpText: 'SELECCIONA LA HORA DE INICIO',
         cancelText: 'CANCELAR',
         confirmText: 'CONFIRMAR',
       );
 
-      if (pickedTime != null) {
-        final diasSemana = [
-          'Lunes',
-          'Martes',
-          'Miércoles',
-          'Jueves',
-          'Viernes',
-          'Sábado',
-          'Domingo'
-        ];
-        final diaNombre = diasSemana[pickedDate.weekday - 1];
-        final hour = pickedTime.hourOfPeriod == 0 ? 12 : pickedTime.hourOfPeriod;
-        final minute = pickedTime.minute.toString().padLeft(2, '0');
-        final period = pickedTime.period == DayPeriod.am ? 'AM' : 'PM';
-        final formattedHorario = '$diaNombre $hour:$minute $period';
+      if (startTime == null || !context.mounted) return;
 
-        setDialogState(() {
-          controller.text = formattedHorario;
-        });
-      }
+      final endTime = await _pickEndTime(context, startTime);
+      if (endTime == null || !context.mounted) return;
+
+      const diasSemana = [
+        'Lunes',
+        'Martes',
+        'Miércoles',
+        'Jueves',
+        'Viernes',
+        'Sábado',
+        'Domingo',
+      ];
+      final diaNombre = diasSemana[pickedDate.weekday - 1];
+      final formattedHorario =
+          '$diaNombre ${_formatTime(startTime)} - ${_formatTime(endTime)}';
+
+      setDialogState(() {
+        controller.text = formattedHorario;
+      });
     }
+  }
+
+  Future<TimeOfDay?> _pickEndTime(
+    BuildContext context,
+    TimeOfDay startTime,
+  ) async {
+    final startMinutes = startTime.hour * 60 + startTime.minute;
+    if (startMinutes == 23 * 60 + 59) {
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Hora de inicio no válida'),
+          content: const Text(
+            'Selecciona una hora de inicio anterior a las 11:59 PM para '
+            'poder indicar la hora de culminación.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Entendido'),
+            ),
+          ],
+        ),
+      );
+      return null;
+    }
+
+    var initialEndTime = TimeOfDay(
+      hour: startTime.hour < 23 ? startTime.hour + 1 : startTime.hour,
+      minute: startTime.hour < 23 ? startTime.minute : 59,
+    );
+
+    while (context.mounted) {
+      final endTime = await showTimePicker(
+        context: context,
+        initialTime: initialEndTime,
+        helpText: 'SELECCIONA LA HORA DE CULMINACIÓN',
+        cancelText: 'CANCELAR',
+        confirmText: 'CONFIRMAR',
+      );
+
+      if (endTime == null || !context.mounted) return null;
+
+      final endMinutes = endTime.hour * 60 + endTime.minute;
+      if (endMinutes > startMinutes) return endTime;
+
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Horario no válido'),
+          content: const Text(
+            'La hora de culminación debe ser posterior a la hora de inicio.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Elegir otra hora'),
+            ),
+          ],
+        ),
+      );
+      if (!context.mounted) return null;
+      initialEndTime = endTime;
+    }
+
+    return null;
+  }
+
+  String _formatTime(TimeOfDay time) {
+    final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
+    final minute = time.minute.toString().padLeft(2, '0');
+    final period = time.period == DayPeriod.am ? 'AM' : 'PM';
+    return '$hour:$minute $period';
   }
 
   Future<void> _showGestionTemasDialog(Map<String, dynamic> curso) async {
