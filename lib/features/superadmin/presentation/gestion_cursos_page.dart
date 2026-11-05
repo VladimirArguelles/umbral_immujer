@@ -1056,25 +1056,28 @@ onReorder: (oldIndex, newIndex) {
                                 ),
                                 child: Padding(
                                   padding: const EdgeInsets.all(16),
-                                  child: Row(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      CircleAvatar(
-                                        backgroundColor: isActivo
-                                            ? AppTheme.primaryContainer.withAlpha(40)
-                                            : AppTheme.outlineVariant.withAlpha(40),
-                                        foregroundColor: isActivo ? AppTheme.primary : AppTheme.outline,
-                                        radius: 22,
-                                        child: Icon(
-                                          isActivo ? Symbols.menu_book : Symbols.archive,
-                                          size: 22,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 16),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
+                                      // Cabecera: Avatar, Nombre del Curso y Estado
+                                      Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          CircleAvatar(
+                                            backgroundColor: isActivo
+                                                ? AppTheme.primaryContainer.withAlpha(40)
+                                                : AppTheme.outlineVariant.withAlpha(40),
+                                            foregroundColor: isActivo ? AppTheme.primary : AppTheme.outline,
+                                            radius: 20,
+                                            child: Icon(
+                                              isActivo ? Symbols.menu_book : Symbols.archive,
+                                              size: 20,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Row(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
                                                 Expanded(
                                                   child: Text(
@@ -1086,6 +1089,7 @@ onReorder: (oldIndex, newIndex) {
                                                     ),
                                                   ),
                                                 ),
+                                                const SizedBox(width: 8),
                                                 Container(
                                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                                   decoration: BoxDecoration(
@@ -1105,74 +1109,89 @@ onReorder: (oldIndex, newIndex) {
                                                 ),
                                               ],
                                             ),
-                                            const SizedBox(height: 6),
-                                            Text(
-                                              descripcion,
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                fontSize: 13,
-                                                color: AppTheme.onSurfaceVariant,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            Wrap(
-                                              spacing: 12,
-                                              runSpacing: 4,
-                                              children: [
-                                                Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    const Icon(Symbols.person, size: 14, color: AppTheme.primary),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      profNombre,
-                                                      style: const TextStyle(
-                                                        fontSize: 12,
-                                                        fontWeight: FontWeight.w600,
-                                                        color: AppTheme.primary,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                                Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    const Icon(Symbols.schedule, size: 14, color: AppTheme.onSurfaceVariant),
-                                                    const SizedBox(width: 4),
-                                                    Text(horario, style: const TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant)),
-                                                  ],
-                                                ),
-                                                if (temasCount > 0)
-                                                  Row(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    children: [
-                                                      const Icon(Symbols.topic, size: 14, color: AppTheme.tertiary),
-                                                      const SizedBox(width: 4),
-                                                      Text('$temasCount temas', style: const TextStyle(fontSize: 12, color: AppTheme.tertiary)),
-                                                    ],
-                                                  ),
-                                              ],
-                                            ),
-                                          ],
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      // Descripción
+                                      Text(
+                                        descripcion,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: AppTheme.onSurfaceVariant,
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
-                                      // Botones de acción: Editar y Eliminar
+                                      const SizedBox(height: 10),
+                                      // Metadatos (Profesor, Horario, Temas)
+                                      Wrap(
+                                        spacing: 12,
+                                        runSpacing: 6,
+                                        crossAxisAlignment: WrapCrossAlignment.center,
+                                        children: [
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(Symbols.person, size: 14, color: AppTheme.primary),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                profNombre,
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: AppTheme.primary,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(Symbols.schedule, size: 14, color: AppTheme.onSurfaceVariant),
+                                              const SizedBox(width: 4),
+                                              Text(horario, style: const TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant)),
+                                            ],
+                                          ),
+                                          if (temasCount > 0)
+                                            Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Symbols.topic, size: 14, color: AppTheme.tertiary),
+                                                const SizedBox(width: 4),
+                                                Text('$temasCount temas', style: const TextStyle(fontSize: 12, color: AppTheme.tertiary)),
+                                              ],
+                                            ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 6),
+                                      const Divider(height: 14, thickness: 0.5, color: AppTheme.outlineVariant),
+                                      // Botones de acción: Gestionar Temas, Editar y Eliminar
                                       Row(
-                                        mainAxisSize: MainAxisSize.min,
+                                        mainAxisAlignment: MainAxisAlignment.end,
                                         children: [
                                           IconButton(
+                                            visualDensity: VisualDensity.compact,
+                                            padding: const EdgeInsets.all(8),
+                                            constraints: const BoxConstraints(),
                                             icon: const Icon(Symbols.topic, color: AppTheme.tertiary, size: 20),
                                             tooltip: 'Gestionar Temas',
                                             onPressed: () => _showGestionTemasDialog(c),
                                           ),
+                                          const SizedBox(width: 8),
                                           IconButton(
+                                            visualDensity: VisualDensity.compact,
+                                            padding: const EdgeInsets.all(8),
+                                            constraints: const BoxConstraints(),
                                             icon: const Icon(Symbols.edit, color: AppTheme.primary, size: 20),
                                             tooltip: 'Editar Curso',
                                             onPressed: () => _showEditCursoDialog(c),
                                           ),
+                                          const SizedBox(width: 8),
                                           IconButton(
+                                            visualDensity: VisualDensity.compact,
+                                            padding: const EdgeInsets.all(8),
+                                            constraints: const BoxConstraints(),
                                             icon: const Icon(Symbols.delete, color: AppTheme.errorRed, size: 20),
                                             tooltip: 'Eliminar Curso',
                                             onPressed: () => _confirmDeleteCurso(c),
