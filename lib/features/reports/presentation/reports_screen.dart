@@ -34,9 +34,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
   String _selectedCursoId = 'todos';
   TipoReporte _tipoReporte = TipoReporte.alumnos;
 
-  final TextEditingController _searchController = TextEditingController();
-  String _searchFilter = '';
-
   // Data lists
   List<ReporteAlumnoInscrito> _alumnos = [];
   List<ReporteProfesorCurso> _profesores = [];
@@ -53,18 +50,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     if (widget.initialTipoReporte != null) {
       _tipoReporte = widget.initialTipoReporte!;
     }
-    _searchController.addListener(() {
-      setState(() {
-        _searchFilter = _searchController.text.trim().toLowerCase();
-      });
-    });
     _initData();
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
   }
 
   Future<void> _initData() async {
@@ -201,22 +187,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
   }
 
-  Future<void> _handleDescargar() async {
-    setState(() => _isGeneratingPdf = true);
-    try {
-      final bytes = await _generatePdfBytes();
-      if (bytes != null) {
-        final filename = '${_tipoReporte.name}_${_currentCursoNombre.replaceAll(' ', '_')}.pdf';
-        await PdfExportService.descargar(bytes, filename);
-        _showSnack('Documento generado exitosamente.');
-      }
-    } catch (e) {
-      _showSnack('Error al descargar el PDF: $e');
-    } finally {
-      if (mounted) setState(() => _isGeneratingPdf = false);
-    }
-  }
-
   void _showSnack(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -229,44 +199,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   // ===========================================================================
-  // FILTRADO EN MEMORIA
+  // LISTADOS DE DATOS
   // ===========================================================================
-  List<ReporteAlumnoInscrito> get _filteredAlumnos {
-    if (_searchFilter.isEmpty) return _alumnos;
-    return _alumnos.where((a) {
-      return a.nombreCompleto.toLowerCase().contains(_searchFilter) ||
-          a.cedula.toLowerCase().contains(_searchFilter) ||
-          a.correo.toLowerCase().contains(_searchFilter) ||
-          a.cursoNombre.toLowerCase().contains(_searchFilter);
-    }).toList();
-  }
-
-  List<ReporteProfesorCurso> get _filteredProfesores {
-    if (_searchFilter.isEmpty) return _profesores;
-    return _profesores.where((p) {
-      return p.profesorNombre.toLowerCase().contains(_searchFilter) ||
-          p.cursoNombre.toLowerCase().contains(_searchFilter) ||
-          (p.cedula?.toLowerCase().contains(_searchFilter) ?? false);
-    }).toList();
-  }
-
-  List<ReporteTemaCurso> get _filteredTemas {
-    if (_searchFilter.isEmpty) return _temas;
-    return _temas.where((t) {
-      return t.titulo.toLowerCase().contains(_searchFilter) ||
-          t.modulo.toLowerCase().contains(_searchFilter) ||
-          t.cursoNombre.toLowerCase().contains(_searchFilter);
-    }).toList();
-  }
-
-  List<ReporteAsistenciaDetallada> get _filteredAsistencias {
-    if (_searchFilter.isEmpty) return _asistencias;
-    return _asistencias.where((a) {
-      return a.nombreCompleto.toLowerCase().contains(_searchFilter) ||
-          a.cedula.toLowerCase().contains(_searchFilter) ||
-          a.cursoNombre.toLowerCase().contains(_searchFilter);
-    }).toList();
-  }
+  List<ReporteAlumnoInscrito> get _filteredAlumnos => _alumnos;
+  List<ReporteProfesorCurso> get _filteredProfesores => _profesores;
+  List<ReporteTemaCurso> get _filteredTemas => _temas;
+  List<ReporteAsistenciaDetallada> get _filteredAsistencias => _asistencias;
 
   // ===========================================================================
   // CONSTRUCCIÓN DE LA INTERFAZ
@@ -339,89 +277,76 @@ class _ReportsScreenState extends State<ReportsScreen> {
         color: AppTheme.dynamicCard,
         border: Border(bottom: BorderSide(color: AppTheme.dynamicBorder, width: 0.8)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Selector de Tipos de Reporte
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: TipoReporte.values.map((tipo) {
-                final isSelected = _tipoReporte == tipo;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: FilterChip(
-                    label: Text(tipo.titulo),
-                    selected: isSelected,
-                    onSelected: (val) {
-                      if (!isSelected) {
-                        setState(() {
-                          _tipoReporte = tipo;
-                        });
-                        _loadReportData();
-                      }
-                    },
-                    selectedColor: AppTheme.primary.withValues(alpha: 0.15),
-                    backgroundColor: AppTheme.dynamicSurfaceContainer,
-                    checkmarkColor: AppTheme.primary,
-                    labelStyle: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                      color: isSelected ? AppTheme.primary : AppTheme.dynamicText,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      side: BorderSide(
-                        color: isSelected ? AppTheme.primary : AppTheme.dynamicBorder,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          const SizedBox(height: 12),
-          // Fila de Filtros y Botones de Acción
-          Row(
-            children: [
-              // Selector de Curso
-              Expanded(
-                flex: 3,
-                child: Container(
-                  height: 42,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: AppTheme.dynamicSurfaceContainer,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppTheme.dynamicBorder),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _selectedCursoId,
-                      isExpanded: true,
-                      icon: const Icon(Symbols.keyboard_arrow_down, size: 20),
-                      dropdownColor: AppTheme.dynamicCard,
-                      items: [
-                        const DropdownMenuItem(
-                          value: 'todos',
-                          child: Text('Todos los cursos'),
-                        ),
-                        ..._cursos.map((c) => DropdownMenuItem(
-                              value: c['id'],
-                              child: Text(
-                                c['nombre'] ?? '',
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            )),
-                      ],
-                      onChanged: (val) {
-                        if (val != null && val != _selectedCursoId) {
-                          setState(() {
-                            _selectedCursoId = val;
-                          });
-                          _loadReportData();
-                        }
-                      },
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 650;
+          if (isMobile) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildTipoReporteDropdown(),
+                const SizedBox(height: 8),
+                _buildCursoDropdown(),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(child: _buildVerRegistrosButton()),
+                    const SizedBox(width: 8),
+                    Expanded(child: _buildImprimirButton()),
+                  ],
+                ),
+              ],
+            );
+          } else {
+            return Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: _buildTipoReporteDropdown(),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 4,
+                  child: _buildCursoDropdown(),
+                ),
+                const SizedBox(width: 10),
+                _buildVerRegistrosButton(),
+                const SizedBox(width: 8),
+                _buildImprimirButton(),
+              ],
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildTipoReporteDropdown() {
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.dynamicSurfaceContainer,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppTheme.dynamicBorder),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<TipoReporte>(
+          value: _tipoReporte,
+          isExpanded: true,
+          icon: const Icon(Symbols.keyboard_arrow_down, size: 20),
+          dropdownColor: AppTheme.dynamicCard,
+          items: TipoReporte.values.map((tipo) {
+            return DropdownMenuItem<TipoReporte>(
+              value: tipo,
+              child: Row(
+                children: [
+                  const Icon(Symbols.description, size: 18, color: AppTheme.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      tipo.titulo,
+                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w600,
@@ -429,77 +354,145 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
-              const SizedBox(width: 8),
-              // Campo de Búsqueda
-              Expanded(
-                flex: 4,
-                child: SizedBox(
-                  height: 42,
-                  child: TextField(
-                    controller: _searchController,
-                    style: GoogleFonts.plusJakartaSans(fontSize: 12.5, color: AppTheme.dynamicText),
-                    decoration: InputDecoration(
-                      hintText: 'Buscar participante, cédula...',
-                      hintStyle: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.dynamicTextMuted),
-                      prefixIcon: const Icon(Symbols.search, size: 18),
-                      suffixIcon: _searchController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Symbols.close, size: 16),
-                              onPressed: () => _searchController.clear(),
-                            )
-                          : null,
-                      filled: true,
-                      fillColor: AppTheme.dynamicSurfaceContainer,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: AppTheme.dynamicBorder),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: AppTheme.dynamicBorder),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: AppTheme.primary),
+            );
+          }).toList(),
+          onChanged: (val) {
+            if (val != null && val != _tipoReporte) {
+              setState(() {
+                _tipoReporte = val;
+              });
+              _loadReportData();
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCursoDropdown() {
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.dynamicSurfaceContainer,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppTheme.dynamicBorder),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedCursoId,
+          isExpanded: true,
+          icon: const Icon(Symbols.keyboard_arrow_down, size: 20),
+          dropdownColor: AppTheme.dynamicCard,
+          items: [
+            DropdownMenuItem(
+              value: 'todos',
+              child: Row(
+                children: [
+                  const Icon(Symbols.school, size: 18, color: AppTheme.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Todos los cursos',
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.dynamicText,
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
-              const SizedBox(width: 8),
-              // Botón Imprimir
-              ElevatedButton.icon(
-                onPressed: _isGeneratingPdf ? null : _handleImprimir,
-                icon: const Icon(Symbols.print, size: 18),
-                label: const Text('Imprimir'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(100, 42),
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
+            ),
+            ..._cursos.map((c) => DropdownMenuItem(
+                  value: c['id'],
+                  child: Row(
+                    children: [
+                      const Icon(Symbols.school, size: 18, color: AppTheme.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          c['nombre'] ?? '',
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.dynamicText,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+          ],
+          onChanged: (val) {
+            if (val != null && val != _selectedCursoId) {
+              setState(() {
+                _selectedCursoId = val;
+              });
+              _loadReportData();
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVerRegistrosButton() {
+    return ElevatedButton.icon(
+      onPressed: _isLoading ? null : _loadReportData,
+      icon: _isLoading
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
               ),
-              const SizedBox(width: 8),
-              // Botón Descargar PDF
-              OutlinedButton.icon(
-                onPressed: _isGeneratingPdf ? null : _handleDescargar,
-                icon: const Icon(Symbols.download, size: 18),
-                label: const Text('Descargar PDF'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppTheme.primary,
-                  side: BorderSide(color: AppTheme.primary),
-                  minimumSize: const Size(120, 42),
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
+            )
+          : const Icon(Symbols.visibility, size: 18),
+      label: const Text('Ver Registros'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppTheme.primary,
+        foregroundColor: Colors.white,
+        minimumSize: const Size(120, 44),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        textStyle: GoogleFonts.plusJakartaSans(
+          fontSize: 12.5,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImprimirButton() {
+    return OutlinedButton.icon(
+      onPressed: _isGeneratingPdf ? null : _handleImprimir,
+      icon: _isGeneratingPdf
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppTheme.primary,
               ),
-            ],
-          ),
-        ],
+            )
+          : const Icon(Symbols.print, size: 18),
+      label: const Text('Imprimir'),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppTheme.primary,
+        side: const BorderSide(color: AppTheme.primary),
+        minimumSize: const Size(110, 44),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        textStyle: GoogleFonts.plusJakartaSans(
+          fontSize: 12.5,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

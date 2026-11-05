@@ -2801,6 +2801,65 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                           ),
                         ),
                       ] else if (enc.comprobanteUrl == null || enc.comprobanteUrl!.isEmpty) ...[
+                        if (enc.pagoMovilBanco != null || enc.pagoMovilTelefono != null || enc.pagoMovilCedula != null) ...[
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryContainer.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Row(
+                                  children: [
+                                    Icon(Icons.account_balance_wallet_rounded, size: 16, color: AppTheme.primary),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'Datos para el Pago Móvil del Docente:',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppTheme.primary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                if (enc.pagoMovilBanco != null && enc.pagoMovilBanco!.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 4),
+                                    child: Row(
+                                      children: [
+                                        const Text('• Banco: ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.onSurface)),
+                                        Expanded(child: Text(enc.pagoMovilBanco!, style: const TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant), overflow: TextOverflow.ellipsis)),
+                                      ],
+                                    ),
+                                  ),
+                                if (enc.pagoMovilTelefono != null && enc.pagoMovilTelefono!.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 4),
+                                    child: Row(
+                                      children: [
+                                        const Text('• Teléfono: ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.onSurface)),
+                                        Expanded(child: SelectableText(enc.pagoMovilTelefono!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.onSurface))),
+                                      ],
+                                    ),
+                                  ),
+                                if (enc.pagoMovilCedula != null && enc.pagoMovilCedula!.isNotEmpty)
+                                  Row(
+                                    children: [
+                                      const Text('• Cédula: ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.onSurface)),
+                                      Expanded(child: SelectableText(enc.pagoMovilCedula!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.onSurface))),
+                                    ],
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(

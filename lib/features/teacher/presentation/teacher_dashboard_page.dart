@@ -284,7 +284,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
         onNavigate: (idx) => setState(() => _currentIndex = idx),
       ),
       _PaseListaTab(teacherRepository: _teacherRepository, isSuperAdmin: isSuperAdmin),
-      _EncuestasDocenteTab(teacherRepository: _teacherRepository, isSuperAdmin: isSuperAdmin),
+      _EncuestasDocenteTab(teacherRepository: _teacherRepository, isSuperAdmin: isSuperAdmin, profile: _currentProfile),
       _AuditoriaRecaudacionTab(teacherRepository: _teacherRepository, isSuperAdmin: isSuperAdmin),
       _GestionAlumnosTab(
         teacherRepository: _teacherRepository,
@@ -938,9 +938,11 @@ class _PaseListaTabState extends State<_PaseListaTab> {
 class _EncuestasDocenteTab extends StatefulWidget {
   final TeacherRepository teacherRepository;
   final bool isSuperAdmin;
+  final UserProfile? profile;
   const _EncuestasDocenteTab({
     required this.teacherRepository,
     this.isSuperAdmin = false,
+    this.profile,
   });
 
   @override
@@ -1003,6 +1005,10 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
     final costoCtrl = TextEditingController();
     DateTime fechaClase = DateTime.now().add(const Duration(days: 3));
     DateTime fechaLimite = DateTime.now().add(const Duration(days: 2));
+    final cedulaPagoCtrl = TextEditingController(text: widget.profile?.cedula ?? '');
+    final telefonoPagoCtrl = TextEditingController(text: widget.profile?.telefono ?? '');
+    String? bancoSeleccionado = 'Banco de Venezuela (0102)';
+    final customBancoCtrl = TextEditingController();
     final formKey = GlobalKey<FormState>();
     bool isSubmitting = false;
 
@@ -1173,6 +1179,126 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
                           }
                         },
                       ),
+                      const SizedBox(height: 14),
+
+                      // Sección Datos de Pago Móvil para Depósito
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceBright,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppTheme.outlineVariant),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.phone_android_rounded, size: 18, color: AppTheme.primary),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Datos de Pago Móvil para Depósito de Alumnos',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.onSurface,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Los alumnos verán estos datos para realizar su transferencia o pago móvil de insumos.',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11.5,
+                                color: AppTheme.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            // Cédula de Identidad
+                            TextFormField(
+                              controller: cedulaPagoCtrl,
+                              keyboardType: TextInputType.text,
+                              decoration: const InputDecoration(
+                                labelText: 'Cédula de Identidad del Titular',
+                                prefixIcon: Icon(Icons.badge_outlined),
+                                hintText: 'Ej. V-12345678',
+                              ),
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) {
+                                  return 'Por favor ingresa la cédula para el Pago Móvil';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 10),
+                            // Teléfono
+                            TextFormField(
+                              controller: telefonoPagoCtrl,
+                              keyboardType: TextInputType.phone,
+                              decoration: const InputDecoration(
+                                labelText: 'Número de Teléfono Pago Móvil',
+                                prefixIcon: Icon(Icons.phone_outlined),
+                                hintText: 'Ej. 0414-1234567',
+                              ),
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) {
+                                  return 'Por favor ingresa el teléfono para el Pago Móvil';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 10),
+                            // Banco
+                            DropdownButtonFormField<String>(
+                              isExpanded: true,
+                              initialValue: bancoSeleccionado,
+                              decoration: const InputDecoration(
+                                labelText: 'Banco Destino',
+                                prefixIcon: Icon(Icons.account_balance_outlined),
+                              ),
+                              items: const [
+                                DropdownMenuItem(value: 'Banco de Venezuela (0102)', child: Text('Banco de Venezuela (0102)', style: TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'Banesco (0134)', child: Text('Banesco (0134)', style: TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'Mercantil (0105)', child: Text('Mercantil (0105)', style: TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'BBVA Provincial (0108)', child: Text('BBVA Provincial (0108)', style: TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'Banco Nacional de Crédito BNC (0191)', child: Text('Banco Nacional de Crédito BNC (0191)', style: TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'Bancaribe (0114)', child: Text('Bancaribe (0114)', style: TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'Banco Exterior (0115)', child: Text('Banco Exterior (0115)', style: TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'Banco Bicentenario (0175)', child: Text('Banco Bicentenario (0175)', style: TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'Bancamiga (0172)', child: Text('Bancamiga (0172)', style: TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'Banplus (0174)', child: Text('Banplus (0174)', style: TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: '100% Banco (0156)', child: Text('100% Banco (0156)', style: TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'Otro Banco', child: Text('Otro Banco', style: TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setModalState(() => bancoSeleccionado = val);
+                                }
+                              },
+                            ),
+                            if (bancoSeleccionado == 'Otro Banco') ...[
+                              const SizedBox(height: 10),
+                              TextFormField(
+                                controller: customBancoCtrl,
+                                decoration: const InputDecoration(
+                                  labelText: 'Nombre del Banco',
+                                  prefixIcon: Icon(Icons.account_balance),
+                                  hintText: 'Ej. Banco Activo',
+                                ),
+                                validator: (v) {
+                                  if (bancoSeleccionado == 'Otro Banco' && (v == null || v.trim().isEmpty)) {
+                                    return 'Ingresa el nombre del banco';
+                                  }
+                                  return null;
+                                },
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                       const SizedBox(height: 22),
 
                       ElevatedButton(
@@ -1182,12 +1308,18 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
                                 if (!formKey.currentState!.validate()) return;
                                 setModalState(() => isSubmitting = true);
                                 final costo = double.parse(costoCtrl.text.trim());
+                                final bancoFinal = bancoSeleccionado == 'Otro Banco'
+                                    ? customBancoCtrl.text.trim()
+                                    : (bancoSeleccionado ?? '');
                                 try {
                                   await widget.teacherRepository.createSurvey(
                                     courseId: selectedCourse.id,
                                     classDate: Formatters.isoDate(fechaClase),
                                     totalSupplyCost: costo,
                                     deadline: fechaLimite,
+                                    pagoMovilCedula: cedulaPagoCtrl.text.trim(),
+                                    pagoMovilTelefono: telefonoPagoCtrl.text.trim(),
+                                    pagoMovilBanco: bancoFinal,
                                   );
                                   if (context.mounted) {
                                     Navigator.pop(ctx);
@@ -1389,6 +1521,12 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
     final costoCtrl = TextEditingController(text: survey.costoTotalInsumos.toStringAsFixed(2));
     DateTime fechaClase = DateTime.tryParse(survey.fechaClase) ?? DateTime.now().add(const Duration(days: 3));
     DateTime fechaLimite = survey.fechaLimite;
+    final cedulaPagoCtrl = TextEditingController(text: survey.pagoMovilCedula ?? widget.profile?.cedula ?? '');
+    final telefonoPagoCtrl = TextEditingController(text: survey.pagoMovilTelefono ?? widget.profile?.telefono ?? '');
+    String? bancoSeleccionado = survey.pagoMovilBanco != null && survey.pagoMovilBanco!.isNotEmpty
+        ? survey.pagoMovilBanco!
+        : 'Banco de Venezuela (0102)';
+    final customBancoCtrl = TextEditingController();
     final formKey = GlobalKey<FormState>();
     bool isSaving = false;
 
@@ -1498,6 +1636,111 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
                           }
                         },
                       ),
+                      const SizedBox(height: 14),
+
+                      // Datos de Pago Móvil
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceBright,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.outlineVariant),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.phone_android_rounded, size: 16, color: AppTheme.primary),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    'Pago Móvil del Docente',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.onSurface,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: cedulaPagoCtrl,
+                              decoration: const InputDecoration(
+                                labelText: 'Cédula de Identidad',
+                                prefixIcon: Icon(Icons.badge_outlined, size: 18),
+                                hintText: 'Ej. V-12345678',
+                              ),
+                              validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
+                            ),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: telefonoPagoCtrl,
+                              keyboardType: TextInputType.phone,
+                              decoration: const InputDecoration(
+                                labelText: 'Teléfono Pago Móvil',
+                                prefixIcon: Icon(Icons.phone_outlined, size: 18),
+                                hintText: 'Ej. 0414-1234567',
+                              ),
+                              validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
+                            ),
+                            const SizedBox(height: 8),
+                            DropdownButtonFormField<String>(
+                              isExpanded: true,
+                              initialValue: [
+                                'Banco de Venezuela (0102)',
+                                'Banesco (0134)',
+                                'Mercantil (0105)',
+                                'BBVA Provincial (0108)',
+                                'Banco Nacional de Crédito BNC (0191)',
+                                'Bancaribe (0114)',
+                                'Banco Exterior (0115)',
+                                'Banco Bicentenario (0175)',
+                                'Bancamiga (0172)',
+                                'Banplus (0174)',
+                                '100% Banco (0156)',
+                                'Otro Banco',
+                              ].contains(bancoSeleccionado) ? bancoSeleccionado : 'Otro Banco',
+                              decoration: const InputDecoration(
+                                labelText: 'Banco Destino',
+                                prefixIcon: Icon(Icons.account_balance_outlined, size: 18),
+                              ),
+                              items: const [
+                                DropdownMenuItem(value: 'Banco de Venezuela (0102)', child: Text('Banco de Venezuela (0102)', style: TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'Banesco (0134)', child: Text('Banesco (0134)', style: TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'Mercantil (0105)', child: Text('Mercantil (0105)', style: TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'BBVA Provincial (0108)', child: Text('BBVA Provincial (0108)', style: TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'Banco Nacional de Crédito BNC (0191)', child: Text('Banco Nacional de Crédito BNC (0191)', style: TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'Bancaribe (0114)', child: Text('Bancaribe (0114)', style: TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'Banco Exterior (0115)', child: Text('Banco Exterior (0115)', style: TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'Banco Bicentenario (0175)', child: Text('Banco Bicentenario (0175)', style: TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'Bancamiga (0172)', child: Text('Bancamiga (0172)', style: TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'Banplus (0174)', child: Text('Banplus (0174)', style: TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: '100% Banco (0156)', child: Text('100% Banco (0156)', style: TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'Otro Banco', child: Text('Otro Banco', style: TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis)),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setDialogState(() => bancoSeleccionado = val);
+                                }
+                              },
+                            ),
+                            if (bancoSeleccionado == 'Otro Banco') ...[
+                              const SizedBox(height: 8),
+                              TextFormField(
+                                controller: customBancoCtrl,
+                                decoration: const InputDecoration(
+                                  labelText: 'Nombre del Banco',
+                                  prefixIcon: Icon(Icons.account_balance, size: 18),
+                                ),
+                                validator: (v) => (bancoSeleccionado == 'Otro Banco' && (v == null || v.trim().isEmpty)) ? 'Requerido' : null,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1514,12 +1757,18 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
                           if (!formKey.currentState!.validate()) return;
                           setDialogState(() => isSaving = true);
                           final costo = double.parse(costoCtrl.text.trim());
+                          final bancoFinal = bancoSeleccionado == 'Otro Banco'
+                              ? customBancoCtrl.text.trim()
+                              : (bancoSeleccionado ?? '');
                           try {
                             await widget.teacherRepository.updateSurveyDetails(
                               surveyId: survey.id,
                               totalSupplyCost: costo,
                               classDate: Formatters.isoDate(fechaClase),
                               deadline: fechaLimite,
+                              pagoMovilCedula: cedulaPagoCtrl.text.trim(),
+                              pagoMovilTelefono: telefonoPagoCtrl.text.trim(),
+                              pagoMovilBanco: bancoFinal,
                             );
                             if (context.mounted) {
                               Navigator.pop(ctx);

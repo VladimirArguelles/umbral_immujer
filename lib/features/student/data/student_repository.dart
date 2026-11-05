@@ -355,6 +355,9 @@ class StudentRepository {
             monto_individual_calculado,
             total_confirmados,
             estado,
+            pago_movil_cedula,
+            pago_movil_telefono,
+            pago_movil_banco,
             cursos:curso_id (
               nombre,
               perfiles:profesor_id (
@@ -405,6 +408,9 @@ class StudentRepository {
             monto_individual_calculado,
             total_confirmados,
             estado,
+            pago_movil_cedula,
+            pago_movil_telefono,
+            pago_movil_banco,
             cursos:curso_id (
               nombre,
               perfiles:profesor_id (
@@ -472,6 +478,9 @@ class StudentRepository {
           comprobanteSubidoAt: respData?['comprobante_subido_at'] != null
               ? DateTime.tryParse(respData!['comprobante_subido_at'] as String)
               : null,
+          pagoMovilCedula: enc['pago_movil_cedula'] as String?,
+          pagoMovilTelefono: enc['pago_movil_telefono'] as String?,
+          pagoMovilBanco: enc['pago_movil_banco'] as String?,
         ),
       );
     }
@@ -498,6 +507,9 @@ class StudentRepository {
             monto_individual_calculado,
             total_confirmados,
             estado,
+            pago_movil_cedula,
+            pago_movil_telefono,
+            pago_movil_banco,
             cursos:curso_id (
               nombre,
               perfiles:profesor_id (
@@ -545,6 +557,9 @@ class StudentRepository {
             monto_individual_calculado,
             total_confirmados,
             estado,
+            pago_movil_cedula,
+            pago_movil_telefono,
+            pago_movil_banco,
             cursos:curso_id (
               nombre,
               perfiles:profesor_id (
@@ -610,6 +625,9 @@ class StudentRepository {
           comprobanteSubidoAt: respData?['comprobante_subido_at'] != null
               ? DateTime.tryParse(respData!['comprobante_subido_at'] as String)
               : null,
+          pagoMovilCedula: enc['pago_movil_cedula'] as String?,
+          pagoMovilTelefono: enc['pago_movil_telefono'] as String?,
+          pagoMovilBanco: enc['pago_movil_banco'] as String?,
         ),
       );
     }

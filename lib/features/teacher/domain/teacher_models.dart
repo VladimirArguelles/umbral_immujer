@@ -166,6 +166,9 @@ class TeacherSurvey {
   final int totalConfirmados;
   final String estado;
   final DateTime? createdAt;
+  final String? pagoMovilCedula;
+  final String? pagoMovilTelefono;
+  final String? pagoMovilBanco;
 
   TeacherSurvey({
     required this.id,
@@ -179,6 +182,9 @@ class TeacherSurvey {
     required this.totalConfirmados,
     required this.estado,
     this.createdAt,
+    this.pagoMovilCedula,
+    this.pagoMovilTelefono,
+    this.pagoMovilBanco,
   });
 
   bool get isActiva => estado == 'activa';
@@ -198,6 +204,9 @@ class TeacherSurvey {
       totalConfirmados: (json['total_confirmados'] as num?)?.toInt() ?? 0,
       estado: json['estado'] as String? ?? 'activa',
       createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
+      pagoMovilCedula: json['pago_movil_cedula'] as String?,
+      pagoMovilTelefono: json['pago_movil_telefono'] as String?,
+      pagoMovilBanco: json['pago_movil_banco'] as String?,
     );
   }
 }

@@ -197,6 +197,9 @@ class TeacherRepository {
     required String classDate,
     required double totalSupplyCost,
     required DateTime deadline,
+    String? pagoMovilCedula,
+    String? pagoMovilTelefono,
+    String? pagoMovilBanco,
   }) async {
     final uid = currentUserId;
 
@@ -204,7 +207,7 @@ class TeacherRepository {
     final rateInfo = await getLatestBcvRateInfo();
     final tasaBcv = rateInfo.tasa;
 
-    await _supabase.from('encuestas_participacion').insert({
+    final insertPayload = <String, dynamic>{
       'curso_id': courseId,
       'fecha_clase': classDate,
       'costo_total_insumos': totalSupplyCost,
@@ -214,7 +217,19 @@ class TeacherRepository {
       'estado': 'activa',
       'monto_individual_calculado': 0.00,
       'total_confirmados': 0,
-    });
+    };
+
+    if (pagoMovilCedula != null && pagoMovilCedula.trim().isNotEmpty) {
+      insertPayload['pago_movil_cedula'] = pagoMovilCedula.trim();
+    }
+    if (pagoMovilTelefono != null && pagoMovilTelefono.trim().isNotEmpty) {
+      insertPayload['pago_movil_telefono'] = pagoMovilTelefono.trim();
+    }
+    if (pagoMovilBanco != null && pagoMovilBanco.trim().isNotEmpty) {
+      insertPayload['pago_movil_banco'] = pagoMovilBanco.trim();
+    }
+
+    await _supabase.from('encuestas_participacion').insert(insertPayload);
   }
 
   /// Actualizar el monto del aporte en USD fijado por el profesor y recalcular cuota en Bs
@@ -254,6 +269,9 @@ class TeacherRepository {
           total_confirmados,
           estado,
           created_at,
+          pago_movil_cedula,
+          pago_movil_telefono,
+          pago_movil_banco,
           cursos:curso_id (
             nombre,
             profesor_id
@@ -297,17 +315,26 @@ class TeacherRepository {
     required double totalSupplyCost,
     required String classDate,
     required DateTime deadline,
+    String? pagoMovilCedula,
+    String? pagoMovilTelefono,
+    String? pagoMovilBanco,
   }) async {
     final rateInfo = await getLatestBcvRateInfo();
     final tasaBcv = rateInfo.tasa;
 
-    await _supabase.from('encuestas_participacion').update({
+    final updatePayload = <String, dynamic>{
       'costo_total_insumos': totalSupplyCost,
       'fecha_clase': classDate,
       'fecha_limite': deadline.toIso8601String(),
       'tasa_bcv_usada': tasaBcv,
       'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', surveyId);
+    };
+
+    if (pagoMovilCedula != null) updatePayload['pago_movil_cedula'] = pagoMovilCedula.trim();
+    if (pagoMovilTelefono != null) updatePayload['pago_movil_telefono'] = pagoMovilTelefono.trim();
+    if (pagoMovilBanco != null) updatePayload['pago_movil_banco'] = pagoMovilBanco.trim();
+
+    await _supabase.from('encuestas_participacion').update(updatePayload).eq('id', surveyId);
 
     try {
       await _supabase.rpc('recalcular_monto_encuesta', params: {'p_encuesta_id': surveyId});
