@@ -1015,9 +1015,13 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: AppTheme.surfaceContainerLow,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.9,
       ),
       builder: (ctx) {
         return StatefulBuilder(
@@ -1220,11 +1224,14 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
                             // Cédula de Identidad
                             TextFormField(
                               controller: cedulaPagoCtrl,
+                              enabled: true,
+                              enableInteractiveSelection: true,
                               keyboardType: TextInputType.text,
+                              textInputAction: TextInputAction.next,
                               decoration: const InputDecoration(
-                                labelText: 'Cédula de Identidad del Titular',
+                                labelText: 'Cédula de Identidad del Titular *',
                                 prefixIcon: Icon(Icons.badge_outlined),
-                                hintText: 'Ej. V-12345678',
+                                hintText: 'Ej. 12345678 o V-12345678',
                               ),
                               validator: (v) {
                                 if (v == null || v.trim().isEmpty) {
@@ -1237,11 +1244,14 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
                             // Teléfono
                             TextFormField(
                               controller: telefonoPagoCtrl,
+                              enabled: true,
+                              enableInteractiveSelection: true,
                               keyboardType: TextInputType.phone,
+                              textInputAction: TextInputAction.next,
                               decoration: const InputDecoration(
-                                labelText: 'Número de Teléfono Pago Móvil',
+                                labelText: 'Número de Teléfono Pago Móvil *',
                                 prefixIcon: Icon(Icons.phone_outlined),
-                                hintText: 'Ej. 0414-1234567',
+                                hintText: 'Ej. 04141234567',
                               ),
                               validator: (v) {
                                 if (v == null || v.trim().isEmpty) {
@@ -1366,9 +1376,13 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: AppTheme.surfaceContainerLow,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.9,
       ),
       builder: (ctx) {
         return Padding(
@@ -3335,6 +3349,7 @@ class _GestionAlumnosTabState extends State<_GestionAlumnosTab> {
 
           return AlertDialog(
             backgroundColor: AppTheme.surfaceContainerLow,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: Row(
               children: [
@@ -3359,55 +3374,86 @@ class _GestionAlumnosTabState extends State<_GestionAlumnosTab> {
                 ),
               ],
             ),
-            content: SizedBox(
-              width: double.maxFinite,
-              child: loadingTemas
-                  ? const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
-                  : temas.isEmpty
-                      ? const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(20),
-                            child: Text('No hay temas registrados en este curso aún.'),
+            content: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: 550,
+                maxHeight: MediaQuery.of(context).size.height * 0.7,
+              ),
+              child: SizedBox(
+                width: double.maxFinite,
+                child: loadingTemas
+                    ? const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
+                    : temas.isEmpty
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20),
+                              child: Text('No hay temas registrados en este curso aún.'),
+                            ),
+                          )
+                        : ListView.separated(
+                            shrinkWrap: true,
+                            itemCount: temas.length,
+                            separatorBuilder: (context, index) => const SizedBox(height: 6),
+                            itemBuilder: (context, index) {
+                              final tema = temas[index];
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.surfaceBright,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.5)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 12,
+                                      backgroundColor: AppTheme.secondary.withValues(alpha: 0.15),
+                                      child: Text(
+                                        '${index + 1}',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppTheme.secondary,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        tema,
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    IconButton(
+                                      icon: const Icon(Icons.edit_outlined, size: 18),
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                      tooltip: 'Editar tema',
+                                      onPressed: () => _proponerEditarTema(ctx, tema, () {
+                                        loadingTemas = true;
+                                        setDialogState(() {});
+                                      }),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline, size: 18, color: AppTheme.errorRed),
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                      tooltip: 'Eliminar tema',
+                                      onPressed: () => _proponerEliminarTema(ctx, tema, () {
+                                        loadingTemas = true;
+                                        setDialogState(() {});
+                                      }),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
                           ),
-                        )
-                      : ListView.separated(
-                          shrinkWrap: true,
-                          itemCount: temas.length,
-                          separatorBuilder: (_, _) => const Divider(height: 1),
-                          itemBuilder: (context, index) {
-                            final tema = temas[index];
-                            return ListTile(
-                              dense: true,
-                              leading: CircleAvatar(
-                                radius: 14,
-                                backgroundColor: AppTheme.secondary.withValues(alpha: 0.2),
-                                child: Text('${index + 1}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.secondary)),
-                              ),
-                              title: Text(tema, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.edit_outlined, size: 18),
-                                    tooltip: 'Editar tema',
-                                    onPressed: () => _proponerEditarTema(ctx, tema, () {
-                                      loadingTemas = true;
-                                      setDialogState(() {});
-                                    }),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete_outline, size: 18, color: AppTheme.errorRed),
-                                    tooltip: 'Eliminar tema',
-                                    onPressed: () => _proponerEliminarTema(ctx, tema, () {
-                                      loadingTemas = true;
-                                      setDialogState(() {});
-                                    }),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
+              ),
             ),
             actions: [
               TextButton(

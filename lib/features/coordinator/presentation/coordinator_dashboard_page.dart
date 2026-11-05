@@ -172,9 +172,9 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
             value: '/reports',
             child: Row(
               children: [
-                const Icon(Icons.picture_as_pdf_rounded, size: 18, color: AppTheme.primary),
+                const Icon(Icons.visibility_rounded, size: 18, color: AppTheme.primary),
                 const SizedBox(width: 10),
-                Text('Centro de Reportes y PDF', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                Text('Ver Registros', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
               ],
             ),
           ),
@@ -330,10 +330,20 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
             ],
           ),
           actions: [
-            IconButton(
-              tooltip: 'Centro de Reportes y PDF',
-              icon: const Icon(Icons.picture_as_pdf_rounded, color: AppTheme.primary),
-              onPressed: () => context.go('/reports'),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                icon: const Icon(Icons.visibility_rounded, size: 16),
+                label: const Text('Ver Registros', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                onPressed: () => context.go('/reports'),
+              ),
             ),
             _buildDropdownNav(isSuperAdmin),
             const ThemeModeToggleButton(),

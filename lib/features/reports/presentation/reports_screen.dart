@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
+import '../../printing/data/printer_repository.dart';
+import '../../printing/domain/printer_models.dart';
 import '../data/reports_repository.dart';
 import '../domain/report_models.dart';
 import 'services/pdf_export_service.dart';
@@ -25,6 +27,7 @@ class ReportsScreen extends StatefulWidget {
 
 class _ReportsScreenState extends State<ReportsScreen> {
   final ReportsRepository _repo = ReportsRepository();
+  final PrinterRepository _printerRepo = PrinterRepository();
 
   bool _isLoading = true;
   bool _isGeneratingPdf = false;
@@ -177,8 +180,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
     try {
       final bytes = await _generatePdfBytes();
       if (bytes != null) {
-        final filename = '${_tipoReporte.name}_${_currentCursoNombre.replaceAll(' ', '_')}.pdf';
-        await PdfExportService.imprimir(bytes, filename);
+        final ticket = TicketData(
+          titulo: 'REPORTE - ${_tipoReporte.titulo.toUpperCase()}',
+          subtitulo: _currentCursoNombre,
+          pdfBytes: bytes,
+        );
+        final ok = await _printerRepo.enviarAImprimirUniversal(ticket);
+        if (ok) {
+          _showSnack('Impresión enviada correctamente a la impresora.');
+        }
       }
     } catch (e) {
       _showSnack('Error al imprimir el documento: $e');
@@ -247,6 +257,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'Ajustes de Impresora',
+            icon: Icon(Symbols.print_connect, color: AppTheme.dynamicText),
+            onPressed: () => context.push('/printer-settings'),
+          ),
           IconButton(
             tooltip: 'Actualizar Datos',
             icon: Icon(Symbols.refresh, color: AppTheme.primary),
