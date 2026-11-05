@@ -737,7 +737,7 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: [
-                  const Icon(Icons.image_outlined, color: AppTheme.coralFuchsia, size: 20),
+                  const Icon(Icons.image_outlined, color: AppTheme.primary, size: 20),
                   const SizedBox(width: 8),
                   const Text(
                     'Comprobante Médico Adjunto',
@@ -862,13 +862,13 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
                 borderRadius: BorderRadius.circular(14),
                 gradient: LinearGradient(
                   colors: [
-                    AppTheme.coralFuchsia,
-                    AppTheme.coralFuchsia.withValues(alpha: 0.85),
+                    AppTheme.primary,
+                    AppTheme.primary.withValues(alpha: 0.85),
                   ],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.coralFuchsia.withValues(alpha: 0.28),
+                    color: AppTheme.primary.withValues(alpha: 0.28),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -1133,7 +1133,7 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
                                 alignment: Alignment.centerRight,
                                 child: TextButton.icon(
                                   style: TextButton.styleFrom(
-                                    foregroundColor: AppTheme.coralFuchsia,
+                                    foregroundColor: AppTheme.primary,
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                     minimumSize: Size.zero,
                                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -1205,7 +1205,7 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
                       '${_justificativos.length}',
                       style: const TextStyle(
                         fontSize: 12,
-                        color: AppTheme.coralFuchsia,
+                        color: AppTheme.primary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -1259,7 +1259,7 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.event_note, color: AppTheme.coralFuchsia, size: 18),
+                                  const Icon(Icons.event_note, color: AppTheme.primary, size: 18),
                                   const SizedBox(width: 6),
                                   Text(
                                     'Fecha de falta: ${just.fecha}',
@@ -1463,7 +1463,7 @@ class _ModalJustificarAusenciaState extends State<_ModalJustificarAusencia> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.dark(
-              primary: AppTheme.coralFuchsia,
+              primary: AppTheme.primary,
               surface: AppTheme.anthraciteCard,
               onSurface: AppTheme.pureWhite,
             ),
@@ -1605,12 +1605,12 @@ class _ModalJustificarAusenciaState extends State<_ModalJustificarAusencia> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: AppTheme.coralFuchsia.withValues(alpha: 0.15),
+                      color: AppTheme.primary.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
                       Icons.medical_services_rounded,
-                      color: AppTheme.coralFuchsia,
+                      color: AppTheme.primary,
                       size: 26,
                     ),
                   ),
@@ -1731,7 +1731,7 @@ class _ModalJustificarAusenciaState extends State<_ModalJustificarAusencia> {
                       const Icon(
                         Icons.add_photo_alternate_outlined,
                         size: 38,
-                        color: AppTheme.coralFuchsia,
+                        color: AppTheme.primary,
                       ),
                       const SizedBox(height: 8),
                       const Text(
@@ -1847,8 +1847,8 @@ class _ModalJustificarAusenciaState extends State<_ModalJustificarAusencia> {
               // Botón de Envío
               FilledButton.icon(
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppTheme.coralFuchsia,
-                  foregroundColor: AppTheme.pureWhite,
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: AppTheme.onPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -2865,7 +2865,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
                           child: ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppTheme.primaryContainer,
-                              foregroundColor: AppTheme.pureWhite,
+                              foregroundColor: AppTheme.onPrimary,
                               elevation: 2,
                               padding: const EdgeInsets.symmetric(
                                 vertical: 15,

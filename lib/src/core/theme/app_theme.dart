@@ -90,11 +90,9 @@ abstract final class AppTheme {
   /// porcentajes de éxito y barras de progreso.
   static const Color mintNeon = Color(0xFF0BD984);
 
-  /// Rosa Coral / Fucsia: Llamada a la acción (CTA) para botones principales,
-  /// insignias de alerta y notificaciones.
-  static const Color coralFuchsia = Color(0xFFFF1493);
-  static const Color coralFuchsiaSoft = Color(0xFFD42F8C);
-  static const Color primaryGlow = Color(0x59FF1493);
+  /// Acento violeta para acciones, selecciones y elementos principales.
+  static const Color violet = Color(0xFF8B5CF6);
+  static const Color primaryGlow = Color(0x598B5CF6);
 
   /// Blanco Puro: Tipografías principales de títulos, valores numéricos y textos destacados.
   static const Color pureWhite = Color(0xFFFFFFFF);
@@ -120,17 +118,17 @@ abstract final class AppTheme {
   static const Color outline = Color(0xFF3F424E);
   static const Color outlineVariant = Color(0xFF2B2D38);
   static const Color activeOutline = Color(0xFF334155);
-  /// Botones principales, acentos y llamadas a la acción (Rosa Coral / Fucsia)
-  static const Color primary = coralFuchsia;
-  static const Color onPrimary = Color(0xFF0F172A);
-  static const Color primaryContainer = coralFuchsiaSoft;
-  static const Color onPrimaryContainer = Color(0xFF0F172A);
-  static const Color primaryFixed = coralFuchsia;
-  static const Color primaryFixedDim = coralFuchsiaSoft;
-  static const Color onPrimaryFixed = Color(0xFF0F172A);
-  static const Color onPrimaryFixedVariant = Color(0xFF0F172A);
+  /// Botones principales, acentos y llamadas a la acción.
+  static const Color primary = violet;
+  static const Color onPrimary = Color(0xFF000000);
+  static const Color primaryContainer = violet;
+  static const Color onPrimaryContainer = Color(0xFF000000);
+  static const Color primaryFixed = violet;
+  static const Color primaryFixedDim = violet;
+  static const Color onPrimaryFixed = Color(0xFF000000);
+  static const Color onPrimaryFixedVariant = Color(0xFF000000);
   static const Color primaryDark = primary;
-  static const Color inversePrimary = Color(0xFFE11D48);
+  static const Color inversePrimary = Color(0xFF8B5CF6);
 
   static const Color secondary = Color(0xFFBFC6DC);
   static const Color onSecondary = Color(0xFF283041);
@@ -370,7 +368,7 @@ abstract final class AppTheme {
     const lightOnSurface = Color(0xFF1E232A);
     const lightOnSurfaceVariant = Color(0xFF64748B);
     const lightOutline = Color(0xFFE2E8F0);
-    const lightPrimary = coralFuchsia;
+    const lightPrimary = violet;
 
     final baseTextTheme = GoogleFonts.plusJakartaSansTextTheme(
       ThemeData.light().textTheme,
@@ -437,9 +435,9 @@ abstract final class AppTheme {
       colorScheme: const ColorScheme(
         brightness: Brightness.light,
         primary: lightPrimary,
-        onPrimary: Colors.white,
-        primaryContainer: coralFuchsiaSoft,
-        onPrimaryContainer: Color(0xFF0F172A),
+        onPrimary: Color(0xFF000000),
+        primaryContainer: violet,
+        onPrimaryContainer: Color(0xFF000000),
         secondary: Color(0xFF475569),
         onSecondary: Colors.white,
         secondaryContainer: Color(0xFFE2E8F0),
@@ -491,7 +489,7 @@ abstract final class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: lightPrimary,
-          foregroundColor: Colors.white,
+          foregroundColor: onPrimary,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),

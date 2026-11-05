@@ -24,7 +24,7 @@ Cada módulo o característica del proyecto debe estructurarse obligatoriamente 
 ## 4. UI/UX System (Glassmorphism & Dark Mode)
 - **Fondo Principal:** `#0D0714` (Dark Violet/Black).
 - **Contenedores Glassmorphic:** Superficies translúcidas con desenfoque (`BackdropFilter` con `ImageFilter.blur(sigmaX: 10, sigmaY: 10)`).
-- **Acentos Neón:** Fucsia/Magenta (`#E0115F` / `#FF007F`) y Violeta neón para bordes y botones de acción principal.
+- **Acentos principales:** Violeta (`#8B5CF6`) para bordes y botones de accion principal.
 - **Navbar:** Navegador flotante inferior en forma de cápsula con efecto de cristal y sombras neón.
 
 ---

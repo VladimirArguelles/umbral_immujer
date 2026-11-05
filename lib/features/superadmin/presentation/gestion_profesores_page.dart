@@ -598,7 +598,7 @@ class _GestionProfesoresPageState extends State<GestionProfesoresPage> {
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primary,
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppTheme.onPrimary,
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),

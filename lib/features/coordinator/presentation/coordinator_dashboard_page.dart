@@ -335,7 +335,7 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primary,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppTheme.onPrimary,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

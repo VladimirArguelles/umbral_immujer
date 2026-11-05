@@ -467,14 +467,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
               height: 16,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: Colors.white,
+                color: AppTheme.onPrimary,
               ),
             )
           : const Icon(Symbols.visibility, size: 18),
       label: const Text('Ver Registros'),
       style: ElevatedButton.styleFrom(
         backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: AppTheme.onPrimary,
         minimumSize: const Size(120, 44),
         padding: const EdgeInsets.symmetric(horizontal: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

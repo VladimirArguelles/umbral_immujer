@@ -13,7 +13,7 @@ Esta es la paleta cromática mandatoria a utilizar en todas las interfaces, vist
 | **Fondo profundo** | `#0F172A` (`AppTheme.background` / `AppTheme.anthraciteDark`)<br>`#0B0E15` (`AppTheme.surfaceContainerLowest`) | **Superficies**: Fondo general de páginas y contenedores internos, list tiles y chips. |
 | **Paneles y tarjetas** | `#1E293B` (`AppTheme.surfaceContainerLow`)<br>`#1D1F27` (`AppTheme.surfaceContainer`)<br>`#272A32` (`AppTheme.surfaceContainerHigh`) | **Profundidad**: Tarjetas, paneles, contenedores y elementos interactivos elevados. |
 | **Verde de éxito** | `#0BD984` (`AppTheme.mintNeon` / `AppTheme.tertiary`)<br>`#10B981` (`AppTheme.tertiaryContainer`)<br>`#00A572` (`AppTheme.successGreenVariant`) | **Métricas y Éxito**: Indicadores positivos, gráficos, porcentajes, confirmaciones y progreso. |
-| **Rosa / Magenta** | `#FF1493` (`AppTheme.primary` / `AppTheme.coralFuchsia`)<br>`#D42F8C` (`AppTheme.primaryContainer` / `AppTheme.coralFuchsiaSoft`)<br>`#E11D48` (`AppTheme.inversePrimary`) | **Acciones**: Botones primarios, estados activos, selecciones y acentos complementarios. |
+| **Violeta** | `#8B5CF6` (`AppTheme.primary` / `AppTheme.violet`) | **Acciones**: Botones primarios, estados activos, selecciones y acentos complementarios. |
 | **Blanco Puro** | `#FFFFFF` (`AppTheme.pureWhite` / `AppTheme.onSurface`) | **Tipografía Principal**: Títulos principales, valores numéricos de métricas destacadas y encabezados de secciones. |
 | **Gris Claro / Atenuado** | `#A1A1AA` (`AppTheme.mutedGray` / `AppTheme.onSurfaceVariant`) | **Tipografía Secundaria**: Textos secundarios, descripciones de módulos, fechas, etiquetas auxiliares y subtítulos. |
 | **Texto auxiliar** | `#B0B8CD` (`AppTheme.onSecondaryContainer`)<br>`#BFC6DC` (`AppTheme.secondary`) | **Apoyo**: Texto auxiliar y elementos secundarios. |
@@ -31,8 +31,8 @@ Todos los componentes deben consumir directamente los tokens de [`lib/src/core/t
 AppTheme.background       // Fondo principal (#0F172A)
 AppTheme.surfaceContainerLow // Tarjetas y paneles (#1E293B)
 AppTheme.surfaceContainerLowest // Contenedores internos y chips (#0B0E15)
-AppTheme.primary          // CTA principal (#FF1493)
-AppTheme.primaryContainer // Variante secundaria/hover (#D42F8C)
+AppTheme.primary          // CTA principal (#8B5CF6)
+AppTheme.primaryContainer // Estados y superficies de acento (#8B5CF6)
 AppTheme.successGreen     // Indicadores positivos y progreso (#0BD984)
 AppTheme.pureWhite        // Títulos y valores destacados (#FFFFFF)
 AppTheme.mutedGray        // Descripciones y subtítulos (#A1A1AA)
@@ -40,7 +40,7 @@ AppTheme.mutedGray        // Descripciones y subtítulos (#A1A1AA)
 // Mapeo en Theme y ColorScheme de Material 3:
 Theme.of(context).colorScheme.surfaceContainer // Superficie de paneles (#1D1F27)
 Theme.of(context).colorScheme.tertiary         // Éxito y progreso (#0BD984)
-Theme.of(context).colorScheme.primary          // Rosa / Magenta (#FF1493)
+Theme.of(context).colorScheme.primary          // Violeta (#8B5CF6)
 Theme.of(context).colorScheme.onSurface        // Blanco Puro
 Theme.of(context).colorScheme.onSurfaceVariant // Gris Claro / Atenuado
 ```
@@ -61,9 +61,8 @@ Theme.of(context).colorScheme.onSurfaceVariant // Gris Claro / Atenuado
    - Subtítulos, labels y metadatos: **Gris Claro / Atenuado** (`#A1A1AA`), `FontWeight.w400` a `FontWeight.w600`.
 
 3. **Acciones y Notificaciones (CTA)**:
-   - Botón primario de envío o confirmación: Fondo **Rosa / Magenta** (`#FF1493`), texto con contraste adecuado.
-   - Variantes secundarias y hover: `#D42F8C` o `#E11D48`.
-   - Puntos de notificación y selecciones activas: `AppTheme.primary`.
+   - Botón primario de envío o confirmación: Fondo **Violeta** (`#8B5CF6`) y texto negro para conservar el contraste.
+   - Estados activos, hover, puntos de notificación y selecciones: `AppTheme.primary` (`#8B5CF6`).
 
 4. **Progreso y Estadísticas Positivas**:
    - Barras de asistencia, porcentajes alcanzados, métrica "Presente" y gráficos ascendentes: `AppTheme.successGreen` (`#0BD984`), con variantes `#10B981` y `#00A572`.

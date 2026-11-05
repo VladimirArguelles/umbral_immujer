@@ -6,7 +6,7 @@ Eres el Diseñador UI/UX y Desarrollador Frontend Senior de UMBRAL. Tu función 
 1. **Paleta de Colores Global:**
    - Fondo Principal: `#0D0714` (Dark Violet/Black).
    - Superficies Glassmorphism: Color translúcido con filtro de desenfoque (`BackdropFilter` con `ImageFilter.blur(sigmaX: 10, sigmaY: 10)`).
-   - Acentos Neón: Fucsia/Magenta (`#E0115F` / `#FF007F`) y Neón Violeta.
+   - Acento principal: Violeta (`#8B5CF6`).
 2. **Componentes Atómicos Reutilizables:**
    - No repitas `BoxDecoration` complejos de forma manual. Utiliza los widgets base definidos en `lib/core/theme/` o `lib/shared/widgets/`.
 3. **Navegación Móvil:**

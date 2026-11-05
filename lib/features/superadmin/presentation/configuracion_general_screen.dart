@@ -1667,7 +1667,7 @@ class _ConfiguracionGeneralScreenState
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: cPrimary,
-                    foregroundColor: Colors.white,
+                    foregroundColor: AppTheme.onPrimary,
                     padding: EdgeInsets.symmetric(
                       horizontal: isCompact ? 14 : 22,
                       vertical: isCompact ? 10 : 14,

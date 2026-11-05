@@ -14,7 +14,7 @@ class ParticlesBackground extends StatelessWidget {
       color: AppTheme.background,
       child: Stack(
         children: [
-          // Luces ambientales difuminadas (Glows púrpuras y magenta)
+          // Luces ambientales difuminadas (Glows púrpuras en tonos violetas)
           Positioned(
             top: -60,
             right: -60,

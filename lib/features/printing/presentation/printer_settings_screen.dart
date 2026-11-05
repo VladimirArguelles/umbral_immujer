@@ -347,13 +347,13 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
                                   ? const SizedBox(
                                       width: 16,
                                       height: 16,
-                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.onPrimary),
                                     )
                                   : const Icon(Icons.save_rounded),
                               label: const Text('Guardar Impresora'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppTheme.primary,
-                                foregroundColor: Colors.white,
+                                foregroundColor: AppTheme.onPrimary,
                                 padding: const EdgeInsets.symmetric(vertical: 14),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               ),
@@ -638,12 +638,12 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
               ElevatedButton.icon(
                 onPressed: _isScanningBluetooth ? null : _startBluetoothScan,
                 icon: _isScanningBluetooth
-                    ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.onPrimary))
                     : const Icon(Icons.bluetooth_searching, size: 16),
                 label: Text(_isScanningBluetooth ? 'Buscando...' : 'Escanear'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primary,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppTheme.onPrimary,
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 ),
               ),

@@ -11,13 +11,15 @@ void main() {
 
     expect(scheme.brightness, Brightness.dark);
     expect(scheme.surface, const Color(0xFF0F172A));
-    expect(scheme.primary, const Color(0xFFFF1493));
-    expect(scheme.primaryContainer, const Color(0xFFD42F8C));
+    expect(scheme.primary, const Color(0xFF8B5CF6));
+    expect(scheme.onPrimary, const Color(0xFF000000));
+    expect(scheme.primaryContainer, const Color(0xFF8B5CF6));
     expect(scheme.secondary, const Color(0xFFBFC6DC));
     expect(scheme.tertiary, const Color(0xFF0BD984));
     expect(theme.scaffoldBackgroundColor, const Color(0xFF0F172A));
     expect(theme.cardTheme.color, const Color(0xFF1E293B));
-    expect(AppTheme.lightTheme.colorScheme.primary, const Color(0xFFFF1493));
+    expect(AppTheme.lightTheme.colorScheme.primary, const Color(0xFF8B5CF6));
+    expect(AppTheme.lightTheme.colorScheme.onPrimary, const Color(0xFF000000));
     expect(AppTheme.lightTheme.colorScheme.tertiary, const Color(0xFF0BD984));
     expect(
       theme.textTheme.bodyMedium?.fontFamily,

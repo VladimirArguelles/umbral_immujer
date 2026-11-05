@@ -36,7 +36,7 @@ class LandingTopBar extends StatelessWidget {
             ),
           ),
 
-          // Botón estilo píldora rosa/magenta translúcido "Entrar"
+          // Botón estilo píldora violeta translúcido "Entrar"
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(30),
