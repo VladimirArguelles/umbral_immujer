@@ -54,3 +54,7 @@ assets/.env
 .widget_preview/
 
 supabase/.temp/
+
+# Node.js
+node_modules/
+scripts/node_modules/

@@ -99,7 +99,7 @@ class _ConfiguracionGeneralScreenState
       _ensureDefault('tolerancia_minutos_asistencia', 15);
       _ensureDefault('porcentaje_minimo_asistencia_aprobacion', 75);
       _ensureDefault('bloqueo_edicion_asistencia_dias', 3);
-      _ensureDefault('n8n_webhook_notificaciones', 'https://n8n.umbral.gob/webhook/notify');
+      _ensureDefault('webhook_notificaciones', '');
       _ensureDefault('recordatorio_pagos_dias_previos', 2);
       _ensureDefault('plantilla_mensaje_bienvenida', '¡Bienvenida a UMBRAL IMMUJER! Tu registro ha sido procesado exitosamente.');
       _ensureDefault('max_file_size_mb_comprobante', 5);
@@ -138,7 +138,7 @@ class _ConfiguracionGeneralScreenState
   void _syncControllers() {
     _setControllerText('tolerancia_minutos_asistencia', _currentValues['tolerancia_minutos_asistencia']?.toString() ?? '15');
     _setControllerText('bloqueo_edicion_asistencia_dias', _currentValues['bloqueo_edicion_asistencia_dias']?.toString() ?? '3');
-    _setControllerText('n8n_webhook_notificaciones', _currentValues['n8n_webhook_notificaciones']?.toString() ?? '');
+    _setControllerText('webhook_notificaciones', _currentValues['webhook_notificaciones']?.toString() ?? '');
     _setControllerText('recordatorio_pagos_dias_previos', _currentValues['recordatorio_pagos_dias_previos']?.toString() ?? '2');
     _setControllerText('plantilla_mensaje_bienvenida', _currentValues['plantilla_mensaje_bienvenida']?.toString() ?? '');
     _setControllerText('max_file_size_mb_comprobante', _currentValues['max_file_size_mb_comprobante']?.toString() ?? '5');
@@ -957,18 +957,18 @@ class _ConfiguracionGeneralScreenState
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // SECCIÓN B: AUTOMATIZACIONES Y NOTIFICACIONES (n8n / WhatsApp)
+  // SECCIÓN B: AUTOMATIZACIONES Y NOTIFICACIONES (WhatsApp / Webhooks Directos)
   // ═══════════════════════════════════════════════════════════════════════════
   Widget _buildAutomationSection() {
     return _buildSectionCard(
-      title: 'Automatización y Notificaciones (n8n / WhatsApp)',
-      subtitle: 'Integración vía Webhooks HTTP, recordatorios de cuotas y mensajería',
+      title: 'Automatización y Notificaciones (WhatsApp / Webhook)',
+      subtitle: 'Integración vía Webhook directo HTTP, recordatorios de cuotas y mensajería',
       icon: Symbols.alt_route,
       accentColor: cSky,
       children: [
         _buildTextField(
-          keyName: 'n8n_webhook_notificaciones',
-          label: 'Webhook de Notificaciones (n8n / API Gateway)',
+          keyName: 'webhook_notificaciones',
+          label: 'Webhook de Notificaciones (API Gateway / WhatsApp)',
           helperText: 'Endpoint que recibe los eventos de recordatorios y confirmaciones.',
           icon: Symbols.webhook,
           keyboardType: TextInputType.url,
@@ -976,12 +976,12 @@ class _ConfiguracionGeneralScreenState
             if (v == null || v.trim().isEmpty) return 'El webhook es requerido';
             final uri = Uri.tryParse(v.trim());
             if (uri == null || (!uri.isScheme('http') && !uri.isScheme('https'))) {
-              return 'Ingresa una URL válida (ej: https://n8n.servidor.com/webhook/...)';
+              return 'Ingresa una URL válida (ej: https://api.servidor.com/webhook/...)';
             }
             return null;
           },
           onChanged: (val) {
-            _currentValues['n8n_webhook_notificaciones'] = val.trim();
+            _currentValues['webhook_notificaciones'] = val.trim();
             setState(() {});
           },
         ),

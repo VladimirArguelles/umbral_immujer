@@ -122313,7 +122313,7 @@ h.m(0,k,j)
 g.m(0,k,j)}o.jS("tolerancia_minutos_asistencia",15)
 o.jS("porcentaje_minimo_asistencia_aprobacion",75)
 o.jS("bloqueo_edicion_asistencia_dias",3)
-o.jS("n8n_webhook_notificaciones","https://n8n.umbral.gob/webhook/notify")
+o.jS("webhook_notificaciones","")
 o.jS("recordatorio_pagos_dias_previos",2)
 o.jS("plantilla_mensaje_bienvenida","\xa1Bienvenida a UMBRAL IMMUJER! Tu registro ha sido procesado exitosamente.")
 o.jS("max_file_size_mb_comprobante",5)
@@ -122329,9 +122329,9 @@ o.nN("tolerancia_minutos_asistencia",h==null?"15":h)
 h=g.h(0,"bloqueo_edicion_asistencia_dias")
 h=h==null?null:J.br(h)
 o.nN("bloqueo_edicion_asistencia_dias",h==null?"3":h)
-h=g.h(0,"n8n_webhook_notificaciones")
+h=g.h(0,"webhook_notificaciones")
 h=h==null?null:J.br(h)
-o.nN("n8n_webhook_notificaciones",h==null?"":h)
+o.nN("webhook_notificaciones",h==null?"":h)
 h=g.h(0,"recordatorio_pagos_dias_previos")
 h=h==null?null:J.br(h)
 o.nN("recordatorio_pagos_dias_previos",h==null?"2":h)
@@ -122489,7 +122489,7 @@ o.toString
 o=A.b7p(o).aLx(B.p,B.I,$.b9I(),B.p,5)
 return l.z7(B.p,A.b([j,B.aY,A.a2(A.b([r,B.bf,p,B.bl,A.bey(new A.JT(B.e.e5(i,50,100),new A.aG9(l),50,100,50,m,k),o)],s),B.w,B.d,B.f,0,B.k),B.at,l.v4("Pasados estos d\xedas desde la clase, solo el Super Admin podr\xe1 modificar el registro.",B.VK,!0,"bloqueo_edicion_asistencia_dias","D\xedas de Bloqueo para Edici\xf3n de Asistencia",new A.aGa(l),"d\xedas",new A.aGb())],s),B.W7,"Par\xe1metros de tolerancia, bloqueo de fechas y porcentaje para pase de curso","Auditor\xeda Acad\xe9mica y Asistencia")},
 Z8(){var s=this
-return s.z7(B.a9,A.b([s.ao2("Endpoint que recibe los eventos de recordatorios y confirmaciones.",B.W1,"n8n_webhook_notificaciones",B.Ki,"Webhook de Notificaciones (n8n / API Gateway)",new A.aGh(s),new A.aGi()),B.at,s.v4("Anticipaci\xf3n con la que se disparar\xe1 el recordatorio v\xeda WhatsApp.",B.W_,!0,"recordatorio_pagos_dias_previos","D\xedas Previos para Recordatorio de Pago / Insumos",new A.aGj(s),"d\xedas antes",new A.aGk()),B.at,s.ao3("Variables din\xe1micas soportadas: {nombre}, {cedula}, {curso}.",B.VY,"plantilla_mensaje_bienvenida","Plantilla de Mensaje de Bienvenida",4,3,new A.aGl(s))],t.p),B.W9,"Integraci\xf3n v\xeda Webhooks HTTP, recordatorios de cuotas y mensajer\xeda","Automatizaci\xf3n y Notificaciones (n8n / WhatsApp)")},
+return s.z7(B.a9,A.b([s.ao2("Endpoint que recibe los eventos de recordatorios y confirmaciones.",B.W1,"webhook_notificaciones",B.Ki,"Webhook de Notificaciones (API Gateway / WhatsApp)",new A.aGh(s),new A.aGi()),B.at,s.v4("Anticipaci\xf3n con la que se disparar\xe1 el recordatorio v\xeda WhatsApp.",B.W_,!0,"recordatorio_pagos_dias_previos","D\xedas Previos para Recordatorio de Pago / Insumos",new A.aGj(s),"d\xedas antes",new A.aGk()),B.at,s.ao3("Variables din\xe1micas soportadas: {nombre}, {cedula}, {curso}.",B.VY,"plantilla_mensaje_bienvenida","Plantilla de Mensaje de Bienvenida",4,3,new A.aGl(s))],t.p),B.W9,"Integraci\xf3n v\xeda Webhook directo HTTP, recordatorios de cuotas y mensajer\xeda","Automatizaci\xf3n y Notificaciones (WhatsApp / Webhook)")},
 Zs(){var s,r,q,p,o,n,m=this,l=null,k=m.x,j=k.h(0,"formatos_permitidos_comprobantes")
 if(t.j.b(j)){s=J.cD(j,new A.aGD(),t.N)
 r=A.Z(s,s.$ti.i("al.E"))}else r=A.b(["jpg","jpeg","png","pdf"],t.s)
@@ -122694,12 +122694,12 @@ if(a==null||B.c.ad(a).length===0)return"El webhook es requerido"
 s=A.b7M(B.c.ad(a))
 if(s!=null)r=!s.JG("http")&&!s.JG("https")
 else r=!0
-if(r)return"Ingresa una URL v\xe1lida (ej: https://n8n.servidor.com/webhook/...)"
+if(r)return"Ingresa una URL v\xe1lida (ej: https://api.servidor.com/webhook/...)"
 return null},
 $S:8}
 A.aGh.prototype={
 $1(a){var s=this.a
-s.x.m(0,"n8n_webhook_notificaciones",B.c.ad(a))
+s.x.m(0,"webhook_notificaciones",B.c.ad(a))
 s.I(new A.aGg())},
 $S:26}
 A.aGg.prototype={

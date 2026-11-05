@@ -7,7 +7,7 @@ INSERT INTO public.configuracion_general (clave, valor, descripcion) VALUES
   ('tolerancia_minutos_asistencia', '15'::jsonb, 'Minutos de tolerancia para considerar asistencia puntual'),
   ('porcentaje_minimo_asistencia_aprobacion', '75'::jsonb, 'Porcentaje mínimo de asistencia requerido para aprobar'),
   ('bloqueo_edicion_asistencia_dias', '3'::jsonb, 'Días tras los cuales se bloquea la edición de asistencia pasada'),
-  ('n8n_webhook_notificaciones', '"https://n8n.umbral.gob/webhook/notify"'::jsonb, 'URL del webhook n8n para disparo de notificaciones WhatsApp'),
+  ('webhook_notificaciones', '""'::jsonb, 'URL del webhook HTTP para disparo de notificaciones WhatsApp'),
   ('recordatorio_pagos_dias_previos', '2'::jsonb, 'Días previos a la clase para enviar recordatorio de pago de insumos'),
   ('plantilla_mensaje_bienvenida', '"¡Bienvenida a UMBRAL IMMUJER! Tu registro ha sido procesado exitosamente."'::jsonb, 'Plantilla del mensaje de bienvenida por WhatsApp'),
   ('max_file_size_mb_comprobante', '5'::jsonb, 'Tamaño máximo permitido en MB para comprobantes de pago'),
