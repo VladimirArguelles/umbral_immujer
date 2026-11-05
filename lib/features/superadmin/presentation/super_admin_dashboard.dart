@@ -494,6 +494,36 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
               leading: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
+                  color: AppTheme.primary.withAlpha(40),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Symbols.picture_as_pdf, color: AppTheme.primary, size: 22),
+              ),
+              title: Text(
+                'Centro de Reportes y PDF',
+                style: GoogleFonts.plusJakartaSans(
+                  color: cTextMain,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+              subtitle: const Text(
+                'Generación, impresión y descarga de matrículas, asistencias y planes',
+                style: TextStyle(color: cTextMuted, fontSize: 12),
+              ),
+              trailing: const Icon(Symbols.chevron_right, color: cTextDim, size: 20),
+              onTap: () {
+                Navigator.pop(ctx);
+                context.go('/reports');
+              },
+            ),
+            const SizedBox(height: 6),
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
                   color: AppTheme.primaryContainer.withAlpha(40),
                   borderRadius: BorderRadius.circular(10),
                 ),

@@ -169,6 +169,16 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
             ),
           const PopupMenuDivider(),
           PopupMenuItem<dynamic>(
+            value: '/reports',
+            child: Row(
+              children: [
+                const Icon(Icons.picture_as_pdf_rounded, size: 18, color: AppTheme.primary),
+                const SizedBox(width: 10),
+                Text('Centro de Reportes y PDF', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+              ],
+            ),
+          ),
+          PopupMenuItem<dynamic>(
             value: 'profile',
             child: Row(
               children: [
@@ -320,6 +330,11 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
             ],
           ),
           actions: [
+            IconButton(
+              tooltip: 'Centro de Reportes y PDF',
+              icon: const Icon(Icons.picture_as_pdf_rounded, color: AppTheme.primary),
+              onPressed: () => context.go('/reports'),
+            ),
             _buildDropdownNav(isSuperAdmin),
             const ThemeModeToggleButton(),
             UserProfileAvatarButton(

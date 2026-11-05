@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:umbral_immujer/features/coordinator/presentation/coordinator_dashboard_page.dart';
 import 'package:umbral_immujer/features/landing/presentation/pages/landing_page.dart';
+import 'package:umbral_immujer/features/reports/presentation/reports_screen.dart';
 import 'package:umbral_immujer/features/student/presentation/student_dashboard_page.dart';
 import 'package:umbral_immujer/features/superadmin/presentation/configuracion_general_screen.dart';
 import 'package:umbral_immujer/features/superadmin/presentation/gestion_profesores_page.dart';
@@ -33,6 +34,8 @@ final GoRouter appRouter = GoRouter(
         _matchesPrefix(path, '/profesor') ||
         _matchesPrefix(path, '/coordinator') ||
         _matchesPrefix(path, '/coordinador') ||
+        _matchesPrefix(path, '/reports') ||
+        _matchesPrefix(path, '/reportes') ||
         _matchesPrefix(path, '/superadmin');
 
     if (!isAuthenticated && isProtected) {
@@ -191,6 +194,17 @@ final GoRouter appRouter = GoRouter(
       path: '/gestion-profesores',
       redirect: (context, state) => '/superadmin/profesores',
     ),
+    GoRoute(
+      path: '/reports',
+      builder: (context, state) {
+        final cursoId = state.uri.queryParameters['cursoId'];
+        return _AuthenticatedDashboardPage(
+          allowedRoles: const [UserRole.coordinador, UserRole.superAdmin, UserRole.profesor],
+          builder: (profile) => ReportsScreen(initialCursoId: cursoId),
+        );
+      },
+    ),
+    GoRoute(path: '/reportes', redirect: (context, state) => '/reports'),
     GoRoute(path: '/coordinador', redirect: (context, state) => '/coordinator'),
   ],
 );
