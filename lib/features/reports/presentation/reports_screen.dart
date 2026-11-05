@@ -1,12 +1,12 @@
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
-import '../../printing/data/printer_repository.dart';
-import '../../printing/domain/printer_models.dart';
+
 import '../data/reports_repository.dart';
 import '../domain/report_models.dart';
 import 'services/pdf_export_service.dart';
@@ -27,7 +27,6 @@ class ReportsScreen extends StatefulWidget {
 
 class _ReportsScreenState extends State<ReportsScreen> {
   final ReportsRepository _repo = ReportsRepository();
-  final PrinterRepository _printerRepo = PrinterRepository();
 
   bool _isLoading = true;
   bool _isGeneratingPdf = false;
@@ -93,7 +92,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
           break;
         case TipoReporte.asistencia:
           _asistencias = await _repo.getAsistenciaDetallada(cursoId: cursoId);
-          _asistenciasResumen = await _repo.getAsistenciaResumen(cursoId: cursoId);
+          _asistenciasResumen = await _repo.getAsistenciaResumen(
+            cursoId: cursoId,
+          );
           break;
         case TipoReporte.temario:
           _temas = await _repo.getTemasPorCurso(cursoId: cursoId);
@@ -175,23 +176,18 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
   }
 
-  Future<void> _handleImprimir() async {
+  Future<void> _handleGuardar() async {
     setState(() => _isGeneratingPdf = true);
     try {
       final bytes = await _generatePdfBytes();
       if (bytes != null) {
-        final ticket = TicketData(
-          titulo: 'REPORTE - ${_tipoReporte.titulo.toUpperCase()}',
-          subtitulo: _currentCursoNombre,
-          pdfBytes: bytes,
-        );
-        final ok = await _printerRepo.enviarAImprimirUniversal(ticket);
-        if (ok) {
-          _showSnack('Impresión enviada correctamente a la impresora.');
-        }
+        final nombreArchivo =
+            'reporte_${_tipoReporte.name}_${DateFormat('yyyyMMdd_HHmm').format(DateTime.now())}';
+        await PdfExportService.descargar(bytes, nombreArchivo);
+        _showSnack('Reporte guardado correctamente.');
       }
     } catch (e) {
-      _showSnack('Error al imprimir el documento: $e');
+      _showSnack('Error al guardar el documento: $e');
     } finally {
       if (mounted) setState(() => _isGeneratingPdf = false);
     }
@@ -277,8 +273,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _errorMessage != null
-                    ? _buildErrorView()
-                    : _buildReportContent(),
+                ? _buildErrorView()
+                : _buildReportContent(),
           ),
         ],
       ),
@@ -290,7 +286,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: AppTheme.dynamicCard,
-        border: Border(bottom: BorderSide(color: AppTheme.dynamicBorder, width: 0.8)),
+        border: Border(
+          bottom: BorderSide(color: AppTheme.dynamicBorder, width: 0.8),
+        ),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -307,7 +305,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   children: [
                     Expanded(child: _buildVerRegistrosButton()),
                     const SizedBox(width: 8),
-                    Expanded(child: _buildImprimirButton()),
+                    Expanded(child: _buildGuardarButton()),
                   ],
                 ),
               ],
@@ -315,19 +313,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
           } else {
             return Row(
               children: [
-                Expanded(
-                  flex: 3,
-                  child: _buildTipoReporteDropdown(),
-                ),
+                Expanded(flex: 3, child: _buildTipoReporteDropdown()),
                 const SizedBox(width: 10),
-                Expanded(
-                  flex: 4,
-                  child: _buildCursoDropdown(),
-                ),
+                Expanded(flex: 4, child: _buildCursoDropdown()),
                 const SizedBox(width: 10),
                 _buildVerRegistrosButton(),
                 const SizedBox(width: 8),
-                _buildImprimirButton(),
+                _buildGuardarButton(),
               ],
             );
           }
@@ -356,7 +348,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
               value: tipo,
               child: Row(
                 children: [
-                  const Icon(Symbols.description, size: 18, color: AppTheme.primary),
+                  const Icon(
+                    Symbols.description,
+                    size: 18,
+                    color: AppTheme.primary,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -422,26 +418,32 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ],
               ),
             ),
-            ..._cursos.map((c) => DropdownMenuItem(
-                  value: c['id'],
-                  child: Row(
-                    children: [
-                      const Icon(Symbols.school, size: 18, color: AppTheme.primary),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          c['nombre'] ?? '',
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.dynamicText,
-                          ),
+            ..._cursos.map(
+              (c) => DropdownMenuItem(
+                value: c['id'],
+                child: Row(
+                  children: [
+                    const Icon(
+                      Symbols.school,
+                      size: 18,
+                      color: AppTheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        c['nombre'] ?? '',
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.dynamicText,
                         ),
                       ),
-                    ],
-                  ),
-                )),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
           onChanged: (val) {
             if (val != null && val != _selectedCursoId) {
@@ -484,9 +486,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildImprimirButton() {
+  Widget _buildGuardarButton() {
     return OutlinedButton.icon(
-      onPressed: _isGeneratingPdf ? null : _handleImprimir,
+      onPressed: _isGeneratingPdf ? null : _handleGuardar,
       icon: _isGeneratingPdf
           ? const SizedBox(
               width: 16,
@@ -496,8 +498,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 color: AppTheme.primary,
               ),
             )
-          : const Icon(Symbols.print, size: 18),
-      label: const Text('Imprimir'),
+          : const Icon(Symbols.save, size: 18),
+      label: const Text('Guardar'),
       style: OutlinedButton.styleFrom(
         foregroundColor: AppTheme.primary,
         side: const BorderSide(color: AppTheme.primary),
@@ -562,7 +564,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   color: AppTheme.dynamicTextMuted,
                 ),
               ),
-              if (_tipoReporte == TipoReporte.asistencia && _asistenciasResumen.isNotEmpty)
+              if (_tipoReporte == TipoReporte.asistencia &&
+                  _asistenciasResumen.isNotEmpty)
                 _buildAttendanceKpiBadge(),
             ],
           ),
@@ -583,9 +586,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Widget _buildAttendanceKpiBadge() {
-    final totalPresentes = _asistencias.where((a) => a.estado == 'Presente').length;
+    final totalPresentes = _asistencias
+        .where((a) => a.estado == 'Presente')
+        .length;
     final total = _asistencias.length;
-    final pct = total > 0 ? (totalPresentes / total * 100).toStringAsFixed(1) : '0';
+    final pct = total > 0
+        ? (totalPresentes / total * 100).toStringAsFixed(1)
+        : '0';
 
     return Row(
       children: [
@@ -718,7 +725,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: a.estadoInscripcion == 'activo'
                       ? const Color(0xFF059669).withValues(alpha: 0.15)
@@ -771,7 +781,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 child: Icon(
                   isPresente ? Symbols.check : Symbols.close,
                   size: 18,
-                  color: isPresente ? const Color(0xFF059669) : Colors.redAccent,
+                  color: isPresente
+                      ? const Color(0xFF059669)
+                      : Colors.redAccent,
                 ),
               ),
               const SizedBox(width: 12),
@@ -811,7 +823,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: isPresente
                       ? const Color(0xFF059669).withValues(alpha: 0.15)
@@ -823,7 +838,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 10.5,
                     fontWeight: FontWeight.bold,
-                    color: isPresente ? const Color(0xFF059669) : Colors.redAccent,
+                    color: isPresente
+                        ? const Color(0xFF059669)
+                        : Colors.redAccent,
                   ),
                 ),
               ),
@@ -853,7 +870,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: AppTheme.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
@@ -926,7 +946,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
               CircleAvatar(
                 radius: 20,
                 backgroundColor: AppTheme.primary.withValues(alpha: 0.15),
-                child: const Icon(Symbols.person, size: 22, color: AppTheme.primary),
+                child: const Icon(
+                  Symbols.person,
+                  size: 22,
+                  color: AppTheme.primary,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -978,7 +1002,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: AppTheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
