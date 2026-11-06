@@ -16,6 +16,9 @@ import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
 import 'package:umbral_immujer/features/assistant/presentation/widgets/mia_assistant_widget.dart';
 import 'package:umbral_immujer/features/profile/presentation/profile_header_actions.dart';
 import 'package:umbral_immujer/features/profile/presentation/profile_modal.dart';
+import 'package:umbral_immujer/features/coordinator/presentation/pages/cursos_activos_page.dart';
+import 'package:umbral_immujer/features/coordinator/presentation/pages/asistencia_cursos_page.dart';
+import 'package:umbral_immujer/features/coordinator/presentation/pages/ausencias_hoy_page.dart';
 
 class CoordinatorDashboardPage extends StatefulWidget {
   final UserProfile profile;
@@ -1340,6 +1343,17 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                       subtitle: '$cursosOperandoHoy activos hoy',
                       icon: Icons.calendar_today_rounded,
                       color: AppTheme.primary,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => CursosActivosPage(
+                              initialCursos: cursos,
+                              coordinatorRepository: widget.coordinatorRepository,
+                            ),
+                          ),
+                        ).then((_) => _loadAll());
+                      },
                     ),
                     _buildMetricCard(
                       title: '% Asistencia',
@@ -1347,6 +1361,17 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                       subtitle: '$totalPresentes presentes',
                       icon: Icons.pie_chart_rounded,
                       color: AppTheme.successGreen,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AsistenciaCursosPage(
+                              initialCursos: cursos,
+                              coordinatorRepository: widget.coordinatorRepository,
+                            ),
+                          ),
+                        ).then((_) => _loadAll());
+                      },
                     ),
                     _buildMetricCard(
                       title: 'Ausencias Hoy',
@@ -1354,6 +1379,17 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                       subtitle: totalAusencias > 0 ? 'Alerta activa' : 'Sin faltas',
                       icon: Icons.warning_amber_rounded,
                       color: totalAusencias > 0 ? AppTheme.errorRed : AppTheme.outlineVariant,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AusenciasHoyPage(
+                              initialCursos: cursos,
+                              coordinatorRepository: widget.coordinatorRepository,
+                            ),
+                          ),
+                        ).then((_) => _loadAll());
+                      },
                     ),
                   ];
 
@@ -1817,53 +1853,110 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
     required String subtitle,
     required IconData icon,
     required Color color,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppTheme.dynamicCard,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.dynamicBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(fontSize: 11, color: AppTheme.dynamicTextMuted),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+        hoverColor: color.withValues(alpha: 0.08),
+        splashColor: color.withValues(alpha: 0.15),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppTheme.dynamicCard,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: onTap != null
+                  ? color.withValues(alpha: 0.35)
+                  : AppTheme.dynamicBorder,
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
-              Icon(icon, size: 16, color: color),
             ],
           ),
-          const SizedBox(height: 8),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              value,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: color,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.dynamicTextMuted,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon, size: 16, color: color),
+                      if (onTap != null) ...[
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 10,
+                          color: color.withValues(alpha: 0.7),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
               ),
-            ),
+              const SizedBox(height: 8),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: AppTheme.dynamicTextMuted,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (onTap != null)
+                    Text(
+                      'Ver más',
+                      style: TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
+                    ),
+                ],
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: TextStyle(fontSize: 10, color: AppTheme.dynamicTextMuted),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+        ),
       ),
     );
   }

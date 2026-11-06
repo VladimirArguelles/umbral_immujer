@@ -510,18 +510,6 @@ class _TeacherSummaryTab extends StatelessWidget {
             actionLabel: 'IR A GESTIÓN DE ALUMNOS',
             onTap: () => onNavigate(4),
           ),
-          if (isSuperAdmin) ...[
-            const SizedBox(height: 12),
-            _TeacherActionCard(
-              title: 'GESTIÓN DE PLANTEL DOCENTE',
-              description: 'Administración institucional de profesores, registro y asignación de cursos.',
-              icon: Icons.badge_rounded,
-              accent: AppTheme.primaryContainer,
-              textColor: AppTheme.onPrimaryContainer,
-              actionLabel: 'GESTIÓN DE PROFESORES',
-              onTap: () => context.go('/superadmin/profesores'),
-            ),
-          ],
         ],
       ),
     );
@@ -533,7 +521,6 @@ class _TeacherActionCard extends StatelessWidget {
   final String description;
   final IconData icon;
   final Color accent;
-  final Color? textColor;
   final String actionLabel;
   final VoidCallback onTap;
 
@@ -542,7 +529,6 @@ class _TeacherActionCard extends StatelessWidget {
     required this.description,
     required this.icon,
     required this.accent,
-    this.textColor,
     required this.actionLabel,
     required this.onTap,
   });
@@ -612,7 +598,7 @@ class _TeacherActionCard extends StatelessWidget {
               onPressed: onTap,
               style: FilledButton.styleFrom(
                 backgroundColor: accent,
-                foregroundColor: textColor ?? AppTheme.pureWhite,
+                foregroundColor: AppTheme.pureWhite,
                 minimumSize: const Size.fromHeight(40),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
