@@ -29,23 +29,31 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: 4. Prepare Environment Configuration (.env)
+      - name: 4. Ensure Gradlew is Executable
+        run: chmod +x android/gradlew
+
+      - name: 5. Prepare Environment Configuration (.env)
+        env:
+          ENV_FILE_CONTENT: ${{ secrets.ENV_FILE }}
         run: |
-          if [ -n "${{ secrets.ENV_FILE }}" ]; then
-            echo "${{ secrets.ENV_FILE }}" > .env
+          if [ -n "$ENV_FILE_CONTENT" ]; then
+            echo "$ENV_FILE_CONTENT" > .env
           elif [ -f .env.example ]; then
             cp .env.example .env
           else
             touch .env
           fi
 
-      - name: 5. Install Dependencies
+      - name: 6. Accept Android Licenses
+        run: yes | flutter doctor --android-licenses || true
+
+      - name: 7. Install Dependencies
         run: flutter pub get
 
-      - name: 6. Build Release APK
+      - name: 8. Build Release APK
         run: flutter build apk --release --dart-define-from-file=.env
 
-      - name: 7. Upload Release APK Artifact
+      - name: 9. Upload Release APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-release-apk
