@@ -541,18 +541,23 @@ class _MisCursosTabState extends State<_MisCursosTab>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
                             child: Text(
                               c.nombre,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              softWrap: true,
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: AppTheme.dynamicText,
+                                height: 1.25,
                               ),
                             ),
                           ),
+                          const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 10,
@@ -566,6 +571,7 @@ class _MisCursosTabState extends State<_MisCursosTab>
                             ),
                             child: Text(
                               c.estado.toUpperCase(),
+                              maxLines: 1,
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,

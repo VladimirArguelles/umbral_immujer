@@ -1082,10 +1082,14 @@ onReorder: (oldIndex, newIndex) {
                                                 Expanded(
                                                   child: Text(
                                                     nombre,
+                                                    maxLines: 2,
+                                                    overflow: TextOverflow.ellipsis,
+                                                    softWrap: true,
                                                     style: GoogleFonts.plusJakartaSans(
                                                       fontWeight: FontWeight.w700,
                                                       fontSize: 16,
                                                       color: AppTheme.onSurface,
+                                                      height: 1.25,
                                                     ),
                                                   ),
                                                 ),
@@ -1100,6 +1104,7 @@ onReorder: (oldIndex, newIndex) {
                                                   ),
                                                   child: Text(
                                                     estado.toUpperCase(),
+                                                    maxLines: 1,
                                                     style: TextStyle(
                                                       fontSize: 11,
                                                       fontWeight: FontWeight.bold,
