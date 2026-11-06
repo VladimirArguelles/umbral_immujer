@@ -5,7 +5,6 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:printing/printing.dart';
-import 'package:umbral_immujer/features/assistant/presentation/widgets/mia_assistant_widget.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import '../data/printer_repository.dart';
 import '../domain/printer_models.dart';
@@ -299,9 +298,6 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
           ],
         ),
         actions: const [
-          MiaAssistantHeaderButton(
-            moduleContext: 'superadmin',
-          ),
           SizedBox(width: 8),
         ],
       ),

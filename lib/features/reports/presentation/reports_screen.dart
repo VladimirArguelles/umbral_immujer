@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:material_symbols_icons/symbols.dart';
-import 'package:umbral_immujer/features/assistant/presentation/widgets/mia_assistant_widget.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 
 import '../data/reports_repository.dart';
@@ -254,9 +253,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ],
         ),
         actions: [
-          const MiaAssistantHeaderButton(
-            moduleContext: 'reportes',
-          ),
           IconButton(
             tooltip: 'Ajustes de Impresora',
             icon: Icon(Symbols.print_connect, color: AppTheme.dynamicText),

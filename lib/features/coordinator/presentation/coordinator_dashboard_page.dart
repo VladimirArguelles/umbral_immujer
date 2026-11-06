@@ -362,10 +362,6 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
                 onPressed: () => context.go('/reports'),
               ),
             ),
-            MiaAssistantHeaderButton(
-              profile: _currentProfile,
-              moduleContext: 'coordinacion',
-            ),
             _buildDropdownNav(isSuperAdmin),
             const ThemeModeToggleButton(),
             UserProfileAvatarButton(
@@ -512,6 +508,10 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
               ),
             ),
           ],
+        ),
+        floatingActionButton: MiaFloatingAssistant(
+          profile: _currentProfile,
+          currentModule: 'coordinacion',
         ),
         bottomNavigationBar: !isDesktopOrTablet
             ? (isSuperAdmin

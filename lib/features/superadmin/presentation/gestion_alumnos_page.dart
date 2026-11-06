@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:umbral_immujer/features/assistant/presentation/widgets/mia_assistant_widget.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/core/widgets/skeleton_loader.dart';
@@ -434,9 +433,6 @@ class _GestionAlumnosPageState extends State<GestionAlumnosPage> {
           ],
         ),
         actions: [
-          const MiaAssistantHeaderButton(
-            moduleContext: 'alumnos',
-          ),
           IconButton(
             onPressed: _loadData,
             tooltip: 'Guardar y Sincronizar Cambios',

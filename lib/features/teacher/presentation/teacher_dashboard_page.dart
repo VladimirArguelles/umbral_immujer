@@ -380,10 +380,6 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
           ),
           actions: [
             _buildDropdownNav(isSuperAdmin),
-            MiaAssistantHeaderButton(
-              profile: _currentProfile,
-              moduleContext: 'profesores',
-            ),
             const ThemeModeToggleButton(),
             UserProfileAvatarButton(
               profile: _currentProfile,
@@ -392,6 +388,10 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
           ],
         ),
         body: tabs[_currentIndex],
+        floatingActionButton: MiaFloatingAssistant(
+          profile: _currentProfile,
+          currentModule: 'profesores',
+        ),
         bottomNavigationBar: isSuperAdmin
             ? const SuperAdminBottomNavBar(currentIndex: 2)
             : null,

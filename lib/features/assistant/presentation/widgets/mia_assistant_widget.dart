@@ -160,10 +160,18 @@ class _MiaAssistantModalState extends State<MiaAssistantModal> {
                               ),
                             ],
                           ),
-                          child: const Icon(
-                            Symbols.smart_toy,
-                            color: Colors.white,
-                            size: 26,
+                          child: ClipOval(
+                            child: Image.asset(
+                              'assets/images/asistente_mia.png',
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => const Icon(
+                                Symbols.smart_toy,
+                                color: Colors.white,
+                                size: 26,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 14),
@@ -531,6 +539,308 @@ class MiaAssistantHeaderButton extends StatelessWidget {
   }
 }
 
+/// Widget flotante del Asistente Virtual Mía inspirado en el diseño de referencia (Mercantil Banco).
+/// Muestra un avatar circular flotante con su burbuja de diálogo ("Soy Mía / ¿Te ayudo?").
+/// Flota sobre la interfaz en `Scaffold.floatingActionButton` sin apretar la cabecera ni alterar la arquitectura.
+class MiaFloatingAssistant extends StatefulWidget {
+  final UserProfile? profile;
+  final String? currentModule;
+  final bool showBubble;
+
+  const MiaFloatingAssistant({
+    super.key,
+    this.profile,
+    this.currentModule,
+    this.showBubble = true,
+  });
+
+  @override
+  State<MiaFloatingAssistant> createState() => _MiaFloatingAssistantState();
+}
+
+class _MiaFloatingAssistantState extends State<MiaFloatingAssistant>
+    with SingleTickerProviderStateMixin {
+  late bool _bubbleVisible;
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulseAnimation;
+  bool _isHovered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _bubbleVisible = widget.showBubble;
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2400),
+    )..repeat(reverse: true);
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
+      CurvedAnimation(
+        parent: _pulseController,
+        curve: Curves.easeInOut,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  void _openAssistant() {
+    MiaAssistantModal.show(
+      context,
+      profile: widget.profile,
+      currentModule: widget.currentModule,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bubbleBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final bubbleBorder = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final textMain = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textMuted = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedBuilder(
+        animation: _pulseAnimation,
+        builder: (context, child) {
+          final scale = _isHovered ? 1.06 : _pulseAnimation.value;
+          return Transform.scale(
+            scale: scale,
+            child: child,
+          );
+        },
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Burbuja de diálogo ("Soy Mía / ¿Te ayudo?")
+            if (_bubbleVisible) ...[
+              GestureDetector(
+                onTap: _openAssistant,
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 160),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: bubbleBg,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: bubbleBorder, width: 1.2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.1),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.15),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          RichText(
+                            text: TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: 'Soy ',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w500,
+                                    color: textMuted,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: 'Mía',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF8B5CF6),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 1),
+                          Text(
+                            '¿Te ayudo?',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: textMain,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 4),
+                      // Botoncito para cerrar solo la burbuja si el usuario lo prefiere
+                      GestureDetector(
+                        onTap: () => setState(() => _bubbleVisible = false),
+                        child: Padding(
+                          padding: const EdgeInsets.all(2.0),
+                          child: Icon(
+                            Icons.close_rounded,
+                            size: 13,
+                            color: textMuted,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Pequeño indicador/pico que apunta al avatar
+              Transform.translate(
+                offset: const Offset(-2, 0),
+                child: RotatedBox(
+                  quarterTurns: 1,
+                  child: CustomPaint(
+                    size: const Size(8, 5),
+                    painter: _TrianglePainter(
+                      color: bubbleBg,
+                      borderColor: bubbleBorder,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+            ],
+
+            // Avatar circular interactivo de Mía
+            Tooltip(
+              message: 'Asistente Virtual Mía',
+              child: Material(
+                color: Colors.transparent,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  onTap: _openAssistant,
+                  customBorder: const CircleBorder(),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: 54,
+                        height: 54,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          border: Border.all(
+                            color: Colors.white,
+                            width: 2.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF8B5CF6).withValues(alpha: 0.45),
+                              blurRadius: 14,
+                              spreadRadius: 2,
+                              offset: const Offset(0, 4),
+                            ),
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: isDark ? 0.5 : 0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/images/asistente_mia.png',
+                            width: 54,
+                            height: 54,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => const Center(
+                              child: Icon(
+                                Symbols.smart_toy,
+                                color: Colors.white,
+                                size: 28,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Indicador de estado en línea
+                      Positioned(
+                        right: 1,
+                        bottom: 1,
+                        child: Container(
+                          width: 13,
+                          height: 13,
+                          decoration: BoxDecoration(
+                            color: AppColors.mintNeon,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isDark ? const Color(0xFF0F172A) : Colors.white,
+                              width: 2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.mintNeon.withValues(alpha: 0.6),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Painter para la pequeña flecha o cola de la burbuja de diálogo
+class _TrianglePainter extends CustomPainter {
+  final Color color;
+  final Color borderColor;
+
+  _TrianglePainter({required this.color, required this.borderColor});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final borderPaint = Paint()
+      ..color = borderColor
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+
+    final path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width / 2, size.height)
+      ..lineTo(size.width, 0)
+      ..close();
+
+    canvas.drawPath(path, paint);
+    canvas.drawPath(path, borderPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _TrianglePainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.borderColor != borderColor;
+}
+
 /// Widget flotante (FAB o Botón Asistente) para pantallas principales.
 class MiaAssistantWidget extends StatelessWidget {
   final UserProfile? profile;
@@ -541,7 +851,7 @@ class MiaAssistantWidget extends StatelessWidget {
     super.key,
     this.profile,
     this.currentModule,
-    this.isFloating = false,
+    this.isFloating = true,
   });
 
   @override
@@ -553,24 +863,9 @@ class MiaAssistantWidget extends StatelessWidget {
       );
     }
 
-    return FloatingActionButton.extended(
-      onPressed: () => MiaAssistantModal.show(
-        context,
-        profile: profile,
-        currentModule: currentModule,
-      ),
-      backgroundColor: AppColors.primary,
-      foregroundColor: Colors.white,
-      elevation: 6,
-      icon: const Icon(Symbols.smart_toy, size: 20),
-      label: Text(
-        'Preguntar a Umbral AI',
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 12.5,
-          fontWeight: FontWeight.w800,
-          color: Colors.white,
-        ),
-      ),
+    return MiaFloatingAssistant(
+      profile: profile,
+      currentModule: currentModule,
     );
   }
 }

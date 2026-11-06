@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
-import 'package:umbral_immujer/features/assistant/presentation/widgets/mia_assistant_widget.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/services/online_user_presence_service.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
@@ -951,11 +950,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           tooltip: 'Ajustes rápidos',
           icon: const Icon(Symbols.tune, color: cTextMuted),
         ),
-        const SizedBox(width: 8),
-        MiaAssistantHeaderButton(
-          profile: widget.profile,
-          moduleContext: 'superadmin',
-        ),
+
       ],
     );
   }
@@ -1292,12 +1287,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
-              MiaAssistantHeaderButton(
-                profile: widget.profile,
-                moduleContext: 'superadmin',
-                showBadge: false,
-              ),
+
             ],
           ),
         ],

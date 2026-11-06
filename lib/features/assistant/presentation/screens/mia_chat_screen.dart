@@ -219,10 +219,18 @@ class _MiaChatScreenState extends State<MiaChatScreen> {
                             ),
                           ],
                         ),
-                        child: const Icon(
-                          Symbols.smart_toy,
-                          color: Colors.white,
-                          size: 22,
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/images/asistente_mia.png',
+                            width: 40,
+                            height: 40,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => const Icon(
+                              Symbols.smart_toy,
+                              color: Colors.white,
+                              size: 22,
+                            ),
+                          ),
                         ),
                       ),
                       Positioned(
@@ -517,10 +525,18 @@ class _MiaChatScreenState extends State<MiaChatScreen> {
                       width: 1,
                     ),
                   ),
-                  child: const Icon(
-                    Symbols.smart_toy,
-                    color: Colors.white,
-                    size: 18,
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/images/asistente_mia.png',
+                      width: 32,
+                      height: 32,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Symbols.smart_toy,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),

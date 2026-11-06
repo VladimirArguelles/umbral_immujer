@@ -348,10 +348,6 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
         ),
         actions: [
           _buildDropdownNav(isSuperAdmin),
-          MiaAssistantHeaderButton(
-            profile: _currentProfile,
-            moduleContext: 'alumnos',
-          ),
           const ThemeModeToggleButton(),
           UserProfileAvatarButton(
             profile: _currentProfile,
@@ -430,6 +426,10 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
             ),
           Expanded(child: tabs[_currentIndex]),
         ],
+      ),
+      floatingActionButton: MiaFloatingAssistant(
+        profile: _currentProfile,
+        currentModule: 'alumnos',
       ),
       bottomNavigationBar: isSuperAdmin
           ? const SuperAdminBottomNavBar(currentIndex: 1)
