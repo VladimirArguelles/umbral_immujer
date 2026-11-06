@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:umbral_immujer/features/assistant/presentation/widgets/mia_assistant_widget.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/core/utils/responsive.dart';
@@ -635,6 +636,9 @@ class _ConfiguracionGeneralScreenState
         },
       ),
       actions: [
+        const MiaAssistantHeaderButton(
+          moduleContext: 'superadmin',
+        ),
         Padding(
           padding: const EdgeInsets.only(right: 8.0),
           child: TextButton.icon(

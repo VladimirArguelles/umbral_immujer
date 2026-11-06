@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:umbral_immujer/features/assistant/presentation/widgets/mia_assistant_widget.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/services/online_user_presence_service.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
@@ -950,6 +951,11 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           tooltip: 'Ajustes rápidos',
           icon: const Icon(Symbols.tune, color: cTextMuted),
         ),
+        const SizedBox(width: 8),
+        MiaAssistantHeaderButton(
+          profile: widget.profile,
+          moduleContext: 'superadmin',
+        ),
       ],
     );
   }
@@ -1250,38 +1256,49 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          // Botón de acción rápida '+'
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: _showQuickAddDialog,
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [cAccent, AppTheme.primary],
-                    begin: Alignment.bottomLeft,
-                    end: Alignment.topRight,
-                  ),
+          const SizedBox(width: 8),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Botón de acción rápida '+'
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _showQuickAddDialog,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: cAccentGlow,
-                      blurRadius: 16,
-                      offset: Offset(0, 4),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [cAccent, AppTheme.primary],
+                        begin: Alignment.bottomLeft,
+                        end: Alignment.topRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: cAccentGlow,
+                          blurRadius: 16,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.add_circle_outline,
-                  color: AppTheme.onPrimaryContainer,
-                  size: 24,
+                    child: const Icon(
+                      Icons.add_circle_outline,
+                      color: AppTheme.onPrimaryContainer,
+                      size: 22,
+                    ),
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(height: 8),
+              MiaAssistantHeaderButton(
+                profile: widget.profile,
+                moduleContext: 'superadmin',
+                showBadge: false,
+              ),
+            ],
           ),
         ],
       ),

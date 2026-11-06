@@ -12,6 +12,7 @@ import 'package:umbral_immujer/features/student/presentation/student_summary_tab
 import 'package:umbral_immujer/src/core/widgets/skeleton_loader.dart';
 import 'package:umbral_immujer/src/core/widgets/super_admin_nav_bar.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
+import 'package:umbral_immujer/features/assistant/presentation/widgets/mia_assistant_widget.dart';
 import 'package:umbral_immujer/features/profile/presentation/profile_header_actions.dart';
 import 'package:umbral_immujer/features/profile/presentation/profile_modal.dart';
 
@@ -80,6 +81,12 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
             if (updated != null) {
               setState(() => _currentProfile = updated);
             }
+          } else if (value == 'assistant') {
+            MiaAssistantModal.show(
+              context,
+              profile: _currentProfile,
+              currentModule: 'alumnos',
+            );
           } else if (value == 'toggle_theme') {
             ThemeController.toggleTheme();
           } else if (value is String) {
@@ -172,6 +179,16 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
               ),
             ),
           const PopupMenuDivider(),
+          PopupMenuItem<dynamic>(
+            value: 'assistant',
+            child: Row(
+              children: [
+                const Icon(Icons.smart_toy_rounded, size: 18, color: AppTheme.primary),
+                const SizedBox(width: 10),
+                Text('Asistente Mía', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+              ],
+            ),
+          ),
           PopupMenuItem<dynamic>(
             value: 'profile',
             child: Row(
@@ -331,6 +348,10 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
         ),
         actions: [
           _buildDropdownNav(isSuperAdmin),
+          MiaAssistantHeaderButton(
+            profile: _currentProfile,
+            moduleContext: 'alumnos',
+          ),
           const ThemeModeToggleButton(),
           UserProfileAvatarButton(
             profile: _currentProfile,

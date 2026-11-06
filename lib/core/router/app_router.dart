@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:umbral_immujer/features/assistant/presentation/screens/mia_chat_screen.dart';
 import 'package:umbral_immujer/features/coordinator/presentation/coordinator_dashboard_page.dart';
 import 'package:umbral_immujer/features/landing/presentation/pages/landing_page.dart';
 import 'package:umbral_immujer/features/printing/presentation/printer_settings_screen.dart';
@@ -39,6 +40,9 @@ final GoRouter appRouter = GoRouter(
         _matchesPrefix(path, '/reportes') ||
         _matchesPrefix(path, '/printer-settings') ||
         _matchesPrefix(path, '/impresora') ||
+        _matchesPrefix(path, '/assistant') ||
+        _matchesPrefix(path, '/asistente') ||
+        _matchesPrefix(path, '/mia') ||
         _matchesPrefix(path, '/superadmin');
 
     if (!isAuthenticated && isProtected) {
@@ -219,6 +223,29 @@ final GoRouter appRouter = GoRouter(
     GoRoute(path: '/impresora', redirect: (context, state) => '/printer-settings'),
     GoRoute(path: '/reportes', redirect: (context, state) => '/reports'),
     GoRoute(path: '/coordinador', redirect: (context, state) => '/coordinator'),
+    GoRoute(
+      path: '/assistant',
+      pageBuilder: (context, state) {
+        final module = state.uri.queryParameters['module'] ?? 'general';
+        final initialMsg = state.uri.queryParameters['message'];
+        return CustomTransitionPage<void>(
+          key: state.pageKey,
+          transitionDuration: const Duration(milliseconds: 300),
+          child: _AuthenticatedDashboardPage(
+            builder: (profile) => MiaChatScreen(
+              profile: profile,
+              currentModule: module,
+              initialMessage: initialMsg,
+            ),
+          ),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+        );
+      },
+    ),
+    GoRoute(path: '/asistente', redirect: (context, state) => '/assistant'),
+    GoRoute(path: '/mia', redirect: (context, state) => '/assistant'),
   ],
 );
 
