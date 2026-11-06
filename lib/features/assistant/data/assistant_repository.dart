@@ -333,8 +333,8 @@ class AssistantRepository {
               '4. Si la clase requiere aporte de insumos, verás el monto por participante y la opción de adjuntar tu comprobante de pago móvil.\n\n'
               'Tu confirmación permite al profesor y a coordinación planificar adecuadamente los materiales del taller.';
           nextSuggestions = [
-            '¿Dónde veo el costo de insumos?',
-            '¿Cómo ver mis asistencias anteriores?',
+            '¿Cómo consultar mi historial de asistencias y cursos?',
+            '¿Cómo consultar y registrar comprobantes de aporte práctico?',
           ];
         } else if (q.contains('encuesta') || q.contains('satisfacción') || q.contains('satisfaccion')) {
           responseText =
@@ -344,8 +344,8 @@ class AssistantRepository {
               '3. Responde a las preguntas de evaluación y envía tus respuestas.\n\n'
               'Tus comentarios son fundamentales para la mejora continua de los programas de IMMUJER.';
           nextSuggestions = [
-            '¿Son anónimas las encuestas?',
-            '¿Cómo actualizar mis datos de perfil?',
+            '¿Cómo completar encuestas de satisfacción institucional?',
+            '¿Cómo actualizar fotografía y número telefónico en Mi Perfil?',
           ];
         } else if (q.contains('perfil') || q.contains('datos') || q.contains('foto') || q.contains('actualizar')) {
           responseText =
@@ -355,8 +355,8 @@ class AssistantRepository {
               '3. Allí puedes actualizar tu número de teléfono, cambiar tu fotografía y verificar tu correo registrado.\n'
               '4. Recuerda presionar **"Guardar Cambios"** al finalizar.';
           nextSuggestions = [
-            '¿Cómo ver el temario del curso?',
-            '¿Cómo confirmar mi asistencia?',
+            '¿Cómo consultar mi historial de asistencias y cursos?',
+            '¿Cómo consultar y registrar comprobantes de aporte práctico?',
           ];
         } else {
           responseText =
@@ -376,7 +376,7 @@ class AssistantRepository {
               '4. El sistema sincroniza automáticamente los totales de alumnos presentes y ausentes en tiempo real con Supabase.';
           nextSuggestions = [
             '¿Cómo crear una encuesta para mis alumnos?',
-            '¿Cómo calcular el costo de insumos?',
+            '¿Cómo solicitar la aprobación de un nuevo tema?',
           ];
         } else if (q.contains('tema') || q.contains('solicitud') || q.contains('temario') || q.contains('propuesta')) {
           responseText =
@@ -386,8 +386,8 @@ class AssistantRepository {
               '3. Escribe el título y contenido del tema propuesto.\n'
               '4. La solicitud será enviada de inmediato a Coordinación para su revisión y aprobación institucional.';
           nextSuggestions = [
-            '¿Cómo saber si mi tema fue aprobado?',
-            '¿Cómo registrar la asistencia?',
+            '¿Cómo registrar la asistencia de una clase?',
+            '¿Dónde gestiono Mi Perfil y mis datos docentes?',
           ];
         } else if (q.contains('encuesta') || q.contains('evaluacion') || q.contains('evaluación')) {
           responseText =
@@ -407,8 +407,8 @@ class AssistantRepository {
               '2. Ingresa el monto total estimado de materiales y selecciona los datos de Pago Móvil institucional.\n'
               '3. El sistema dividirá el costo entre las participantes confirmadas y mostrará a cada alumna el monto individual a aportar.';
           nextSuggestions = [
-            '¿Dónde veo los comprobantes subidos?',
-            '¿Cómo registrar la asistencia?',
+            '¿Cómo registrar la asistencia de una clase?',
+            '¿Dónde gestiono Mi Perfil y mis datos docentes?',
           ];
         } else {
           responseText =
@@ -418,26 +418,16 @@ class AssistantRepository {
         break;
 
       case 'coordinacion':
-        if (q.contains('navegar') ||
-            q.contains('interfaz') ||
-            q.contains('secciones') ||
-            q.contains('pestana') ||
-            q.contains('pestaña') ||
-            q.contains('menu') ||
-            q.contains('menú') ||
-            q.contains('cursos') ||
-            q.contains('insumos')) {
+        if (q.contains('curso') || q.contains('programar') || q.contains('nuevo curso')) {
           responseText =
-              'Coordinador(a) $userFirstName, tu interfaz de Coordinación está organizada en 4 secciones accesibles desde el menú lateral o desplegable:\n\n'
-              '1. 📚 **Cursos:** Supervisión y control de ofertas formativas, cupos y estado general.\n'
-              '2. 📡 **En Vivo:** Telemetría de sesiones activas, porcentaje de asistencia en tiempo real y flujo de clases.\n'
-              '3. 👩‍🏫 **Profesores:** Directorio docente, cursos asignados y estatus de vinculación.\n'
-              '4. 💰 **Insumos:** Revisión de costos de insumos de clases prácticas y comprobantes de aporte.\n\n'
-              'Además, en la barra superior dispones del botón **"Ver Registros"** para ir directamente al Centro de Reportes y el menú de navegación rápida.';
+              'Coordinador(a) $userFirstName, para registrar y programar un nuevo curso:\n\n'
+              '1. Entra a la pestaña **"Cursos"** en tu panel de Coordinación.\n'
+              '2. Haz clic en el botón **"Nuevo Curso"** en la cabecera.\n'
+              '3. Completa los campos: nombre del curso, categoría o área técnica, docente asignado, cupos máximos y cronograma.\n'
+              '4. Presiona **"Crear y Publicar"** para habilitar inscripciones.';
           nextSuggestions = [
-            '¿Dónde reviso y apruebo las solicitudes de temarios?',
-            '¿Cómo consultar reportes consolidados y registros?',
-            '¿Cómo supervisar las clases en vivo y asistencias?',
+            '¿Cómo revisar y aprobar solicitudes de temarios docentes?',
+            '¿Cómo filtrar y exportar reportes consolidados en PDF?',
           ];
         } else if (q.contains('solicitud') || q.contains('aprob') || q.contains('temario') || q.contains('tema')) {
           responseText =
@@ -446,8 +436,8 @@ class AssistantRepository {
               '2. Podrás verificar el docente solicitante, el curso asociado y los detalles del nuevo tema propuesto.\n'
               '3. Presiona **"Aprobar"** para integrarlo formalmente al curso o **"Rechazar"** si requiere ajustes.';
           nextSuggestions = [
-            '¿Cómo navegar entre Cursos, En Vivo, Profesores e Insumos?',
-            '¿Cómo consultar reportes consolidados y registros?',
+            '¿Cómo registrar y programar un nuevo curso?',
+            '¿Cómo filtrar y exportar reportes consolidados en PDF?',
           ];
         } else if (q.contains('reporte') || q.contains('excel') || q.contains('pdf') || q.contains('registros')) {
           responseText =
@@ -456,22 +446,12 @@ class AssistantRepository {
               '2. Filtra por cohorte, curso o docente.\n'
               '3. Utiliza los botones de exportación a **PDF** o planilla digital para la gestión administrativa de IMMUJER.';
           nextSuggestions = [
-            '¿Cómo navegar entre Cursos, En Vivo, Profesores e Insumos?',
-            '¿Cómo supervisar las clases en vivo y asistencias?',
-          ];
-        } else if (q.contains('vivo') || q.contains('asistencia') || q.contains('supervisar')) {
-          responseText =
-              'Para supervisar la asistencia y clases en desarrollo:\n\n'
-              '1. Haz clic en la pestaña **"En Vivo"** en el panel de navegación.\n'
-              '2. Visualizarás los cursos activos hoy con su tasa de asistencia en tiempo real y total de alumnas presentes.\n'
-              '3. Esto te permite garantizar el cumplimiento pedagógico de cada formación.';
-          nextSuggestions = [
-            '¿Cómo navegar entre Cursos, En Vivo, Profesores e Insumos?',
-            '¿Dónde reviso y apruebo las solicitudes de temarios?',
+            '¿Cómo registrar y programar un nuevo curso?',
+            '¿Cómo configurar y calibrar la impresora térmica Bluetooth ESC/POS?',
           ];
         } else {
           responseText =
-              'Coordinador(a) $userFirstName, en esta interfaz puedes navegar entre la gestión de cursos, monitoreo en vivo de clases, supervisión docente, revisión de costos de insumos y generación de reportes oficiales de IMMUJER.';
+              'Coordinador(a) $userFirstName, en esta interfaz puedes registrar ofertas de cursos, aprobar temarios docentes, calibrar la impresión térmica y exportar reportes oficiales de IMMUJER.';
           nextSuggestions = moduleContext.quickPrompts;
         }
         break;
@@ -482,8 +462,8 @@ class AssistantRepository {
               'La tasa cambiaria oficial del BCV se sincroniza de forma automatizada mediante una función programada en PostgreSQL/Supabase cada día laboral.\n\n'
               'Además, en el panel Super Admin dispones de la opción de forzar una sincronización manual en vivo o establecer una tasa de contingencia en la sección de **Configuración General**.';
           nextSuggestions = [
-            '¿Cómo modificar roles de usuario?',
-            '¿Cómo auditar las políticas RLS?',
+            '¿Cómo modificar roles de usuarios y auditar permisos?',
+            '¿Cómo auditar y verificar el estado de las políticas RLS?',
           ];
         } else if (q.contains('rol') || q.contains('usuario') || q.contains('permiso')) {
           responseText =
@@ -492,20 +472,20 @@ class AssistantRepository {
               '2. Localiza al usuario requerido mediante el buscador.\n'
               '3. Puedes actualizar su estado, revocar o elevar privilegios de acceso directamente sobre la tabla `perfiles`.';
           nextSuggestions = [
-            '¿Cómo funciona la sincronización BCV?',
-            '¿Dónde veo la telemetría en vivo?',
+            '¿Cómo verificar y forzar la sincronización de la tasa oficial BCV?',
+            '¿Cómo auditar y verificar el estado de las políticas RLS?',
           ];
         } else if (q.contains('rls') || q.contains('seguridad') || q.contains('base de datos')) {
           responseText =
-              'Todas las tablas principales (`perfiles`, `cursos`, `asistencias`, `encuestas`, `solicitudes_aprobacion`) operan bajo **Row Level Security (RLS)** estricto con políticas por rol.\n\n'
-              'El rol Super Admin cuenta con directivas `SECURITY DEFINER` e inspección privilegiada para mantener la integridad de la base de datos institucional.';
+              'Todas las tablas principales (`perfiles`, `cursos`, `asistencias`, `encuestas`, `solicitudes_aprobacion`, `guia_operaciones`, `notificaciones`) operan bajo **Row Level Security (RLS)** estricto con políticas por rol.\n\n'
+              'El rol Super Admin cuenta con directivas de bypass e inspección de esquemas mediante `pg_policies` para auditar la integridad de la base de datos institucional.';
           nextSuggestions = [
-            '¿Cómo acceder a los ajustes de impresión?',
-            '¿Cómo cambiar parámetros generales?',
+            '¿Cómo modificar roles de usuarios y auditar permisos?',
+            '¿Cómo configurar y calibrar la impresora térmica Bluetooth ESC/POS?',
           ];
         } else {
           responseText =
-              'Super Administrador(a) $userFirstName, en este centro de mando puedes monitorear la telemetría en tiempo real, configurar parámetros generales de UMBRAL, auditar eventos y gestionar la infraestructura técnica de IMMUJER.';
+              'Super Administrador(a) $userFirstName, en este centro de mando puedes monitorear la telemetría en tiempo real, configurar parámetros generales de UMBRAL, auditar políticas RLS y gestionar la infraestructura técnica de IMMUJER.';
           nextSuggestions = moduleContext.quickPrompts;
         }
         break;
@@ -514,11 +494,7 @@ class AssistantRepository {
         responseText =
             '$userFirstName, estoy para ayudarte en todo lo relacionado con la plataforma UMBRAL del Instituto Municipal de la Mujer (IMMUJER).\n\n'
             'Puedes consultar sobre cursos formativos, pase de lista de asistencia, encuestas de satisfacción, comprobantes prácticos y configuraciones.';
-        nextSuggestions = [
-          '¿Cómo confirmo asistencia a un taller?',
-          '¿Dónde veo mis cursos activos?',
-          '¿Cómo cambiar a modo oscuro?',
-        ];
+        nextSuggestions = moduleContext.quickPrompts;
     }
 
     return ChatMessage(

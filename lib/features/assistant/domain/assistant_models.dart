@@ -110,10 +110,10 @@ class AssistantModuleContext {
         description:
             'Te ayudo a revisar el estado de tus cursos, consultar tus registros de asistencia, responder encuestas de satisfacción y gestionar comprobantes de aportes para clases prácticas.',
         quickPrompts: [
-          '¿Cómo confirmo mi asistencia a una clase práctica?',
-          '¿Dónde veo el historial de mis asistencias?',
-          '¿Cómo responder una encuesta de satisfacción?',
-          '¿Cómo actualizar mis datos y foto en Mi Perfil?',
+          '¿Cómo consultar mi historial de asistencias y cursos?',
+          '¿Cómo consultar y registrar comprobantes de aporte práctico?',
+          '¿Cómo completar encuestas de satisfacción institucional?',
+          '¿Cómo actualizar fotografía y número telefónico en Mi Perfil?',
         ],
       );
     }
@@ -141,15 +141,15 @@ class AssistantModuleContext {
       return const AssistantModuleContext(
         id: 'coordinacion',
         title: 'Módulo de Coordinación',
-        subtitle: 'Navegación de interfaz, aprobaciones y supervisión',
+        subtitle: 'Aprobaciones, reportes y supervisión operativa',
         icon: Symbols.military_tech,
         description:
-            'Te oriento en la navegación entre las secciones de tu panel (Cursos, En Vivo, Profesores, Insumos), la revisión y aprobación de solicitudes docentes y la emisión de reportes.',
+            'Te oriento en la programación de cursos formativos, la revisión y aprobación de solicitudes docentes, la calibración de la impresora térmica y la emisión de reportes.',
         quickPrompts: [
-          '¿Cómo navegar entre Cursos, En Vivo, Profesores e Insumos?',
-          '¿Dónde reviso y apruebo las solicitudes de temarios?',
-          '¿Cómo consultar reportes consolidados y registros?',
-          '¿Dónde encuentro y edito Mi Perfil?',
+          '¿Cómo registrar y programar un nuevo curso?',
+          '¿Cómo revisar y aprobar solicitudes de temarios docentes?',
+          '¿Cómo filtrar y exportar reportes consolidados en PDF?',
+          '¿Cómo configurar y calibrar la impresora térmica Bluetooth ESC/POS?',
         ],
       );
     }
@@ -158,15 +158,15 @@ class AssistantModuleContext {
       return const AssistantModuleContext(
         id: 'superadmin',
         title: 'Panel Super Admin',
-        subtitle: 'Telemetría global, sincronización BCV y configuración',
+        subtitle: 'Telemetría global, sincronización BCV y auditoría RLS',
         icon: Symbols.admin_panel_settings,
         description:
-            'Asistencia técnica para telemetría en vivo, gestión global de usuarios y roles, tasa cambiaria oficial BCV, auditoría y parámetros de la plataforma UMBRAL.',
+            'Asistencia técnica para telemetría en vivo, gestión global de usuarios y roles, tasa cambiaria oficial BCV, auditoría de políticas RLS y parámetros de la plataforma UMBRAL.',
         quickPrompts: [
-          '¿Cómo funciona la sincronización automática de la tasa BCV?',
-          '¿Cómo modificar los roles de un usuario registrado?',
-          '¿Dónde verifico el estado de las políticas RLS?',
-          '¿Cómo acceder a los ajustes de impresión y tickets?',
+          '¿Cómo modificar roles de usuarios y auditar permisos?',
+          '¿Cómo verificar y forzar la sincronización de la tasa oficial BCV?',
+          '¿Cómo auditar y verificar el estado de las políticas RLS?',
+          '¿Cómo configurar y calibrar la impresora térmica Bluetooth ESC/POS?',
         ],
       );
     }
@@ -180,8 +180,7 @@ class AssistantModuleContext {
         description:
             'Te ayudo a interpretar los filtros de cursos, tasas de retención y opciones de exportación para la dirección institucional de IMMUJER.',
         quickPrompts: [
-          '¿Cómo filtrar reportes por cohorte y curso?',
-          '¿Cómo exportar el listado completo a PDF?',
+          '¿Cómo filtrar y exportar reportes consolidados en PDF?',
         ],
       );
     }
@@ -208,9 +207,8 @@ class AssistantModuleContext {
       description:
           'Soy Umby, tu asistente de soporte técnico y guía inteligente en la plataforma UMBRAL del Instituto Municipal de la Mujer (IMMUJER). Puedo diagnosticar fallos, orientarte paso a paso y resolver dudas.',
       quickPrompts: [
-        '¿Cómo navegar entre las distintas secciones?',
-        '¿Cómo solucionar problemas con la impresora o Bluetooth?',
-        '¿Qué puedo hacer en Mi Perfil y cómo editarlo?',
+        '¿Cómo actualizar fotografía y número telefónico en Mi Perfil?',
+        '¿Cómo configurar y calibrar la impresora térmica Bluetooth ESC/POS?',
       ],
     );
   }

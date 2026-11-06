@@ -269,6 +269,38 @@ class _SuperAdminNotificationsModalState
     } catch (_) {}
   }
 
+  Future<void> _deleteNotification(String id) async {
+    try {
+      await _supabase.from('notificaciones').delete().eq('id', id);
+
+      if (!mounted) return;
+      setState(() {
+        _notifications.removeWhere((n) => n.id == id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Notificación eliminada',
+            style: GoogleFonts.plusJakartaSans(fontSize: 12),
+          ),
+          backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Error al eliminar notificación: $e',
+            style: GoogleFonts.plusJakartaSans(fontSize: 12),
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
   Future<void> _markAllAsRead() async {
     try {
       await _supabase
@@ -673,6 +705,15 @@ class _SuperAdminNotificationsModalState
                   onPressed: () => _markAsRead(item.id),
                 ),
               ],
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Symbols.delete_outline, size: 18),
+                color: AppColors.error,
+                tooltip: 'Eliminar notificación',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => _deleteNotification(item.id),
+              ),
             ],
           ),
 
