@@ -133,8 +133,9 @@ serve(async (req: Request) => {
     }
 
     // 5. DETECCIÓN DE PROBLEMAS EN OPERACIONES Y NOTIFICACIÓN AL SUPER ADMIN
-    const isOperationIssue = /problema|falla|fallo|error|no puedo|no deja|no funciona|no imprime|no guarda|se trab|bug|denegad|invalido|incorrecto|bloquead|42501|ayuda con error|falla al|no sincroniza/i.test(query) ||
-      (lastError != null && lastError.length > 0);
+    const isExplicitError = /problema|falla|fallo|error|no puedo|no deja|no funciona|no imprime|no guarda|se trab|bug|denegad|invalido|incorrecto|bloquead|42501|ayuda con error|falla al|no sincroniza/i.test(query);
+    const isOperationIssue = isExplicitError ||
+      (lastError != null && lastError.length > 0 && /error|fall|problema|ayuda con fallo/i.test(query));
 
     let operationalDiagnosis: { donde_esta_el_problema: string; que_debe_revisar: string } | null = null;
     let notificationSentToAdmin = false;
@@ -353,8 +354,37 @@ function buildInteractiveManualResponse(
   if (ticketId) {
     headerNotices += `> [!CAUTION]\n> **Incidencia Critica:** Se ha generado automaticamente el ticket **\`#${ticketId.substring(0, 8)}\`**.\n\n`;
   }
-  if (notificationSentToAdmin && operationalDiagnosis) {
-    headerNotices += `> [!NOTE]\n> **Notificacion enviada al Super Admin:** He notificado al equipo tecnico sobre el problema detectado en **${operationalDiagnosis.donde_esta_el_problema}**.\n\n`;
+  // NOTA: No se inyecta información de notificación técnica al usuario final en las respuestas de chat
+
+  // =========================================================================
+  // CASO ESPECÍFICO: AÑADIR / REGISTRAR / INSCRIBIR / MATRICULAR ALUMNOS
+  // =========================================================================
+  const isAddStudentQuery = (/anadir|añadir|agregar|inscribir|matricular|nuevo alumno|nueva alumna|alta alumno|ingresar alumno|crear alumno/i.test(q) &&
+    /alumno|alumna|estudiante|participante|matricula|inscrip/i.test(q)) ||
+    (/como|cómo/i.test(q) && /anadir|añadir|agregar|inscribir|matricular/i.test(q) && /alumno|alumna|estudiante/i.test(q));
+
+  if (isAddStudentQuery) {
+    if (currentModule === "profesores" && !isCoordinator) {
+      return `${headerNotices}### 📋 Gestión de Alumnas e Inscripciones en Profesores
+
+Profesor(a) **${userName}**, en la plataforma UMBRAL IMMUJER la incorporación y matrícula de nuevas alumnas en los cursos se gestiona formalmente desde el **Módulo de Coordinación**:
+
+1. **Gestión Administrativa:** La Coordinación registra a la participante con su Cédula de Identidad, Nombre Completo y Teléfono en la plataforma.
+2. **Asignación al Curso:** Al matricular a la alumna en tu curso formativo activo, el sistema la vincula automáticamente a tu grupo.
+3. **Pase de Lista Automático:** La alumna aparecerá de inmediato en tu listado de **Asistencias** para que puedas registrar su pase de lista, evaluar sus aportes prácticos o incluirla en las encuestas de satisfacción.
+
+💡 **¿Necesitas inscribir a una alumna de inmediato?** Comunícate con la Coordinación del IMMUJER para realizar la asignación desde la pestaña **Cursos** -> **Inscripciones**.`;
+    }
+
+    return `${headerNotices}### 📖 Guía Paso a Paso: Cómo inscribir o matricular una nueva alumna en un curso
+
+Hola, **${userName}**. Aquí tienes las instrucciones oficiales para realizar esta operación en **Coordinación**:
+
+1. **Ubicación:** Dirígete al Módulo de **Coordinación**, pestaña **"Cursos"**.
+2. **Seleccionar Formación:** Pulsa sobre el curso activo donde deseas añadir a la participante.
+3. **Inscribir Alumna:** Selecciona la opción **"Inscripciones"** o **"Matricular Alumna"**.
+4. **Búsqueda y Registro:** Busca a la alumna por su Cédula de Identidad o regístrala con sus datos personales si es nueva en la plataforma.
+5. **Confirmar:** Pulsa **"Confirmar Inscripción"**. La alumna quedará asignada y aparecerá de inmediato en el listado de asistencia del profesor responsable.`;
   }
 
   // =========================================================================
@@ -410,7 +440,7 @@ Dime qué operación deseas realizar y te guiaré con gusto.`;
   }
 
   // =========================================================================
-  // CASO 2: BÚSQUEDA INTELIGENTE DE GUÍAS PASO A PASO (Relevance Matcher)
+  // CASO 2: BÚSQUEDA INTELIGENTE DE GUÍAS PASO A PASO (Relevance Matcher Robusto)
   // =========================================================================
   const queryWords = extractMeaningfulWords(q);
 
@@ -420,25 +450,45 @@ Dime qué operación deseas realizar y te guiaré con gusto.`;
   for (const guide of guides) {
     const guideWords = extractMeaningfulWords(guide.titulo_operacion);
     let score = 0;
+    let matchedDistinctWords = 0;
 
-    for (const gw of guideWords) {
-      for (const qw of queryWords) {
+    for (const qw of queryWords) {
+      let wordMatched = false;
+      for (const gw of guideWords) {
         if (qw === gw) {
-          score += 3;
-        } else if (qw.includes(gw) || gw.includes(qw)) {
-          score += 1.5;
+          score += 4;
+          wordMatched = true;
+          break;
+        } else if (
+          qw.length >= 4 &&
+          gw.length >= 4 &&
+          (qw.startsWith(gw.substring(0, 4)) || gw.startsWith(qw.substring(0, 4)))
+        ) {
+          score += 2;
+          wordMatched = true;
+          break;
         }
+      }
+      if (wordMatched) {
+        matchedDistinctWords++;
       }
     }
 
-    // Bonificación si el módulo coincide con la pantalla activa
-    if (guide.modulo === currentModule) {
-      score += 2;
-    } else if (guide.modulo === "general") {
-      score += 1;
+    // Regla estricta: Si la consulta tiene 2 o más palabras clave, exigir al menos 2 coincidencias léxicas
+    if (queryWords.length >= 2 && matchedDistinctWords < 2 && score < 6) {
+      continue;
     }
 
-    if (score > bestScore && score >= 3) {
+    // Bonificación por módulo SOLO si ya existe una coincidencia léxica sólida comprobada
+    if (score >= 4) {
+      if (guide.modulo === currentModule) {
+        score += 1.5;
+      } else if (guide.modulo === "general") {
+        score += 0.5;
+      }
+    }
+
+    if (score > bestScore && score >= 4.5) {
       bestScore = score;
       bestGuide = guide;
     }
@@ -590,7 +640,10 @@ REGLAS ESTRICTAS DE SEGURIDAD Y PERMISOS:
 1. El rol "super_admin" y "superadmin" son el MISMO rol: tienen acceso total, absoluto e irrestricto a todas las operaciones y módulos. NUNCA le digas al Super Admin que no tiene permisos.
 2. Si el usuario solicita realizar una acción prohibida para su rol (ej. Alumno queriendo editar cursos), indícale amablemente que requiere un rol superior (ej. Coordinador o Super Admin) y explica a quién debe dirigirse.
 3. Si el usuario pregunta "¿En qué me puedes ayudar?", explica detalladamente las operaciones que puede realizar en el módulo "${telemetry.currentModule}".
-${notificationSentToAdmin ? `Nota de notificación: Se ha enviado alerta al Super Admin sobre: ${operationalDiagnosis?.donde_esta_el_problema}.` : ""}
+4. Si el usuario pregunta sobre cómo añadir, inscribir o matricular una nueva alumna en un curso:
+   - En el Módulo de Profesores: Explica que la matriculación la realiza formalmente la Coordinación en la sección de Cursos, y que una vez inscrita aparecerá automáticamente en el listado de asistencia del profesor.
+   - En el Módulo de Coordinación / Super Admin: Explica el paso a paso para ir a Cursos -> Seleccionar curso -> Inscribir Alumna por su Cédula.
+5. REGLA ESTRICTA: NUNCA menciones en tus respuestas al usuario final que se ha enviado una notificación o alerta al Super Admin ni que se ha reportado una falla técnica interna.
 ${ticketId ? `Ticket generado: #${ticketId.substring(0, 8)}` : ""}
 
 Manuales Operativos autorizados:

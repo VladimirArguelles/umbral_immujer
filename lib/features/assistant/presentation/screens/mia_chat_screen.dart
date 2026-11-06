@@ -148,7 +148,7 @@ class _MiaChatScreenState extends State<MiaChatScreen> {
                 'Ocurrió una intermitencia momentánea. Por favor intenta plantear nuevamente tu consulta.',
             isUser: false,
             timestamp: DateTime.now(),
-            suggestions: _moduleContext.quickPrompts,
+            suggestions: const [],
           ),
         );
         _isTyping = false;
@@ -443,45 +443,6 @@ class _MiaChatScreenState extends State<MiaChatScreen> {
                       ),
                     ),
                   ],
-                ),
-              ),
-            // Chips rápidos contextuales
-            if (_moduleContext.quickPrompts.isNotEmpty && !_isTyping)
-              Container(
-                height: 42,
-                margin: const EdgeInsets.only(top: 4, bottom: 6),
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: _moduleContext.quickPrompts.length,
-                  separatorBuilder: (context, _) => const SizedBox(width: 8),
-                  itemBuilder: (context, idx) {
-                    final prompt = _moduleContext.quickPrompts[idx];
-                    return ActionChip(
-                      backgroundColor: cardBg,
-                      elevation: 0,
-                      side: BorderSide(
-                        color: AppColors.primary.withValues(alpha: 0.35),
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      avatar: const Icon(
-                        Symbols.auto_awesome,
-                        size: 14,
-                        color: AppColors.primary,
-                      ),
-                      label: Text(
-                        prompt,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
-                          color: textMain,
-                        ),
-                      ),
-                      onPressed: () => _handleSendMessage(prompt),
-                    );
-                  },
                 ),
               ),
             // Barra de entrada de texto

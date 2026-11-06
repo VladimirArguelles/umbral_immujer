@@ -99,11 +99,19 @@ class AssistantRepository {
         ? 'super_admin'
         : (activeProfile?.rol.toDbString() ?? 'alumno');
 
+    // Filtrar error de telemetría: solo enviar si ocurrió recientemente (menos de 60 segundos)
+    String? recentError;
+    if (AppLogger.lastError != null && AppLogger.lastErrorTime != null) {
+      if (DateTime.now().difference(AppLogger.lastErrorTime!).inSeconds < 60) {
+        recentError = AppLogger.lastError;
+      }
+    }
+
     return AppTelemetryContext(
       currentModule: moduleContext.id,
       networkStatus: networkStatus,
       bluetoothStatus: bluetoothStatus,
-      lastError: AppLogger.lastError,
+      lastError: recentError,
       platform: kIsWeb ? 'Web' : defaultTargetPlatform.name,
       userRole: normalizedRole,
       userId: activeProfile?.id,
@@ -146,7 +154,7 @@ class AssistantRepository {
             text: replyText,
             isUser: false,
             timestamp: DateTime.now(),
-            suggestions: moduleContext.quickPrompts,
+            suggestions: const [],
             ticketId: ticketId,
             isDiagnostic: ticketId != null ||
                 (data['diagnostics'] is Map && data['diagnostics']['systemAudit'] != null),
@@ -362,7 +370,7 @@ class AssistantRepository {
           responseText =
               '$userFirstName, en el **Módulo de Alumnos** puedes supervisar tus formaciones activas en IMMUJER, verificar tu asistencia y gestionar tus clases.\n\n'
               'Si tienes alguna duda sobre horarios, aportes de insumos o constancias, indícamelo y con gusto te proporciono el paso a paso.';
-          nextSuggestions = moduleContext.quickPrompts;
+          nextSuggestions = const [];
         }
         break;
 
@@ -410,10 +418,21 @@ class AssistantRepository {
             '¿Cómo registrar la asistencia de una clase?',
             '¿Dónde gestiono Mi Perfil y mis datos docentes?',
           ];
+        } else if (q.contains('alumno') || q.contains('alumna') || q.contains('estudiante') || q.contains('inscribir') || q.contains('matricular') || q.contains('añadir') || q.contains('anadir') || q.contains('agregar')) {
+          responseText =
+              'Profesor(a) $userFirstName, en UMBRAL IMMUJER la incorporación y matrícula de nuevas alumnas en los cursos se realiza desde el **Módulo de Coordinación**:\n\n'
+              '1. **Gestión Administrativa:** Coordinación registra a la alumna con su Cédula y datos personales en la plataforma.\n'
+              '2. **Asignación al Curso:** Al matricular a la alumna en tu curso, el sistema la vincula de inmediato a tu grupo.\n'
+              '3. **Pase de Lista Automático:** La alumna aparecerá de forma inmediata en tu listado de **Asistencias** para que puedas registrar su pase de lista, evaluar sus aportes prácticos e incluirla en las encuestas.\n\n'
+              'Si requieres inscribir a una alumna con urgencia, comunícate con la Coordinación del IMMUJER para realizar la asignación en la pestaña Cursos.';
+          nextSuggestions = [
+            '¿Cómo registrar la asistencia de una clase?',
+            '¿Cómo crear una encuesta para mis alumnos?',
+          ];
         } else {
           responseText =
               'Profesor(a) $userFirstName, como docente en UMBRAL puedes gestionar el pase de lista de tus cursos, crear encuestas estudiantiles, proyectar costos de insumos para talleres prácticos y proponer actualizaciones de temarios a Coordinación.';
-          nextSuggestions = moduleContext.quickPrompts;
+          nextSuggestions = const [];
         }
         break;
 
@@ -452,7 +471,7 @@ class AssistantRepository {
         } else {
           responseText =
               'Coordinador(a) $userFirstName, en esta interfaz puedes registrar ofertas de cursos, aprobar temarios docentes, calibrar la impresión térmica y exportar reportes oficiales de IMMUJER.';
-          nextSuggestions = moduleContext.quickPrompts;
+          nextSuggestions = const [];
         }
         break;
 
@@ -486,7 +505,7 @@ class AssistantRepository {
         } else {
           responseText =
               'Super Administrador(a) $userFirstName, en este centro de mando puedes monitorear la telemetría en tiempo real, configurar parámetros generales de UMBRAL, auditar políticas RLS y gestionar la infraestructura técnica de IMMUJER.';
-          nextSuggestions = moduleContext.quickPrompts;
+          nextSuggestions = const [];
         }
         break;
 
@@ -494,7 +513,7 @@ class AssistantRepository {
         responseText =
             '$userFirstName, estoy para ayudarte en todo lo relacionado con la plataforma UMBRAL del Instituto Municipal de la Mujer (IMMUJER).\n\n'
             'Puedes consultar sobre cursos formativos, pase de lista de asistencia, encuestas de satisfacción, comprobantes prácticos y configuraciones.';
-        nextSuggestions = moduleContext.quickPrompts;
+        nextSuggestions = const [];
     }
 
     return ChatMessage(
