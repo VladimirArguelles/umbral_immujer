@@ -95,13 +95,17 @@ class AssistantRepository {
       networkStatus = 'Intermitente';
     }
 
+    final normalizedRole = (activeProfile?.rol == UserRole.superAdmin)
+        ? 'super_admin'
+        : (activeProfile?.rol.toDbString() ?? 'alumno');
+
     return AppTelemetryContext(
       currentModule: moduleContext.id,
       networkStatus: networkStatus,
       bluetoothStatus: bluetoothStatus,
       lastError: AppLogger.lastError,
       platform: kIsWeb ? 'Web' : defaultTargetPlatform.name,
-      userRole: activeProfile?.rol.name ?? 'alumno',
+      userRole: normalizedRole,
       userId: activeProfile?.id,
       userName: activeProfile != null ? extractFirstName(activeProfile.fullName) : null,
     );
@@ -384,6 +388,17 @@ class AssistantRepository {
           nextSuggestions = [
             '¿Cómo saber si mi tema fue aprobado?',
             '¿Cómo registrar la asistencia?',
+          ];
+        } else if (q.contains('encuesta') || q.contains('evaluacion') || q.contains('evaluación')) {
+          responseText =
+              'Profesor(a) $userFirstName, para crear y activar una encuesta para tus alumnas:\n\n'
+              '1. Dirígete a la pestaña **"Encuestas"** en tu panel docente.\n'
+              '2. Pulsa el botón **"Crear Encuesta"** o el icono **"+"** en la cabecera.\n'
+              '3. Asigna un título descriptivo (ej. "Evaluación de Clase Práctica"), selecciona el curso y define los criterios de calificación de 1 a 5 estrellas.\n'
+              '4. Pulsa **"Activar Encuesta"** para que esté disponible de inmediato para las alumnas inscritas.';
+          nextSuggestions = [
+            '¿Cómo registrar la asistencia de una clase?',
+            '¿Cómo solicitar la aprobación de un nuevo tema?',
           ];
         } else if (q.contains('insumos') || q.contains('costo') || q.contains('pago móvil') || q.contains('banco')) {
           responseText =
