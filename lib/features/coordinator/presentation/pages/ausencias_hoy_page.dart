@@ -84,7 +84,10 @@ class _AusenciasHoyPageState extends State<AusenciasHoyPage> {
       ausenciasPorCurso.putIfAbsent(cKey, () => []).add(a);
     }
 
-    final filteredCursos = _cursos.where((c) {
+    // Filtrar estrictamente cursos activos hoy
+    final cursosActivosHoy = _cursos.where((c) => c.isActiveToday).toList();
+
+    final filteredCursos = cursosActivosHoy.where((c) {
       final cKey = c.nombre.trim().toLowerCase();
       final ausenciasList = ausenciasPorCurso[cKey] ?? [];
 
@@ -244,7 +247,7 @@ class _AusenciasHoyPageState extends State<AusenciasHoyPage> {
             Row(
               children: [
                 ChoiceChip(
-                  label: Text('Todos (${_cursos.length})'),
+                  label: Text('Activos (${cursosActivosHoy.length})'),
                   selected: _selectedFilter == 0,
                   onSelected: (_) => setState(() => _selectedFilter = 0),
                   selectedColor: AppColors.primary,

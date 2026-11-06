@@ -7,7 +7,7 @@ import 'package:umbral_immujer/src/core/utils/formatters.dart';
 import 'package:umbral_immujer/features/coordinator/domain/coordinator_models.dart';
 import 'package:umbral_immujer/features/coordinator/data/coordinator_repository.dart';
 
-/// Pantalla detallada de Cursos Activos para el Módulo de Coordinación
+/// Pantalla que muestra SOLAMENTE los cursos que se encuentran activos en el momento/jornada actual
 class CursosActivosPage extends StatefulWidget {
   final List<CourseDashboardItem> initialCursos;
   final CoordinatorRepository coordinatorRepository;
@@ -26,7 +26,6 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
   late List<CourseDashboardItem> _cursos;
   bool _isLoading = false;
   String _searchQuery = '';
-  int _selectedFilter = 0; // 0 = Todos, 1 = Solo En Sesión Hoy
 
   @override
   void initState() {
@@ -48,6 +47,11 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
     } catch (_) {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  String _getNombreDiaHoy() {
+    final dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    return dias[DateTime.now().weekday - 1];
   }
 
   void _abrirPlantillaAlumnosYTemas(CourseDashboardItem curso) {
@@ -202,11 +206,13 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
   @override
   Widget build(BuildContext context) {
     final isDark = AppTheme.isDark;
-    final cursosOperandoHoy = _cursos.where((c) => c.isActiveToday).toList();
-    final totalMatriculadas = _cursos.fold<int>(0, (prev, c) => prev + c.alumnosInscritos);
+    final diaHoy = _getNombreDiaHoy();
 
-    final filteredList = _cursos.where((c) {
-      if (_selectedFilter == 1 && !c.isActiveToday) return false;
+    // FILTRADO ESTRICTO: SOLAMENTE CURSOS QUE SE ENCUENTRAN ACTIVOS HOY
+    final cursosActivosHoy = _cursos.where((c) => c.isActiveToday).toList();
+    final totalMatriculadas = cursosActivosHoy.fold<int>(0, (prev, c) => prev + c.alumnosInscritos);
+
+    final filteredList = cursosActivosHoy.where((c) {
       if (_searchQuery.isNotEmpty) {
         final q = _searchQuery.toLowerCase();
         final matchNombre = c.nombre.toLowerCase().contains(q);
@@ -233,7 +239,7 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
               ),
             ),
             Text(
-              'Supervisión y control de formaciones activas',
+              'Cursos activos en jornada de hoy ($diaHoy)',
               style: TextStyle(fontSize: 11.5, color: AppTheme.dynamicTextMuted),
             ),
           ],
@@ -247,7 +253,7 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
                     child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
                   )
                 : const Icon(Icons.refresh_rounded),
-            tooltip: 'Actualizar cursos',
+            tooltip: 'Actualizar cursos activos',
             onPressed: _isLoading ? null : _refresh,
           ),
           const SizedBox(width: 8),
@@ -294,7 +300,7 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${_cursos.length} Cursos Activos en Sistema',
+                          '${cursosActivosHoy.length} Cursos Activos Hoy ($diaHoy)',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
@@ -314,7 +320,7 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              '${cursosOperandoHoy.length} con clases hoy • $totalMatriculadas alumnas matriculadas',
+                              'En sesión formativa hoy • $totalMatriculadas alumnas',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: AppTheme.dynamicTextMuted,
@@ -331,77 +337,46 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
             ),
             const SizedBox(height: 16),
 
-            // Filtros y Buscador
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    onChanged: (val) => setState(() => _searchQuery = val.trim()),
-                    decoration: InputDecoration(
-                      hintText: 'Buscar por curso o docente...',
-                      hintStyle: TextStyle(fontSize: 12.5, color: AppTheme.dynamicTextMuted),
-                      prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                      filled: true,
-                      fillColor: AppTheme.dynamicCard,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(color: AppTheme.dynamicBorder),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(color: AppTheme.dynamicBorder),
-                      ),
-                    ),
-                  ),
+            // Buscador
+            TextField(
+              onChanged: (val) => setState(() => _searchQuery = val.trim()),
+              decoration: InputDecoration(
+                hintText: 'Buscar curso activo o docente...',
+                hintStyle: TextStyle(fontSize: 12.5, color: AppTheme.dynamicTextMuted),
+                prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                filled: true,
+                fillColor: AppTheme.dynamicCard,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: AppTheme.dynamicBorder),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            Row(
-              children: [
-                ChoiceChip(
-                  label: Text('Todos (${_cursos.length})'),
-                  selected: _selectedFilter == 0,
-                  onSelected: (_) => setState(() => _selectedFilter = 0),
-                  selectedColor: AppColors.primary,
-                  backgroundColor: AppTheme.dynamicCard,
-                  labelStyle: GoogleFonts.plusJakartaSans(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700,
-                    color: _selectedFilter == 0 ? Colors.white : AppTheme.dynamicTextMuted,
-                  ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: AppTheme.dynamicBorder),
                 ),
-                const SizedBox(width: 8),
-                ChoiceChip(
-                  avatar: const Icon(Icons.circle, size: 10, color: AppColors.mintNeon),
-                  label: Text('En Sesión Hoy (${cursosOperandoHoy.length})'),
-                  selected: _selectedFilter == 1,
-                  onSelected: (_) => setState(() => _selectedFilter = 1),
-                  selectedColor: AppColors.primary,
-                  backgroundColor: AppTheme.dynamicCard,
-                  labelStyle: GoogleFonts.plusJakartaSans(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700,
-                    color: _selectedFilter == 1 ? Colors.white : AppTheme.dynamicTextMuted,
-                  ),
-                ),
-              ],
+              ),
             ),
             const SizedBox(height: 16),
 
-            // Lista de cursos
+            // Lista de cursos activos
             if (filteredList.isEmpty)
               Center(
                 child: Padding(
                   padding: const EdgeInsets.all(40),
                   child: Column(
                     children: [
-                      Icon(Icons.search_off_rounded, size: 48, color: AppTheme.dynamicTextMuted),
+                      Icon(
+                        _searchQuery.isNotEmpty ? Icons.search_off_rounded : Symbols.event_busy,
+                        size: 48,
+                        color: AppTheme.dynamicTextMuted,
+                      ),
                       const SizedBox(height: 12),
                       Text(
-                        'No se encontraron cursos activos con el filtro actual',
+                        _searchQuery.isNotEmpty
+                            ? 'No se encontraron cursos activos con ese nombre'
+                            : 'No hay cursos con clases programadas para hoy ($diaHoy)',
+                        textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -421,18 +396,14 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
   }
 
   Widget _buildCourseCard(CourseDashboardItem curso, bool isDark) {
-    final isActiveToday = curso.isActiveToday;
-
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: AppTheme.dynamicCard,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: isActiveToday
-              ? AppColors.primary.withValues(alpha: 0.5)
-              : AppTheme.dynamicBorder,
-          width: isActiveToday ? 1.4 : 1,
+          color: AppColors.primary.withValues(alpha: 0.5),
+          width: 1.4,
         ),
         boxShadow: [
           BoxShadow(
@@ -463,32 +434,28 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: isActiveToday
-                        ? AppColors.mintNeon.withValues(alpha: 0.15)
-                        : AppColors.primary.withValues(alpha: 0.1),
+                    color: AppColors.mintNeon.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: isActiveToday
-                          ? AppColors.mintNeon.withValues(alpha: 0.6)
-                          : AppColors.primary.withValues(alpha: 0.3),
+                      color: AppColors.mintNeon.withValues(alpha: 0.6),
                       width: 0.8,
                     ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.circle,
                         size: 8,
-                        color: isActiveToday ? AppColors.mintNeon : AppColors.primary,
+                        color: AppColors.mintNeon,
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        isActiveToday ? 'EN SESIÓN HOY' : 'ACTIVO',
+                        'ACTIVO HOY',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 9.5,
                           fontWeight: FontWeight.w800,
-                          color: isActiveToday ? AppColors.mintNeon : AppColors.primary,
+                          color: AppColors.mintNeon,
                         ),
                       ),
                     ],
@@ -505,7 +472,7 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
                 const SizedBox(width: 6),
                 Text(
                   curso.profesorNombre ?? 'Sin profesor asignado',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
                     color: AppColors.primary,
@@ -542,7 +509,7 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.people_alt_rounded, size: 16, color: AppColors.mintNeon),
+                    const Icon(Icons.people_alt_rounded, size: 16, color: AppColors.mintNeon),
                     const SizedBox(width: 6),
                     Text(
                       '${curso.alumnosInscritos} matriculadas',
