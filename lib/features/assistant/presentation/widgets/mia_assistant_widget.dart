@@ -174,9 +174,9 @@ class _MiaAssistantModalState extends State<MiaAssistantModal> {
                               Row(
                                 children: [
                                   Text(
-                                    'Mía',
+                                    'Umbral AI Assistant',
                                     style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 18,
+                                      fontSize: 17,
                                       fontWeight: FontWeight.w800,
                                       color: textMain,
                                     ),
@@ -468,7 +468,7 @@ class MiaAssistantHeaderButton extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Tooltip(
-        message: 'Asistente Virtual Mía',
+        message: 'Umbral AI Assistant',
         child: InkWell(
           onTap: () => MiaAssistantModal.show(
             context,
@@ -514,7 +514,7 @@ class MiaAssistantHeaderButton extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'Mía',
+                  'Umbral AI',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
@@ -564,7 +564,7 @@ class MiaAssistantWidget extends StatelessWidget {
       elevation: 6,
       icon: const Icon(Symbols.smart_toy, size: 20),
       label: Text(
-        'Preguntar a Mía',
+        'Preguntar a Umbral AI',
         style: GoogleFonts.plusJakartaSans(
           fontSize: 12.5,
           fontWeight: FontWeight.w800,

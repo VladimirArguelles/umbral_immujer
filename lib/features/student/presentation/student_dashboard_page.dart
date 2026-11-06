@@ -185,7 +185,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
               children: [
                 const Icon(Icons.smart_toy_rounded, size: 18, color: AppTheme.primary),
                 const SizedBox(width: 10),
-                Text('Asistente Mía', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                Text('Umbral AI Assistant', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
               ],
             ),
           ),

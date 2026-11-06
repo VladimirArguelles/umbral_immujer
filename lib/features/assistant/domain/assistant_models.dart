@@ -91,19 +91,21 @@ class AssistantModuleContext {
       );
     }
 
-    if (normalized.contains('coordinad') || normalized.contains('coordinator')) {
+    if (normalized.contains('coord') ||
+        normalized.contains('coordinacion') ||
+        normalized.contains('coordinator')) {
       return const AssistantModuleContext(
         id: 'coordinacion',
         title: 'Módulo de Coordinación',
-        subtitle: 'Aprobaciones, supervisión docente y reportes consolidados',
+        subtitle: 'Navegación de interfaz, aprobaciones y supervisión',
         icon: Symbols.military_tech,
         description:
-            'Puedo apoyarte en la revisión y aprobación de solicitudes de profesores, auditoría de asistencias institucionales y generación de reportes oficiales.',
+            'Te oriento en la navegación entre las secciones de tu panel (Cursos, En Vivo, Profesores, Insumos), la revisión y aprobación de solicitudes docentes y la emisión de reportes.',
         quickPrompts: [
-          '¿Dónde apruebo las solicitudes de temarios pendientes?',
-          '¿Cómo consultar el consolidado de asistencia por curso?',
-          '¿Cómo exportar reportes en PDF o Excel?',
-          '¿Cómo gestionar la inscripción de nuevos alumnos?',
+          '¿Cómo navegar entre Cursos, En Vivo, Profesores e Insumos?',
+          '¿Dónde reviso y apruebo las solicitudes de temarios?',
+          '¿Cómo consultar reportes consolidados y registros?',
+          '¿Cómo supervisar las clases en vivo y asistencias?',
         ],
       );
     }
@@ -160,7 +162,7 @@ class AssistantModuleContext {
       subtitle: 'Soporte inteligente institucional IMMUJER',
       icon: Symbols.support_agent,
       description:
-          'Soy Mía, tu asistente virtual en la plataforma UMBRAL del Instituto Municipal de la Mujer (IMMUJER). Estoy aquí para responder dudas y guiarte en cualquier sección del sistema.',
+          'Soy Umbral AI Assistant, tu asistente virtual en la plataforma UMBRAL del Instituto Municipal de la Mujer (IMMUJER). Estoy aquí para responder dudas y guiarte en cualquier sección del sistema.',
       quickPrompts: [
         '¿Qué puedo hacer en UMBRAL IMMUJER?',
         '¿Cómo contactar al equipo de soporte técnico?',

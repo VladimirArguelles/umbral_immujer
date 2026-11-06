@@ -250,9 +250,9 @@ class _MiaChatScreenState extends State<MiaChatScreen> {
                         Row(
                           children: [
                             Text(
-                              'Mía',
+                              'Umbral AI Assistant',
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 16,
+                                fontSize: 15,
                                 fontWeight: FontWeight.w800,
                                 color: textMain,
                               ),
@@ -424,7 +424,7 @@ class _MiaChatScreenState extends State<MiaChatScreen> {
                           ),
                           const SizedBox(width: 10),
                           Text(
-                            'Mía está respondiendo...',
+                            'Umbral AI está respondiendo...',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 11.5,
                               color: textMuted,
@@ -669,7 +669,7 @@ class _MiaChatScreenState extends State<MiaChatScreen> {
                   color: textMain,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'Pregunta a Mía sobre este módulo...',
+                  hintText: 'Pregunta a Umbral AI sobre este módulo...',
                   hintStyle: GoogleFonts.plusJakartaSans(
                     fontSize: 13,
                     color: textMuted,

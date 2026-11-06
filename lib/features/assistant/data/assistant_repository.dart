@@ -36,7 +36,7 @@ class AssistantRepository {
     return '¡Hola, $name!';
   }
 
-  /// Construye el mensaje inicial contextual de bienvenida de Mía
+  /// Construye el mensaje inicial contextual de bienvenida de Umbral AI Assistant
   ChatMessage buildWelcomeMessage({
     required AssistantModuleContext moduleContext,
     UserProfile? profile,
@@ -44,7 +44,7 @@ class AssistantRepository {
     final name = profile != null ? extractFirstName(profile.fullName) : 'Usuario';
     final greeting = '¡Hola, $name! 👋';
 
-    final text = '$greeting Soy Mía, tu asistente virtual en UMBRAL IMMUJER.\n\n'
+    final text = '$greeting Soy Umbral AI Assistant, tu asistente virtual en UMBRAL IMMUJER.\n\n'
         'Actualmente te encuentras en el **${moduleContext.title}**.\n'
         '${moduleContext.description}\n\n'
         'Puedes preguntarme lo que necesites o seleccionar uno de los temas rápidos a continuación:';
@@ -160,29 +160,60 @@ class AssistantRepository {
         break;
 
       case 'coordinacion':
-        if (q.contains('solicitud') || q.contains('aprob') || q.contains('temario')) {
+        if (q.contains('navegar') ||
+            q.contains('interfaz') ||
+            q.contains('secciones') ||
+            q.contains('pestana') ||
+            q.contains('pestaña') ||
+            q.contains('menu') ||
+            q.contains('menú') ||
+            q.contains('cursos') ||
+            q.contains('insumos')) {
           responseText =
-              'Para gestionar las solicitudes pendientes de profesores:\n\n'
-              '1. En la vista principal de Coordinación, revisa el panel de **"Solicitudes de Aprobación"**.\n'
-              '2. Podrás ver el docente solicitante, el curso asociado y los detalles del nuevo tema propuesto.\n'
-              '3. Presiona **"Aprobar"** para integrarlo formalmente al curso o **"Rechazar"** con observaciones.';
+              'Coordinador(a) $userFirstName, tu interfaz de Coordinación está organizada en 4 secciones accesibles desde el menú lateral o desplegable:\n\n'
+              '1. 📚 **Cursos:** Supervisión y control de ofertas formativas, cupos y estado general.\n'
+              '2. 📡 **En Vivo:** Telemetría de sesiones activas, porcentaje de asistencia en tiempo real y flujo de clases.\n'
+              '3. 👩‍🏫 **Profesores:** Directorio docente, cursos asignados y estatus de vinculación.\n'
+              '4. 💰 **Insumos:** Revisión de costos de insumos de clases prácticas y comprobantes de aporte.\n\n'
+              'Además, en la barra superior dispones del botón **"Ver Registros"** para ir directamente al Centro de Reportes y el menú de navegación rápida.';
           nextSuggestions = [
-            '¿Cómo generar reportes consolidados?',
-            '¿Cómo validar alumnos inscritos?',
+            '¿Dónde reviso y apruebo las solicitudes de temarios?',
+            '¿Cómo consultar reportes consolidados y registros?',
+            '¿Cómo supervisar las clases en vivo y asistencias?',
+          ];
+        } else if (q.contains('solicitud') || q.contains('aprob') || q.contains('temario') || q.contains('tema')) {
+          responseText =
+              'Para gestionar las solicitudes de temarios pendientes de profesores:\n\n'
+              '1. En la vista principal de Coordinación, revisa el panel de **"Solicitudes de Aprobación"**.\n'
+              '2. Podrás verificar el docente solicitante, el curso asociado y los detalles del nuevo tema propuesto.\n'
+              '3. Presiona **"Aprobar"** para integrarlo formalmente al curso o **"Rechazar"** si requiere ajustes.';
+          nextSuggestions = [
+            '¿Cómo navegar entre Cursos, En Vivo, Profesores e Insumos?',
+            '¿Cómo consultar reportes consolidados y registros?',
           ];
         } else if (q.contains('reporte') || q.contains('excel') || q.contains('pdf') || q.contains('registros')) {
           responseText =
               'Para consultar y descargar reportes oficiales:\n\n'
-              '1. Haz clic en el botón **"Ver Registros"** en la barra superior o navega a la sección de Reportes.\n'
-              '2. Filtra por curso, docente o período lectivo.\n'
+              '1. Haz clic en el botón superior **"Ver Registros"** o navega a la sección de Reportes.\n'
+              '2. Filtra por cohorte, curso o docente.\n'
               '3. Utiliza los botones de exportación a **PDF** o planilla digital para la gestión administrativa de IMMUJER.';
           nextSuggestions = [
-            '¿Dónde apruebo las solicitudes de temarios?',
-            '¿Cómo revisar las asistencias globales?',
+            '¿Cómo navegar entre Cursos, En Vivo, Profesores e Insumos?',
+            '¿Cómo supervisar las clases en vivo y asistencias?',
+          ];
+        } else if (q.contains('vivo') || q.contains('asistencia') || q.contains('supervisar')) {
+          responseText =
+              'Para supervisar la asistencia y clases en desarrollo:\n\n'
+              '1. Haz clic en la pestaña **"En Vivo"** en el panel de navegación.\n'
+              '2. Visualizarás los cursos activos hoy con su tasa de asistencia en tiempo real y total de alumnas presentes.\n'
+              '3. Esto te permite garantizar el cumplimiento pedagógico de cada formación.';
+          nextSuggestions = [
+            '¿Cómo navegar entre Cursos, En Vivo, Profesores e Insumos?',
+            '¿Dónde reviso y apruebo las solicitudes de temarios?',
           ];
         } else {
           responseText =
-              'Coordinador(a) $userFirstName, desde tu panel tienes el control para supervisar la oferta formativa, autorizar propuestas de temarios docentes, auditar la asistencia global y generar los informes institucionales requeridos.';
+              'Coordinador(a) $userFirstName, en esta interfaz puedes navegar entre la gestión de cursos, monitoreo en vivo de clases, supervisión docente, revisión de costos de insumos y generación de reportes oficiales de IMMUJER.';
           nextSuggestions = moduleContext.quickPrompts;
         }
         break;
