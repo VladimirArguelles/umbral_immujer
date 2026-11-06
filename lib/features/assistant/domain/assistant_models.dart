@@ -69,7 +69,7 @@ class AssistantModuleContext {
           '¿Cómo confirmo mi asistencia a una clase práctica?',
           '¿Dónde veo el historial de mis asistencias?',
           '¿Cómo responder una encuesta de satisfacción?',
-          '¿Cómo actualizar mis datos de perfil?',
+          '¿Cómo actualizar mis datos y foto en Mi Perfil?',
         ],
       );
     }
@@ -86,7 +86,7 @@ class AssistantModuleContext {
           '¿Cómo registrar la asistencia de una clase?',
           '¿Cómo crear una encuesta para mis alumnos?',
           '¿Cómo solicitar la aprobación de un nuevo tema?',
-          '¿Cómo calcular el costo de insumos por alumno?',
+          '¿Dónde gestiono Mi Perfil y mis datos docentes?',
         ],
       );
     }
@@ -105,7 +105,7 @@ class AssistantModuleContext {
           '¿Cómo navegar entre Cursos, En Vivo, Profesores e Insumos?',
           '¿Dónde reviso y apruebo las solicitudes de temarios?',
           '¿Cómo consultar reportes consolidados y registros?',
-          '¿Cómo supervisar las clases en vivo y asistencias?',
+          '¿Dónde encuentro y edito Mi Perfil?',
         ],
       );
     }
@@ -162,10 +162,10 @@ class AssistantModuleContext {
       subtitle: 'Soporte inteligente institucional IMMUJER',
       icon: Symbols.support_agent,
       description:
-          'Soy Umbral AI Assistant, tu asistente virtual en la plataforma UMBRAL del Instituto Municipal de la Mujer (IMMUJER). Estoy aquí para responder dudas y guiarte en cualquier sección del sistema.',
+          'Soy UMLY, tu asistente virtual en la plataforma UMBRAL del Instituto Municipal de la Mujer (IMMUJER). Estoy aquí para responder dudas, guiarte paso a paso en tu perfil y orientarte en cualquier sección del sistema.',
       quickPrompts: [
-        '¿Qué puedo hacer en UMBRAL IMMUJER?',
-        '¿Cómo contactar al equipo de soporte técnico?',
+        '¿Qué puedo hacer en Mi Perfil y dónde está?',
+        '¿Cómo cambiar mi foto de perfil y teléfono?',
         '¿Cómo navegar entre las distintas secciones?',
       ],
     );

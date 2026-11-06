@@ -182,9 +182,9 @@ class _MiaAssistantModalState extends State<MiaAssistantModal> {
                               Row(
                                 children: [
                                   Text(
-                                    'Umbral AI Assistant',
+                                    'UMLY',
                                     style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 17,
+                                      fontSize: 18,
                                       fontWeight: FontWeight.w800,
                                       color: textMain,
                                     ),
@@ -476,7 +476,7 @@ class MiaAssistantHeaderButton extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Tooltip(
-        message: 'Umbral AI Assistant',
+        message: 'UMLY • Asistente Virtual',
         child: InkWell(
           onTap: () => MiaAssistantModal.show(
             context,
@@ -522,7 +522,7 @@ class MiaAssistantHeaderButton extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'Umbral AI',
+                  'UMLY',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
@@ -662,7 +662,7 @@ class _MiaFloatingAssistantState extends State<MiaFloatingAssistant>
                                   ),
                                 ),
                                 TextSpan(
-                                  text: 'Mía',
+                                  text: 'UMLY',
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w800,
@@ -717,9 +717,9 @@ class _MiaFloatingAssistantState extends State<MiaFloatingAssistant>
               const SizedBox(width: 4),
             ],
 
-            // Avatar circular interactivo de Mía
+            // Avatar circular interactivo de UMLY
             Tooltip(
-              message: 'Asistente Virtual Mía',
+              message: 'UMLY • Asistente Virtual',
               child: Material(
                 color: Colors.transparent,
                 shape: const CircleBorder(),

@@ -36,7 +36,7 @@ class AssistantRepository {
     return '¡Hola, $name!';
   }
 
-  /// Construye el mensaje inicial contextual de bienvenida de Umbral AI Assistant
+  /// Construye el mensaje inicial contextual de bienvenida de UMLY
   ChatMessage buildWelcomeMessage({
     required AssistantModuleContext moduleContext,
     UserProfile? profile,
@@ -44,10 +44,10 @@ class AssistantRepository {
     final name = profile != null ? extractFirstName(profile.fullName) : 'Usuario';
     final greeting = '¡Hola, $name! 👋';
 
-    final text = '$greeting Soy Umbral AI Assistant, tu asistente virtual en UMBRAL IMMUJER.\n\n'
+    final text = '$greeting Soy UMLY, tu asistente virtual en UMBRAL IMMUJER.\n\n'
         'Actualmente te encuentras en el **${moduleContext.title}**.\n'
         '${moduleContext.description}\n\n'
-        'Puedes preguntarme lo que necesites o seleccionar uno de los temas rápidos a continuación:';
+        'Conozco todas las funciones de este módulo y de **Mi Perfil**. Puedes preguntarme lo que necesites o seleccionar un tema rápido a continuación:';
 
     return ChatMessage(
       id: 'welcome-${DateTime.now().millisecondsSinceEpoch}',
@@ -73,6 +73,144 @@ class AssistantRepository {
 
     String responseText = '';
     List<String> nextSuggestions = [];
+
+    // =========================================================================
+    // CONOCIMIENTO INTEGRAL DEL PERFIL DE USUARIO ("Mi Perfil") Y UBICACIÓN UI
+    // =========================================================================
+    final isProfileQuery = q.contains('perfil') ||
+        q.contains('mi perfil') ||
+        q.contains('foto') ||
+        q.contains('avatar') ||
+        q.contains('telefono') ||
+        q.contains('teléfono') ||
+        q.contains('celular') ||
+        q.contains('contacto') ||
+        q.contains('cerrar sesión') ||
+        q.contains('cerrar sesion') ||
+        q.contains('salir') ||
+        q.contains('logout') ||
+        q.contains('desconectar') ||
+        q.contains('modo oscuro') ||
+        q.contains('modo claro') ||
+        q.contains('modo nocturno') ||
+        q.contains('tema visual') ||
+        q.contains('mi cuenta') ||
+        q.contains('mis datos') ||
+        (q.contains('donde') && q.contains('datos'));
+
+    if (isProfileQuery) {
+      if (q.contains('foto') ||
+          q.contains('avatar') ||
+          q.contains('imagen') ||
+          q.contains('camara') ||
+          q.contains('cámara') ||
+          q.contains('galeria') ||
+          q.contains('galería')) {
+        responseText =
+            '$userFirstName, para cambiar tu fotografía de perfil o avatar en UMBRAL:\n\n'
+            '1. 📍 **Ubicación:** En la **esquina superior derecha** de la pantalla, pulsa el avatar circular con borde verde menta neón (`UserProfileAvatarButton`). Se abrirá la ventana **"Mi Perfil"**.\n'
+            '2. 📷 **Botón de Cámara:** En el centro superior del modal verás tu foto circular actual con un pequeño botón violeta de **cámara** en su esquina inferior derecha.\n'
+            '3. 📂 **Selección:** Tócalo para desplegar las opciones:\n'
+            '   • **Tomar Foto con Cámara:** Para capturar una foto al instante.\n'
+            '   • **Seleccionar de la Galería:** Para elegir una foto desde tu galería.\n'
+            '4. ✂️ **Optimización:** La app recorta y optimiza la imagen automáticamente.\n'
+            '5. 💾 **Guardar:** Baja al final del modal y pulsa el botón violeta **"Guardar Cambios"**. Tu nueva foto se subirá a Supabase Storage y se actualizará de inmediato en toda la plataforma.';
+        nextSuggestions = [
+          '¿Cómo cambiar mi número de teléfono?',
+          '¿Cómo alternar tema claro/oscuro?',
+          '¿Cómo cerrar sesión?',
+        ];
+      } else if (q.contains('telefono') ||
+          q.contains('teléfono') ||
+          q.contains('celular') ||
+          q.contains('contacto')) {
+        responseText =
+            '$userFirstName, para actualizar tu número de teléfono de contacto:\n\n'
+            '1. 📍 **Ubicación:** Pulsa sobre tu avatar en la **esquina superior derecha** de la barra superior para abrir **"Mi Perfil"**.\n'
+            '2. ✍️ **Campo de Teléfono:** Ubica el tercer campo de texto etiquetado como **"Número de Teléfono"** (identificado con el ícono de teléfono).\n'
+            '3. 🔢 **Formato:** Escribe tu número activo (ejemplo: `04141234567` o `04241234567`).\n'
+            '4. 💾 **Guardar:** Desplázate al botón violeta inferior **"Guardar Cambios"** y presiónalo. El sistema sincronizará tu nuevo número con Supabase en tiempo real.';
+        nextSuggestions = [
+          '¿Cómo cambiar mi foto de perfil?',
+          '¿Dónde veo mi rol institucional?',
+          '¿Cómo cerrar sesión?',
+        ];
+      } else if (q.contains('modo') ||
+          q.contains('tema') ||
+          q.contains('oscuro') ||
+          q.contains('nocturno') ||
+          q.contains('claro')) {
+        responseText =
+            '$userFirstName, en UMBRAL puedes alternar entre Modo Claro y Modo Nocturno de dos formas muy sencillas:\n\n'
+            '1. ⚡ **Acceso Rápido en Cabecera:** En la esquina superior derecha, justo a la izquierda de tu foto de perfil, verás el botón de sol/luna (`ThemeModeToggleButton`). Tócalo una vez para cambiar instantáneamente de modo.\n'
+            '2. 📱 **Desde Mi Perfil:** Abre **"Mi Perfil"** tocando tu avatar; baja hasta la tarjeta **"Tema Visual"** y activa o desactiva el interruptor (Switch).\n\n'
+            'Tu preferencia se guarda en tu dispositivo y se mantiene activa en tus próximas visitas.';
+        nextSuggestions = [
+          '¿Qué más puedo hacer en Mi Perfil?',
+          '¿Cómo actualizar mi teléfono?',
+          '¿Cómo cambiar mi foto?',
+        ];
+      } else if (q.contains('cerrar') ||
+          q.contains('salir') ||
+          q.contains('logout') ||
+          q.contains('desconectar')) {
+        responseText =
+            '$userFirstName, para cerrar tu sesión de forma segura:\n\n'
+            '1. 📍 **Ubicación:** Pulsa tu avatar circular en la **esquina superior derecha** para abrir **"Mi Perfil"**.\n'
+            '2. 🚪 **Botón de Cierre:** Baja hasta el final del formulario.\n'
+            '3. 🛑 **Confirmación:** Pulsa el botón rojo **"Cerrar Sesión"** (con ícono de salida). Aparecerá un diálogo preguntando *¿Estás seguro de que deseas salir de tu cuenta?*.\n'
+            '4. ✅ Pulsa **"Cerrar Sesión"** en el diálogo para desconectar tu usuario de Supabase y volver al login.';
+        nextSuggestions = [
+          '¿Cómo guardar cambios antes de salir?',
+          '¿Cómo cambiar mi foto de perfil?',
+        ];
+      } else if (q.contains('rol') ||
+          q.contains('permiso') ||
+          q.contains('cédula') ||
+          q.contains('cedula') ||
+          q.contains('nombre')) {
+        responseText =
+            '$userFirstName, la información de tu cuenta se visualiza en **"Mi Perfil"** (esquina superior derecha):\n\n'
+            '• 🏷️ **Rol Institucional:** Insignia destacada debajo de tu avatar (`ALUMNO`, `PROFESOR`, `COORDINADOR` o `SUPER ADMIN`). Determina tus permisos de acceso en UMBRAL.\n'
+            '• 👤 **Nombre Completo:** Primer campo de texto del formulario; puedes editar cómo figura tu nombre en el sistema.\n'
+            '• ✉️ **Correo Electrónico:** Segundo campo de texto con tu email verificado.\n'
+            '• 🪪 **Cédula de Identidad:** Cuarto campo identificador institucional.\n\n'
+            'Recuerda presionar **"Guardar Cambios"** si modificas cualquier dato.';
+        nextSuggestions = [
+          '¿Cómo actualizar mi teléfono?',
+          '¿Cómo cambiar mi foto de perfil?',
+          '¿Cómo alternar tema claro/oscuro?',
+        ];
+      } else {
+        responseText =
+            '$userFirstName, en UMBRAL tienes control total sobre tu cuenta a través de **"Mi Perfil"**:\n\n'
+            '📍 **¿Dónde se encuentra?**\n'
+            'En la **esquina superior derecha** de la pantalla mediante el botón circular de avatar con borde verde menta neón (muestra tu foto o iniciales). También puedes abrir el menú desplegable (tres puntos/flecha) y seleccionar **"Mi Perfil"**.\n\n'
+            '🛠️ **Todo lo que puedes realizar en Mi Perfil:**\n'
+            '1. 📸 **Actualizar Foto / Avatar:** Toca el botón violeta de cámara sobre tu foto para cargar una imagen desde tu galería o cámara.\n'
+            '2. 🏷️ **Verificar tu Rol:** Debajo de tu foto verás tu credencial oficial (ALUMNO, PROFESOR, COORDINADOR o SUPER ADMIN).\n'
+            '3. 👤 **Modificar Nombre:** Primer campo para editar tu nombre completo.\n'
+            '4. ✉️ **Correo Electrónico:** Segundo campo con tu email registrado.\n'
+            '5. 📞 **Actualizar Teléfono:** Tercer campo para ingresar tu número celular de contacto.\n'
+            '6. 🪪 **Cédula de Identidad:** Cuarto campo con tu documento.\n'
+            '7. 🌓 **Cambiar Tema Visual:** Interruptor para alternar entre Modo Claro y Modo Nocturno.\n'
+            '8. 💾 **Guardar Cambios:** Botón violeta para guardar y sincronizar con Supabase en tiempo real.\n'
+            '9. 🚪 **Cerrar Sesión:** Botón rojo inferior para salir de forma protegida.';
+        nextSuggestions = [
+          '¿Cómo cambiar mi foto de perfil?',
+          '¿Cómo actualizar mi número de teléfono?',
+          '¿Cómo alternar tema claro/oscuro?',
+        ];
+      }
+
+      return ChatMessage(
+        id: 'res-${DateTime.now().millisecondsSinceEpoch}',
+        text: responseText,
+        isUser: false,
+        timestamp: DateTime.now(),
+        suggestions: nextSuggestions,
+      );
+    }
 
     // Lógica contextual por módulo
     switch (moduleContext.id) {
