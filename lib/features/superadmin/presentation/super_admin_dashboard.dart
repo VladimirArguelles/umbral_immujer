@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:umbral_immujer/features/assistant/presentation/widgets/mia_assistant_widget.dart';
+import 'package:umbral_immujer/features/superadmin/presentation/widgets/super_admin_notifications_modal.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/services/online_user_presence_service.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
@@ -950,6 +951,8 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
               : const Icon(Symbols.refresh, color: cTextMuted),
         ),
         const SizedBox(width: 4),
+        const SuperAdminNotificationBellButton(),
+        const SizedBox(width: 4),
         IconButton(
           onPressed: _showSettingsModal,
           tooltip: 'Ajustes rápidos',
@@ -1257,9 +1260,11 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
             ),
           ),
           const SizedBox(width: 8),
-          Column(
+          Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              const SuperAdminNotificationBellButton(),
+              const SizedBox(width: 8),
               // Botón de acción rápida '+'
               Material(
                 color: Colors.transparent,
@@ -1292,7 +1297,6 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                   ),
                 ),
               ),
-
             ],
           ),
         ],

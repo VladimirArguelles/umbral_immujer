@@ -35,13 +35,15 @@ serve(async (req: Request) => {
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? supabaseAnonKey;
 
-    // Obtener token del usuario del header Authorization si existe
     const authHeader = req.headers.get("Authorization");
     const client = createClient(supabaseUrl, authHeader ? supabaseAnonKey : supabaseServiceRoleKey, {
       global: {
         headers: authHeader ? { Authorization: authHeader } : undefined,
       },
     });
+
+    // Cliente administrativo para inserción de notificaciones sin bloqueos RLS
+    const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
 
     const body: RequestBody = await req.json();
     const query = (body.query || "").trim();
@@ -50,14 +52,14 @@ serve(async (req: Request) => {
     const isSuperAdmin = role === "super_admin";
     const isCoordinator = role === "coordinador";
     const lastError = telemetry.lastError || null;
-    const currentModule = telemetry.currentModule || "general";
+    const currentModule = (telemetry.currentModule || "general").toLowerCase();
 
     let diagnosticResult: Record<string, unknown> | null = null;
     let autoTicketId: string | null = null;
 
-    // 1. Diagnóstico de configuraciones si se solicita o hay falla de impresión/dispositivos
+    // 1. Diagnóstico de dispositivos (impresión / bluetooth)
     const isDeviceOrPrintingIssue = /impres|bluetooth|pos|ticket|termic/i.test(query) ||
-      (lastError && /bluetooth|printer|impres/i.test(lastError));
+      (lastError != null && /bluetooth|printer|impres/i.test(lastError));
 
     if (telemetry.userId && (isDeviceOrPrintingIssue || /diagnostico|verificar/i.test(query))) {
       try {
@@ -66,7 +68,7 @@ serve(async (req: Request) => {
         });
         diagnosticResult = configData;
       } catch (_err) {
-        // Fallback silencioso si el RPC no está disponible
+        // Fallback silencioso
       }
     }
 
@@ -77,11 +79,11 @@ serve(async (req: Request) => {
         const { data: auditData } = await client.rpc("obtener_diagnostico_sistema");
         systemAudit = auditData;
       } catch (_err) {
-        // Fallback silencioso
+        // Fallback
       }
     }
 
-    // 3. Crear ticket de soporte automático si hay un error crítico capturado en telemetría
+    // 3. Crear ticket de soporte automático si hay un error crítico
     const isCriticalFailure = lastError && (
       lastError.includes("42501") ||
       lastError.toLowerCase().includes("permission denied") ||
@@ -95,7 +97,7 @@ serve(async (req: Request) => {
         const { data: ticketRes } = await client.rpc("registrar_ticket_soporte", {
           p_modulo: currentModule,
           p_titulo: `Error crítico automático: ${lastError.substring(0, 80)}`,
-          p_descripcion: `Falla detectada por telemetría en el módulo [${currentModule}].\nError: ${lastError}\nRed: ${telemetry.networkStatus}\nBluetooth: ${telemetry.bluetoothStatus}`,
+          p_descripcion: `Falla detectada por telemetría en el módulo [${currentModule}]. Error: ${lastError}`,
           p_severidad: "critica",
           p_metadatos: {
             telemetry,
@@ -106,16 +108,68 @@ serve(async (req: Request) => {
           autoTicketId = ticketRes.ticket_id;
         }
       } catch (_e) {
-        // RLS o error RPC manejado de forma segura
+        // Fallback
       }
     }
 
-    // 4. Búsqueda en la Base de Conocimiento de Soporte Técnico (soporte_conocimiento)
+    // 4. CONSULTA A 'guia_operaciones' (Manual Interactivo Inteligente)
+    let relevantGuides: Array<{ titulo_operacion: string; instrucciones_paso_a_paso: string; modulo: string; rol_permitido: string[] }> = [];
+    try {
+      const { data: guidesData } = await adminClient
+        .from("guia_operaciones")
+        .select("titulo_operacion, instrucciones_paso_a_paso, modulo, rol_permitido");
+
+      if (guidesData && guidesData.length > 0) {
+        relevantGuides = guidesData;
+      }
+    } catch (_e) {
+      // Fallback
+    }
+
+    // 5. DETECCIÓN DE PROBLEMAS EN OPERACIONES Y NOTIFICACIÓN AL SUPER ADMIN
+    const isOperationIssue = /problema|falla|fallo|error|no puedo|no deja|no funciona|no imprime|no guarda|se trab|bug|denegad|invalido|incorrecto|bloquead|42501|ayuda con error|falla al|no sincroniza/i.test(query) ||
+      (lastError != null && lastError.length > 0);
+
+    let operationalDiagnosis: { donde_esta_el_problema: string; que_debe_revisar: string } | null = null;
+    let notificationSentToAdmin = false;
+
+    if (isOperationIssue) {
+      operationalDiagnosis = analyzeOperationalIssue(query, currentModule, role, lastError, telemetry);
+      try {
+        const notifTitle = `⚠️ Incidencia Operativa en [${currentModule.toUpperCase()}]: ${telemetry.userName || "Usuario"}`;
+        const notifMensaje = `El usuario ${telemetry.userName || "Anónimo"} (${role}) reportó un problema:\n"${query.substring(0, 160)}"\n\n📍 Dónde: ${operationalDiagnosis.donde_esta_el_problema}\n🛠️ Revisar: ${operationalDiagnosis.que_debe_revisar}`;
+
+        await adminClient.from("notificaciones").insert({
+          rol_destino: "super_admin",
+          usuario_origen_id: telemetry.userId || null,
+          titulo: notifTitle,
+          mensaje: notifMensaje,
+          tipo: "incidencia_operacion",
+          datos: {
+            modulo: currentModule,
+            usuario_nombre: telemetry.userName || "Usuario",
+            usuario_rol: role,
+            consulta_original: query,
+            donde_esta_el_problema: operationalDiagnosis.donde_esta_el_problema,
+            que_debe_revisar: operationalDiagnosis.que_debe_revisar,
+            ultimo_error: lastError,
+            telemetria: telemetry,
+            fecha: new Date().toISOString(),
+          },
+          leido: false,
+        });
+        notificationSentToAdmin = true;
+      } catch (_e) {
+        // Fallback
+      }
+    }
+
+    // 6. Base de Conocimiento de Soporte Técnico
     let knowledgeBaseArticles: Array<{ titulo: string; solucion_tecnica: string; solucion_usuario: string; categoria: string }> = [];
     try {
       const searchTerms = query.split(/\s+/).filter((w) => w.length > 3);
       const orFilter = searchTerms.map((t) => `palabras_clave.cs.{${t.toLowerCase()}}`).join(",");
-      
+
       const { data: articles } = await client
         .from("soporte_conocimiento")
         .select("titulo, solucion_tecnica, solucion_usuario, categoria")
@@ -126,33 +180,36 @@ serve(async (req: Request) => {
         knowledgeBaseArticles = articles;
       }
     } catch (_e) {
-      // Base de conocimiento vacía o inaccesible por RLS
+      // Fallback
     }
 
-    // 5. Motor de Respuesta Inteligente Umby (Adaptativa por Rol)
+    // 7. Generación de Respuesta Inteligente como Manual Interactivo
     let responseText = "";
-
-    // Si hay un LLM externo (Gemini API o compatible) configurado en el entorno
     const geminiKey = Deno.env.get("GEMINI_API_KEY");
     if (geminiKey) {
       responseText = await callGeminiModel(
         geminiKey,
         query,
         telemetry,
-        knowledgeBaseArticles,
-        diagnosticResult,
-        systemAudit,
-        autoTicketId
-      );
-    } else {
-      // Motor experto nativo de soporte técnico y devops UMBRAL
-      responseText = buildExpertDiagnosticResponse(
-        query,
-        telemetry,
+        relevantGuides,
         knowledgeBaseArticles,
         diagnosticResult,
         systemAudit,
         autoTicketId,
+        operationalDiagnosis,
+        notificationSentToAdmin
+      );
+    } else {
+      responseText = buildInteractiveManualResponse(
+        query,
+        telemetry,
+        relevantGuides,
+        knowledgeBaseArticles,
+        diagnosticResult,
+        systemAudit,
+        autoTicketId,
+        operationalDiagnosis,
+        notificationSentToAdmin,
         isSuperAdmin,
         isCoordinator
       );
@@ -162,12 +219,14 @@ serve(async (req: Request) => {
       JSON.stringify({
         success: true,
         assistant: "Umby",
-        role: "Soporte Técnico y DevOps",
+        role: "Manual Interactivo y Soporte Técnico",
         response: responseText,
         diagnostics: {
           deviceConfig: diagnosticResult,
           systemAudit: isSuperAdmin ? systemAudit : null,
           ticketGenerado: autoTicketId,
+          notificacionSuperAdmin: notificationSentToAdmin,
+          analisisIncidencia: operationalDiagnosis,
           activeTelemetry: {
             module: currentModule,
             network: telemetry.networkStatus,
@@ -200,201 +259,229 @@ serve(async (req: Request) => {
 });
 
 /**
- * Generador de respuestas adaptativas expertas según el rol (Super Admin vs Coordinador/Usuario).
+ * Analiza un fallo o problema reportado por el usuario y determina dónde está la causa y qué debe revisar el Super Admin.
  */
-function buildExpertDiagnosticResponse(
+function analyzeOperationalIssue(
+  query: string,
+  module: string,
+  role: string,
+  lastError: string | null,
+  telemetry: TelemetryPayload
+): { donde_esta_el_problema: string; que_debe_revisar: string } {
+  const q = query.toLowerCase();
+  const err = (lastError || "").toLowerCase();
+
+  if (q.includes("impres") || q.includes("bluetooth") || q.includes("ticket") || err.includes("printer") || err.includes("bluetooth")) {
+    return {
+      donde_esta_el_problema: "Subsistema de Impresión Térmica ESC/POS (Módulo de Tickets / Bluetooth)",
+      que_debe_revisar: "1. Verificar si la impresora Bluetooth está emparejada y encendida.\n2. En Web, verificar si el navegador tiene acceso al diálogo de impresión nativo del OS.\n3. Comprobar registros en tabla `configuraciones_impresora` para el usuario.\n4. Si es Android, revisar permisos BLUETOOTH_CONNECT en tiempo de ejecución.",
+    };
+  }
+
+  if (q.includes("guardar") || q.includes("crear") || q.includes("permiso") || err.includes("42501") || err.includes("row-level security")) {
+    return {
+      donde_esta_el_problema: "Seguridad RLS en PostgreSQL o Permisos de Rol Insuficientes",
+      que_debe_revisar: "1. Revisar políticas RLS para la tabla afectada en Supabase (error 42501).\n2. Verificar que el campo `rol` en `perfiles` corresponda al esperado ('" + role + "').\n3. Confirmar que el token JWT del usuario contenga el claim auth.uid() activo.",
+    };
+  }
+
+  if (q.includes("bcv") || q.includes("tasa") || q.includes("dolar") || q.includes("cambio")) {
+    return {
+      donde_esta_el_problema: "Sincronización de Tasa Cambiaria Oficial BCV (Edge Function / Cron Job)",
+      que_debe_revisar: "1. Verificar la última fecha de actualización en `public.tasas_cambio_bcv`.\n2. Probar la Edge Function `sync-bcv-rate` desde el panel de Supabase.\n3. Comprobar conectividad hacia la API de consulta BCV o web scraping.",
+    };
+  }
+
+  if (q.includes("asistencia") || q.includes("pase de lista")) {
+    return {
+      donde_esta_el_problema: "Módulo de Asistencias y Clases Prácticas (Flujo Docente/Coordinación)",
+      que_debe_revisar: "1. Verificar que el profesor tenga asignado el curso en `profesores` / `cursos`.\n2. Confirmar que existan alumnos matriculados en `inscripciones` para la fecha seleccionada.\n3. Validar políticas RLS en la tabla `asistencia`.",
+    };
+  }
+
+  if (q.includes("temario") || q.includes("propuesta") || q.includes("aprobar")) {
+    return {
+      donde_esta_el_problema: "Flujo de Aprobación de Temarios (Módulo de Coordinación / Docentes)",
+      que_debe_revisar: "1. Revisar la tabla `solicitudes_aprobacion` para solicitudes en estado 'pendiente'.\n2. Comprobar permisos del coordinador para modificar `estado` a 'aprobado'.",
+    };
+  }
+
+  if (q.includes("reporte") || q.includes("pdf") || q.includes("exportar")) {
+    return {
+      donde_esta_el_problema: "Motor de Generación de Reportes Consolidados y Exportación PDF",
+      que_debe_revisar: "1. Verificar las vistas de base de datos `view_reporte_*`.\n2. Comprobar que no haya campos numéricos nulos en retención o asistencias.",
+    };
+  }
+
+  return {
+    donde_esta_el_problema: `Operación en Módulo [${module.toUpperCase()}] - Interacción de Usuario (${role})`,
+    que_debe_revisar: `1. Última traza de error capturada: ${lastError || "Sin excepción crítica registrada"}.\n2. Estado de red: ${telemetry.networkStatus || "Desconocido"}.\n3. Verificar consistencia de datos en Supabase para el usuario ${telemetry.userId || "anónimo"}.`,
+  };
+}
+
+/**
+ * Construye la respuesta del Manual Interactivo Inteligente adaptada al rol y módulo activo.
+ */
+function buildInteractiveManualResponse(
   query: string,
   telemetry: TelemetryPayload,
+  guides: Array<{ titulo_operacion: string; instrucciones_paso_a_paso: string; modulo: string; rol_permitido: string[] }>,
   kbArticles: Array<{ titulo: string; solucion_tecnica: string; solucion_usuario: string }>,
   deviceConfig: Record<string, unknown> | null,
   systemAudit: Record<string, unknown> | null,
   ticketId: string | null,
+  operationalDiagnosis: { donde_esta_el_problema: string; que_debe_revisar: string } | null,
+  notificationSentToAdmin: boolean,
   isSuperAdmin: boolean,
   isCoordinator: boolean
 ): string {
   const q = query.toLowerCase();
   const userName = telemetry.userName || "Usuario";
-  const lastError = telemetry.lastError;
-  const currentModule = telemetry.currentModule || "General";
+  const userRole = (telemetry.userRole || "alumno").toLowerCase();
+  const currentModule = (telemetry.currentModule || "general").toLowerCase();
 
-  // Alerta de ticket generado automáticamente
-  let ticketHeader = "";
+  let headerNotices = "";
   if (ticketId) {
-    ticketHeader = `> [!CAUTION]\n> **Incidencia Registrada:** Se ha generado automáticamente el ticket de soporte técnico **\`#${ticketId.substring(0, 8)}\`** debido a un fallo crítico detectado en telemetría.\n\n`;
+    headerNotices += `> [!CAUTION]\n> **Incidencia Crítica:** Se ha generado automáticamente el ticket **\`#${ticketId.substring(0, 8)}\`**.\n\n`;
+  }
+  if (notificationSentToAdmin && operationalDiagnosis) {
+    headerNotices += `> [!NOTE]\n> **Notificación enviada al Super Admin:** He notificado al equipo técnico sobre el problema detectado en **${operationalDiagnosis.donde_esta_el_problema}**.\n\n`;
   }
 
-  // --- RESPUESTA SUPER ADMIN: ENFOQUE DEVOPS, SQL, DART Y RLS ---
+  // Buscar guías coincidentes en guia_operaciones
+  const matchedGuide = guides.find((g) => {
+    const titleMatch = g.titulo_operacion.toLowerCase().split(/\s+/).some((w) => w.length > 4 && q.includes(w));
+    const moduleMatch = g.modulo === currentModule || g.modulo === "general";
+    return titleMatch && (moduleMatch || isSuperAdmin);
+  });
+
+  if (matchedGuide) {
+    // Validar si el rol tiene permiso para esta operación
+    const isAllowed = isSuperAdmin ||
+      matchedGuide.rol_permitido.includes("todos") ||
+      matchedGuide.rol_permitido.includes(userRole);
+
+    if (!isAllowed) {
+      return `${headerNotices}Hola, **${userName}**.
+
+La operación **"${matchedGuide.titulo_operacion}"** está reservada exclusivamente para los roles de **${matchedGuide.rol_permitido.join(" / ").toUpperCase()}**.
+
+Tu perfil actual tiene rol de **${userRole.toUpperCase()}**. En esta pantalla (**${currentModule}**), puedes realizar consultas y operaciones correspondientes a tu rol, pero no tienes permisos de modificación para esta función. Si consideras que requieres este acceso, comunícate con la Coordinación del IMMUJER o el Super Admin.`;
+    }
+
+    return `${headerNotices}### 📖 Guía Paso a Paso: ${matchedGuide.titulo_operacion}
+
+Hola, **${userName}**. Aquí tienes las instrucciones oficiales para realizar esta operación en el **${currentModule.toUpperCase()}**:
+
+${matchedGuide.instrucciones_paso_a_paso}
+
+¿Tienes alguna duda sobre alguno de estos pasos o requieres asistencia adicional?`;
+  }
+
+  // --- RESPUESTA SUPER ADMIN ---
   if (isSuperAdmin) {
-    if (q.includes("rls") || q.includes("politica") || (lastError && lastError.includes("42501"))) {
-      return `${ticketHeader}### 🛠️ Diagnóstico DevOps: Seguridad RLS en PostgreSQL
+    if (q.includes("rls") || (telemetry.lastError && telemetry.lastError.includes("42501"))) {
+      return `${headerNotices}### 🛠️ Diagnóstico DevOps: Seguridad RLS en PostgreSQL
 
-**Estado Detectado:**
-- **Módulo:** \`${currentModule}\`
-- **Último Error:** \`${lastError || "No hay excepciones RLS activas en memoria"}\`
-
-**Verificación y Resolución Directa en Base de Datos:**
-Para auditar y corregir permisos denegados (código \`42501\`), ejecuta el siguiente script en el editor SQL de Supabase:
+**Estado:** Módulo \`${currentModule}\` | Error: \`${telemetry.lastError || "Sin excepción activa"}\`
 
 \`\`\`sql
--- 1. Verificar estado de RLS en las tablas del módulo
+-- Auditar permisos de tablas y roles
 SELECT tablename, rowsecurity 
 FROM pg_tables 
 WHERE schemaname = 'public' 
-  AND tablename IN ('perfiles', 'cursos', 'inscripciones', 'tickets_soporte', 'soporte_conocimiento');
-
--- 2. Asegurar bypass seguro para Super Admin en la tabla afectada:
-DROP POLICY IF EXISTS "super_admin_manage_all" ON public.tickets_soporte;
-CREATE POLICY "super_admin_manage_all" ON public.tickets_soporte
-  FOR ALL TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.perfiles
-      WHERE perfiles.id = auth.uid() AND perfiles.rol = 'super_admin'
-    )
-  );
-\`\`\`
-
-**Regla de Arquitectura:** En el cliente Flutter, asegúrate de no usar llamadas REST directas si el JWT no contiene el claim verificado en \`perfiles.rol\`.`;
+  AND tablename IN ('perfiles', 'cursos', 'inscripciones', 'tickets_soporte', 'guia_operaciones');
+\`\`\``;
     }
 
-    if (q.includes("impres") || q.includes("bluetooth") || q.includes("pos") || (lastError && /bluetooth|printer/i.test(lastError))) {
-      return `${ticketHeader}### 🖨️ Diagnóstico Técnico: Subsistema de Impresión Térmica ESC/POS
+    if (q.includes("impres") || q.includes("bluetooth")) {
+      return `${headerNotices}### 🖨️ Diagnóstico Técnico: Impresora Térmica ESC/POS
 
-**Telemetría del Cliente:**
-- **Adaptador Bluetooth:** \`${telemetry.bluetoothStatus || "Desconocido"}\`
-- **Plataforma:** \`${telemetry.platform || "Web/Móvil"}\`
-- **Configuración en BD:** \`${deviceConfig?.impresora_registrada ? "Registrada (" + deviceConfig?.direccion_mac + ")" : "Sin impresora asignada"}\`
+**Telemetría:** Bluetooth: \`${telemetry.bluetoothStatus || "Desconocido"}\` | Plataforma: \`${telemetry.platform || "Web"}\`
 
-**Acciones de Código y Configuración:**
-1. **En Web:** Los navegadores no soportan sockets RFCOMM directos de Bluetooth Classic. La app en entorno web utiliza simulación o impresión PDF térmica mediante el driver del navegador.
-2. **En Android / iOS:** Verifica los permisos en \`AndroidManifest.xml\`:
-\`\`\`xml
-<uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-<uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
-\`\`\`
-3. **Consulta de Configuración:**
 \`\`\`sql
 SELECT * FROM public.configuraciones_impresora WHERE usuario_id = '${telemetry.userId || "auth.uid()"}';
 \`\`\``;
     }
 
-    if (q.includes("bcv") || q.includes("tasa") || q.includes("dolar")) {
-      return `${ticketHeader}### 💵 Diagnóstico Técnico: Sincronización Tasa BCV
-
-**Mecanismo:** La tasa cambiaria se sincroniza mediante la Edge Function \`sync-bcv-rate\` activada periódicamente por un Cron Job de pg_cron o trigger HTTP.
-
-**Comprobación en Supabase:**
-\`\`\`sql
--- Consultar última tasa registrada y antigüedad
-SELECT tasa, fecha_registro, fuente, 
-       (now() - fecha_registro) AS antiguedad
-FROM public.tasas_cambio_bcv
-ORDER BY fecha_registro DESC 
-LIMIT 1;
-\`\`\`
-Si la tasa tiene más de 24 horas hábiles sin refrescarse, invoca manualmente la función \`sync-bcv-rate\` desde el panel de Edge Functions.`;
-    }
-
-    if (systemAudit) {
-      return `${ticketHeader}### 📊 Estado y Diagnóstico Global del Sistema
-
-- **Tickets Activos:** \`${(systemAudit as Record<string, unknown>).tickets_activos ?? 0}\`
-- **Total Tablas Auditadas:** \`${(systemAudit as Record<string, unknown>).total_tablas ?? "N/A"}\`
-- **Tasa BCV:** \`${(systemAudit as Record<string, unknown>).tasa_bcv_actual ?? "No disponible"}\` (Actualizada: ${(systemAudit as Record<string, unknown>).tasa_bcv_fecha ?? "N/A"})
+    return `${headerNotices}Hola, **${userName}** (Super Admin). Como tu **Manual Interactivo y Soporte DevOps**:
 - **Módulo Activo:** \`${currentModule}\`
-- **Telemetría de Red:** \`${telemetry.networkStatus || "Online"}\`
-- **Último Error Registrado:** \`${lastError || "Ninguno"}\`
+- **Operaciones Disponibles:** Gestión global de cursos, sincronización BCV, auditoría de usuarios y configuración de guías.
 
-¿Deseas generar un script correctivo para alguna tabla o revisar la traza de logs de Supabase?`;
-    }
-
-    // Super Admin consulta general técnica
-    return `${ticketHeader}Hola, **${userName}** (Super Admin). Como **Umby**, tu soporte técnico DevOps para UMBRAL:
-
-- **Módulo de Ejecución:** \`${currentModule}\`
-- **Estado de Conexión:** \`${telemetry.networkStatus || "Conectado"}\` | **Bluetooth:** \`${telemetry.bluetoothStatus || "Inactivo"}\`
-${lastError ? `- **Última Excepción Capturada:** \`${lastError}\`\n` : ""}
-
-**Capacidades Rápidas:**
-1. **Auditoría de RLS y Permisos:** Pídeme verificar políticas para roles \`coordinador\`, \`profesor\` o \`alumno\`.
-2. **Sistemas de Impresión:** Diagnóstico de sockets Bluetooth, comandos ESC/POS y compatibilidad Web vs Nativo.
-3. **Base de Datos y Telemetría:** Consultas SQL de salud, tickets de error e integridad relacional.
-
-Indícame qué incidencia o tabla deseas diagnosticar.`;
+Puedes consultarme cómo ejecutar cualquier operación paso a paso o solicitar diagnósticos de base de datos.`;
   }
 
-  // --- RESPUESTA COORDINADOR: NAVEGACIÓN Y SOPORTE OPERATIVO SIN JERGA TÉCNICA ---
+  // --- RESPUESTA COORDINADOR ---
   if (isCoordinator) {
-    if (q.includes("impres") || q.includes("ticket") || q.includes("bluetooth")) {
-      return `${ticketHeader}Hola, **${userName}**. Te ayudo con la impresora de tickets:
+    if (q.includes("curso") || q.includes("crear") || q.includes("registrar")) {
+      return `${headerNotices}### 📖 Cómo registrar un nuevo curso en Coordinación
 
-1. **Revisa la Conexión:** Asegúrate de que la impresora térmica tenga papel, esté encendida y el Bluetooth del dispositivo se encuentre activo.
-2. **Si estás en una computadora (Navegador):** Los navegadores imprimen mediante la ventana estándar de impresión del sistema. Al emitir un comprobante, presiona **Imprimir** y selecciona tu impresora térmica en el listado de impresoras del sistema operativo.
-3. **Si el ticket no sale:** Verifica que no haya cola de impresión pausada en el panel de control de tu computadora.
-
-Si el problema continúa, he registrado la incidencia para revisión del equipo técnico.`;
+1. **Pestaña Cursos:** En tu panel de Coordinación, abre la primera pestaña **"Cursos"**.
+2. **Botón Nuevo Curso:** Pulsa el botón **"Nuevo Curso"** ubicado en la esquina superior.
+3. **Completar Datos:** Ingresa el nombre de la formación, selecciona el área técnica (ej. Repostería, Peluquería, Textil), el horario (días y horas) y asigna al profesor responsable.
+4. **Guardar:** Pulsa **"Guardar Formación"** para activar las inscripciones al instante.`;
     }
 
-    if (q.includes("navegar") || q.includes("seccion") || q.includes("donde")) {
-      return `Hola, **${userName}**. Aquí tienes la guía de navegación de tu **Panel de Coordinación**:
+    if (q.includes("profesor") || q.includes("aprobar") || q.includes("temario")) {
+      return `${headerNotices}### 📖 Cómo revisar y aprobar temarios docentes
 
-- **Cursos (Pestaña 1):** Aquí visualizas las formaciones activas, inscripciones abiertas y áreas técnicas del IMMUJER.
-- **En Vivo (Pestaña 2):** Te permite monitorear las clases y transmisiones en tiempo real.
-- **Profesores (Pestaña 3):** Gestión de la plantilla docente, revisión de materias asignadas y aprobación de temarios.
-- **Insumos (Pestaña 4):** Control del inventario y materiales utilizados en los talleres prácticos.
-- **Botón "Ver Registros" (Barra Superior):** Te lleva directamente al Centro de Reportes consolidados para descargar constancias y estadísticas.
-- **Mi Perfil (Avatar Superior Derecho):** Aquí puedes actualizar tu fotografía institucional, número telefónico y contraseña.`;
+1. **Pestaña Profesores:** Dirígete a la pestaña **"Profesores"** en tu panel.
+2. **Bandeja de Aprobaciones:** Revisa la sección superior de propuestas pendientes enviadas por los profesores.
+3. **Detalles:** Toca la propuesta para evaluar su justificación, temario e insumos.
+4. **Acción:** Pulsa **"Aprobar"** para integrarla al cronograma o **"Rechazar con Observaciones"** para correcciones.`;
     }
 
-    return `${ticketHeader}Hola, **${userName}**. Soy **Umby**, tu asistente de soporte en el **Módulo de Coordinación**.
+    return `${headerNotices}Hola, **${userName}**. Como **Manual Interactivo de Coordinación**, puedo guiarte paso a paso en:
+- Registrar y programar nuevos cursos formativos.
+- Asignar profesores y aprobar propuestas de temarios.
+- Configurar tu impresora térmica y emitir comprobantes de aportes.
+- Filtrar y exportar reportes en PDF desde "Ver Registros".
 
-Puedo ayudarte a:
-- Orientarte paso a paso en la navegación entre las secciones (**Cursos**, **En Vivo**, **Profesores**, **Insumos**).
-- Resolver dudas sobre la aprobación de temarios y revisión de solicitudes docentes.
-- Guía para emisión de comprobantes, reportes y configuración de impresora.
-
-¿En qué tarea o pantalla requieres apoyo hoy?`;
+¿Qué operación deseas realizar en este momento?`;
   }
 
-  // --- RESPUESTA GENERAL (PROFESORES / ALUMNOS) ---
-  return `${ticketHeader}¡Hola, **${userName}**! Soy **Umby**, tu asistente de soporte en UMBRAL IMMUJER.
+  // --- RESPUESTA ALUMNO / PROFESOR ---
+  return `${headerNotices}¡Hola, **${userName}**! Soy **Umby**, tu manual interactivo en UMBRAL IMMUJER.
 
-Estoy aquí para ayudarte a utilizar la plataforma con fluidez:
-- Consultar tus cursos y asistencias.
-- Responder encuestas de satisfacción.
-- Actualizar tus datos y fotografía en **Mi Perfil** (icono en la esquina superior derecha).
-- Resolver cualquier duda o inconveniente en tu pantalla actual (**${currentModule}**).
+En tu pantalla actual (**${currentModule}**), tienes permitido:
+- Consultar tus asistencias acumuladas y estado de certificación.
+- Registrar tus aportes prácticos con referencia de pago.
+- Responder encuestas de satisfacción de tus talleres.
+- Actualizar tu fotografía y número telefónico en **Mi Perfil** (avatar superior derecho).
 
-¿Qué duda o dificultad tienes en este momento?`;
+Dime qué operación deseas realizar y te guiaré con gusto paso a paso.`;
 }
 
 /**
- * Llamada opcional a Gemini si existe la API Key en el entorno
+ * Llamada a Gemini API con inyección de guías y contexto de permisos
  */
 async function callGeminiModel(
   apiKey: string,
   query: string,
   telemetry: TelemetryPayload,
+  guides: Array<{ titulo_operacion: string; instrucciones_paso_a_paso: string; modulo: string; rol_permitido: string[] }>,
   kbArticles: Array<{ titulo: string; solucion_tecnica: string; solucion_usuario: string }>,
   deviceConfig: Record<string, unknown> | null,
   systemAudit: Record<string, unknown> | null,
-  ticketId: string | null
+  ticketId: string | null,
+  operationalDiagnosis: { donde_esta_el_problema: string; que_debe_revisar: string } | null,
+  notificationSentToAdmin: boolean
 ): Promise<string> {
   const isSuperAdmin = telemetry.userRole === "super_admin";
-  const systemPrompt = `Eres Umby, asistente virtual de Soporte Técnico y DevOps para la plataforma UMBRAL del Instituto Municipal de la Mujer (IMMUJER).
-Eres un experto senior en Flutter, Dart, Supabase, PostgreSQL, Row Level Security (RLS) y sistemas de impresión térmica móvil/web.
-Tu respuesta debe ser profesional y adaptativa:
-- Si el usuario es Super Admin (rol super_admin): responde con precisión técnica, scripts SQL exactos, código Dart, análisis de RLS o arquitectura.
-- Si el usuario es Coordinador, Profesor o Alumno: responde con instrucciones claras paso a paso, amables y sin jerga técnica compleja.
-Contexto de telemetría:
-- Módulo actual: ${telemetry.currentModule}
-- Red: ${telemetry.networkStatus}
-- Bluetooth: ${telemetry.bluetoothStatus}
-- Último error del sistema: ${telemetry.lastError || "Ninguno"}
-- Ticket generado: ${ticketId || "Ninguno"}
-Base de Conocimiento relevante: ${JSON.stringify(kbArticles)}
-Diagnóstico dispositivo: ${JSON.stringify(deviceConfig)}
-Auditoría sistema: ${JSON.stringify(systemAudit)}`;
+  const systemPrompt = `Eres Umby, asistente virtual y Manual Interactivo Inteligente de la plataforma UMBRAL del Instituto Municipal de la Mujer (IMMUJER).
+Tu misión es guiar al usuario paso a paso sobre cómo realizar operaciones según el módulo en el que se encuentre (${telemetry.currentModule}) y los permisos de su perfil (${telemetry.userRole}).
+
+REGLAS ESTRICTAS DE SEGURIDAD Y PERMISOS:
+1. Limita tus respuestas estrictamente a las operaciones que el rol "${telemetry.userRole}" tiene permitido realizar en el módulo "${telemetry.currentModule}".
+2. Si el usuario solicita realizar una acción prohibida para su rol, indícale amablemente que requiere un rol superior (ej. Coordinador o Super Admin) y explica a quién debe dirigirse.
+3. Si el usuario reporta una falla o problema técnico, sé empático y menciona que se ha notificado al Super Admin sobre el componente afectado.
+${notificationSentToAdmin ? `Nota de notificación: Se ha enviado alerta al Super Admin sobre: ${operationalDiagnosis?.donde_esta_el_problema}.` : ""}
+${ticketId ? `Ticket generado: #${ticketId.substring(0, 8)}` : ""}
+
+Manuales Operativos autorizados para esta consulta:
+${JSON.stringify(guides.slice(0, 6))}
+
+Telemetría: Módulo: ${telemetry.currentModule}, Red: ${telemetry.networkStatus}, Bluetooth: ${telemetry.bluetoothStatus}, Último Error: ${telemetry.lastError || "Ninguno"}.`;
 
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,

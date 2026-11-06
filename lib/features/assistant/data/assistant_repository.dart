@@ -66,6 +66,13 @@ class AssistantRepository {
     required AssistantModuleContext moduleContext,
     UserProfile? profile,
   }) async {
+    UserProfile? activeProfile = profile;
+    if (activeProfile == null) {
+      try {
+        activeProfile = await _authRepository.getCurrentProfile();
+      } catch (_) {}
+    }
+
     String bluetoothStatus = 'Desconocido';
     if (kIsWeb) {
       bluetoothStatus = 'Web (Bluetooth Classic no disponible en navegador)';
@@ -94,9 +101,9 @@ class AssistantRepository {
       bluetoothStatus: bluetoothStatus,
       lastError: AppLogger.lastError,
       platform: kIsWeb ? 'Web' : defaultTargetPlatform.name,
-      userRole: profile?.rol.name,
-      userId: profile?.id,
-      userName: profile != null ? extractFirstName(profile.fullName) : null,
+      userRole: activeProfile?.rol.name ?? 'alumno',
+      userId: activeProfile?.id,
+      userName: activeProfile != null ? extractFirstName(activeProfile.fullName) : null,
     );
   }
 
