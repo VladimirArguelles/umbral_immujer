@@ -7,6 +7,16 @@ import 'package:flutter/foundation.dart';
 class AppLogger {
   AppLogger._();
 
+  /// Último error crítico capturado en memoria para telemetría
+  static String? _lastError;
+  static String? _lastErrorTag;
+  static DateTime? _lastErrorTime;
+
+  /// Obtiene el último error registrado por el sistema
+  static String? get lastError => _lastError;
+  static String? get lastErrorTag => _lastErrorTag;
+  static DateTime? get lastErrorTime => _lastErrorTime;
+
   /// Registra información de flujo normal
   static void info(String message, {String tag = 'INFO', dynamic data}) {
     final formatted = '[$tag] $message${data != null ? ' | Data: $data' : ''}';
@@ -39,6 +49,10 @@ class AppLogger {
     dynamic error,
     StackTrace? stackTrace,
   }) {
+    _lastError = error != null ? '$message | Detalle: $error' : message;
+    _lastErrorTag = tag;
+    _lastErrorTime = DateTime.now();
+
     final formatted = '[$tag] $message';
     developer.log(
       formatted,

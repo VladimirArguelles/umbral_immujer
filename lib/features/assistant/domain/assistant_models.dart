@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
 
-/// Modelo de mensaje dentro de la sesión de chat con Mía.
+/// Modelo de mensaje dentro de la sesión de chat con Umby.
 class ChatMessage {
   final String id;
   final String text;
   final bool isUser;
   final DateTime timestamp;
   final List<String> suggestions;
+  final String? ticketId;
+  final bool isDiagnostic;
 
   const ChatMessage({
     required this.id,
@@ -16,6 +18,8 @@ class ChatMessage {
     required this.isUser,
     required this.timestamp,
     this.suggestions = const [],
+    this.ticketId,
+    this.isDiagnostic = false,
   });
 
   ChatMessage copyWith({
@@ -24,6 +28,8 @@ class ChatMessage {
     bool? isUser,
     DateTime? timestamp,
     List<String>? suggestions,
+    String? ticketId,
+    bool? isDiagnostic,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -31,7 +37,45 @@ class ChatMessage {
       isUser: isUser ?? this.isUser,
       timestamp: timestamp ?? this.timestamp,
       suggestions: suggestions ?? this.suggestions,
+      ticketId: ticketId ?? this.ticketId,
+      isDiagnostic: isDiagnostic ?? this.isDiagnostic,
     );
+  }
+}
+
+/// Telemetría y contexto dinámico del dispositivo y la aplicación para soporte técnico inteligente.
+class AppTelemetryContext {
+  final String currentModule;
+  final String networkStatus;
+  final String bluetoothStatus;
+  final String? lastError;
+  final String platform;
+  final String? userRole;
+  final String? userId;
+  final String? userName;
+
+  const AppTelemetryContext({
+    required this.currentModule,
+    required this.networkStatus,
+    required this.bluetoothStatus,
+    this.lastError,
+    required this.platform,
+    this.userRole,
+    this.userId,
+    this.userName,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'currentModule': currentModule,
+      'networkStatus': networkStatus,
+      'bluetoothStatus': bluetoothStatus,
+      'lastError': lastError,
+      'platform': platform,
+      'userRole': userRole,
+      'userId': userId,
+      'userName': userName,
+    };
   }
 }
 
@@ -158,15 +202,15 @@ class AssistantModuleContext {
 
     return const AssistantModuleContext(
       id: 'general',
-      title: 'Asistencia UMBRAL',
-      subtitle: 'Soporte inteligente institucional IMMUJER',
+      title: 'Umby (Soporte Técnico)',
+      subtitle: 'Soporte inteligente y diagnóstico UMBRAL IMMUJER',
       icon: Symbols.support_agent,
       description:
-          'Soy UMLY, tu asistente virtual en la plataforma UMBRAL del Instituto Municipal de la Mujer (IMMUJER). Estoy aquí para responder dudas, guiarte paso a paso en tu perfil y orientarte en cualquier sección del sistema.',
+          'Soy Umby, tu asistente de soporte técnico y guía inteligente en la plataforma UMBRAL del Instituto Municipal de la Mujer (IMMUJER). Puedo diagnosticar fallos, orientarte paso a paso y resolver dudas.',
       quickPrompts: [
-        '¿Qué puedo hacer en Mi Perfil y dónde está?',
-        '¿Cómo cambiar mi foto de perfil y teléfono?',
         '¿Cómo navegar entre las distintas secciones?',
+        '¿Cómo solucionar problemas con la impresora o Bluetooth?',
+        '¿Qué puedo hacer en Mi Perfil y cómo editarlo?',
       ],
     );
   }

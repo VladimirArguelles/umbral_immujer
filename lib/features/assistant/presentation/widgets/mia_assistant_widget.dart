@@ -182,7 +182,7 @@ class _MiaAssistantModalState extends State<MiaAssistantModal> {
                               Row(
                                 children: [
                                   Text(
-                                    'UMLY',
+                                    'Umby',
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w800,
@@ -231,7 +231,7 @@ class _MiaAssistantModalState extends State<MiaAssistantModal> {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'Asistente Virtual • UMBRAL IMMUJER',
+                                'Soporte Técnico Inteligente • UMBRAL IMMUJER',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 11.5,
                                   color: textMuted,
@@ -476,7 +476,7 @@ class MiaAssistantHeaderButton extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Tooltip(
-        message: 'UMLY • Asistente Virtual',
+        message: 'Umby • Soporte Técnico',
         child: InkWell(
           onTap: () => MiaAssistantModal.show(
             context,
@@ -522,7 +522,7 @@ class MiaAssistantHeaderButton extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'UMLY',
+                  'Umby',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
@@ -662,7 +662,7 @@ class _MiaFloatingAssistantState extends State<MiaFloatingAssistant>
                                   ),
                                 ),
                                 TextSpan(
-                                  text: 'UMLY',
+                                  text: 'Umby',
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w800,
@@ -717,9 +717,9 @@ class _MiaFloatingAssistantState extends State<MiaFloatingAssistant>
               const SizedBox(width: 4),
             ],
 
-            // Avatar circular interactivo de UMLY
+            // Avatar circular interactivo de Umby
             Tooltip(
-              message: 'UMLY • Asistente Virtual',
+              message: 'Umby • Soporte Técnico',
               child: Material(
                 color: Colors.transparent,
                 shape: const CircleBorder(),

@@ -185,7 +185,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
               children: [
                 const Icon(Icons.smart_toy_rounded, size: 18, color: AppTheme.primary),
                 const SizedBox(width: 10),
-                Text('UMLY (Asistente Virtual)', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                Text('Umby (Soporte Técnico)', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
               ],
             ),
           ),

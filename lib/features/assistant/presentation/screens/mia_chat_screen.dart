@@ -258,7 +258,7 @@ class _MiaChatScreenState extends State<MiaChatScreen> {
                         Row(
                           children: [
                             Text(
-                              'UMLY',
+                              'Umby',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w800,
@@ -280,7 +280,7 @@ class _MiaChatScreenState extends State<MiaChatScreen> {
                                 ),
                               ),
                               child: Text(
-                                'ASISTENTE UMBRAL',
+                                'SOPORTE INTELIGENTE',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 8.5,
                                   fontWeight: FontWeight.w800,
@@ -432,7 +432,7 @@ class _MiaChatScreenState extends State<MiaChatScreen> {
                           ),
                           const SizedBox(width: 10),
                           Text(
-                            'UMLY está respondiendo...',
+                            'Umby está analizando y respondiendo...',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 11.5,
                               color: textMuted,
@@ -602,6 +602,33 @@ class _MiaChatScreenState extends State<MiaChatScreen> {
               ],
             ],
           ),
+          if (!isUser && message.ticketId != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 40, top: 6),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Symbols.confirmation_number, size: 14, color: Colors.amber),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Incidencia Registrada: #${message.ticketId!.substring(0, 8)}',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.amber,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           // Sugerencias específicas del mensaje si las tiene
           if (!isUser && message.suggestions.isNotEmpty)
             Padding(
@@ -685,7 +712,7 @@ class _MiaChatScreenState extends State<MiaChatScreen> {
                   color: textMain,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'Pregunta a UMLY sobre este módulo o tu perfil...',
+                  hintText: 'Pregunta a Umby o describe una falla técnica...',
                   hintStyle: GoogleFonts.plusJakartaSans(
                     fontSize: 13,
                     color: textMuted,

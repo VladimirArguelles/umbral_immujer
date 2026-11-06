@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:umbral_immujer/features/assistant/domain/assistant_models.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
+import 'package:umbral_immujer/src/core/utils/app_logger.dart';
 import 'package:umbral_immujer/src/features/auth/data/auth_repository.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
 
@@ -36,7 +39,7 @@ class AssistantRepository {
     return '¡Hola, $name!';
   }
 
-  /// Construye el mensaje inicial contextual de bienvenida de UMLY
+  /// Construye el mensaje inicial contextual de bienvenida de Umby
   ChatMessage buildWelcomeMessage({
     required AssistantModuleContext moduleContext,
     UserProfile? profile,
@@ -44,10 +47,10 @@ class AssistantRepository {
     final name = profile != null ? extractFirstName(profile.fullName) : 'Usuario';
     final greeting = '¡Hola, $name! 👋';
 
-    final text = '$greeting Soy UMLY, tu asistente virtual en UMBRAL IMMUJER.\n\n'
+    final text = '$greeting Soy Umby, tu asistente de soporte técnico y navegación en UMBRAL IMMUJER.\n\n'
         'Actualmente te encuentras en el **${moduleContext.title}**.\n'
         '${moduleContext.description}\n\n'
-        'Conozco todas las funciones de este módulo y de **Mi Perfil**. Puedes preguntarme lo que necesites o seleccionar un tema rápido a continuación:';
+        'Cuento con diagnóstico inteligente, base de conocimiento y telemetría en tiempo real. Puedes preguntarme cualquier duda o seleccionar un tema rápido a continuación:';
 
     return ChatMessage(
       id: 'welcome-${DateTime.now().millisecondsSinceEpoch}',
@@ -58,15 +61,110 @@ class AssistantRepository {
     );
   }
 
+  /// Recopila telemetría y metadatos ocultos en tiempo real
+  Future<AppTelemetryContext> collectTelemetry({
+    required AssistantModuleContext moduleContext,
+    UserProfile? profile,
+  }) async {
+    String bluetoothStatus = 'Desconocido';
+    if (kIsWeb) {
+      bluetoothStatus = 'Web (Bluetooth Classic no disponible en navegador)';
+    } else {
+      try {
+        final state = await FlutterBluePlus.adapterState
+            .first
+            .timeout(const Duration(milliseconds: 300));
+        bluetoothStatus = state.toString().split('.').last;
+      } catch (_) {
+        bluetoothStatus = 'No disponible';
+      }
+    }
+
+    String networkStatus = 'Conectado';
+    try {
+      final session = _supabase.auth.currentSession;
+      networkStatus = session != null ? 'Online (Sesión activa)' : 'Online (Sin sesión)';
+    } catch (_) {
+      networkStatus = 'Intermitente';
+    }
+
+    return AppTelemetryContext(
+      currentModule: moduleContext.id,
+      networkStatus: networkStatus,
+      bluetoothStatus: bluetoothStatus,
+      lastError: AppLogger.lastError,
+      platform: kIsWeb ? 'Web' : defaultTargetPlatform.name,
+      userRole: profile?.rol.name,
+      userId: profile?.id,
+      userName: profile != null ? extractFirstName(profile.fullName) : null,
+    );
+  }
+
   /// Genera una respuesta precisa y contextualizada al módulo actual
   Future<ChatMessage> answerQuery({
     required String query,
     required AssistantModuleContext moduleContext,
     UserProfile? profile,
   }) async {
-    // Simula una breve latencia realista de procesamiento de lenguaje natural
-    await Future.delayed(const Duration(milliseconds: 650));
+    final telemetry = await collectTelemetry(
+      moduleContext: moduleContext,
+      profile: profile,
+    );
 
+    // 1. Invocar la Edge Function remota de soporte inteligente Umby
+    try {
+      final response = await _supabase.functions.invoke(
+        'umby-assistant',
+        body: {
+          'query': query,
+          'telemetry': telemetry.toJson(),
+          'autoTicketOnCritical': true,
+        },
+      ).timeout(const Duration(seconds: 8));
+
+      final data = response.data;
+      if (response.status == 200 && data is Map && data['success'] == true) {
+        final replyText = data['response'] as String?;
+        if (replyText != null && replyText.trim().isNotEmpty) {
+          final ticketId = (data['diagnostics'] is Map)
+              ? data['diagnostics']['ticketGenerado'] as String?
+              : null;
+
+          return ChatMessage(
+            id: 'res-${DateTime.now().millisecondsSinceEpoch}',
+            text: replyText,
+            isUser: false,
+            timestamp: DateTime.now(),
+            suggestions: moduleContext.quickPrompts,
+            ticketId: ticketId,
+            isDiagnostic: ticketId != null ||
+                (data['diagnostics'] is Map && data['diagnostics']['systemAudit'] != null),
+          );
+        }
+      }
+    } catch (e) {
+      AppLogger.warning(
+        'Invocación de umby-assistant no disponible, activando motor de diagnóstico local',
+        error: e,
+        tag: 'UMBY',
+      );
+    }
+
+    // 2. Motor de respaldo local si no hay conexión a la Edge Function
+    return _buildLocalFallbackResponse(
+      query: query,
+      moduleContext: moduleContext,
+      profile: profile,
+      telemetry: telemetry,
+    );
+  }
+
+  ChatMessage _buildLocalFallbackResponse({
+    required String query,
+    required AssistantModuleContext moduleContext,
+    UserProfile? profile,
+    required AppTelemetryContext telemetry,
+  }) {
     final q = query.toLowerCase().trim();
     final userFirstName =
         profile != null ? extractFirstName(profile.fullName) : 'Estimada/o';
