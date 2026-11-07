@@ -1,10 +1,10 @@
-import 'dart:typed_data';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 import 'package:umbral_immujer/core/services/error_console_service.dart';
 import 'package:umbral_immujer/core/services/reporting/reporting_service.dart';
@@ -297,13 +297,37 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
   }
 
-  void _handleImprimirDirecto() {
+  Future<void> _handleImprimirDirecto() async {
     final payload = _buildReportPayload();
     if (payload == null) {
-      _showSnack('No hay registros cargados para previsualizar o imprimir.');
+      _showSnack('No hay registros cargados para imprimir. Primero pulsa "Ver Registros".');
       return;
     }
-    ReportPreviewModal.show(context, data: payload);
+    try {
+      if (kIsWeb) {
+        final html = HtmlReportGenerator.generateHtml(payload);
+        final launched = await printHtmlViaBrowser(html, title: payload.reportTitle);
+        if (!launched && mounted) {
+          ReportPreviewModal.show(context, data: payload);
+        }
+      } else {
+        await Printing.layoutPdf(
+          name: payload.reportTitle,
+          format: payload.isWideTable ? PdfPageFormat.a4.landscape : PdfPageFormat.a4,
+          onLayout: (fmt) => PdfReportGenerator.generatePdf(
+            data: payload,
+            format: payload.isWideTable ? PdfPageFormat.a4.landscape : PdfPageFormat.a4,
+          ),
+        );
+      }
+    } catch (e, stack) {
+      ErrorConsoleService.instance.registrarError(
+        origen: 'ReportsScreen._handleImprimirDirecto',
+        error: e,
+        causa: stack,
+      );
+      _showSnack('Error al iniciar la impresión: $e');
+    }
   }
 
   Future<void> _handleGuardar() async {
@@ -435,12 +459,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 _buildCursoDropdown(),
                 const SizedBox(height: 10),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(child: _buildVerRegistrosButton(isCompact: true)),
-                    const SizedBox(width: 8),
-                    Expanded(child: _buildImprimirButton(isCompact: true)),
-                    const SizedBox(width: 8),
-                    Expanded(child: _buildGuardarButton(isCompact: true)),
+                    Flexible(child: _buildVerRegistrosButton(isCompact: true)),
+                    const SizedBox(width: 6),
+                    Flexible(child: _buildImprimirButton(isCompact: true)),
+                    const SizedBox(width: 6),
+                    Flexible(child: _buildGuardarButton(isCompact: true)),
                   ],
                 ),
               ],
@@ -607,8 +632,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 color: AppTheme.onPrimary,
               ),
             )
-          : Icon(Symbols.visibility, size: isCompact ? 16 : 18),
-      label: Text(
+          : Icon(Symbols.visibility, size: isCompact ? 15 : 18),
+      label: const Text(
         'Ver Registros',
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
@@ -616,11 +641,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
       style: ElevatedButton.styleFrom(
         backgroundColor: AppTheme.primary,
         foregroundColor: AppTheme.onPrimary,
-        minimumSize: Size(isCompact ? 0 : 120, 42),
-        padding: EdgeInsets.symmetric(horizontal: isCompact ? 6 : 14),
+        padding: EdgeInsets.symmetric(horizontal: isCompact ? 4 : 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         textStyle: GoogleFonts.plusJakartaSans(
-          fontSize: isCompact ? 11 : 12.5,
+          fontSize: isCompact ? 10.5 : 12.5,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -630,7 +654,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Widget _buildImprimirButton({bool isCompact = false}) {
     return ElevatedButton.icon(
       onPressed: _handleImprimirDirecto,
-      icon: Icon(Symbols.print, size: isCompact ? 16 : 18),
+      onLongPress: () {
+        final payload = _buildReportPayload();
+        if (payload != null) {
+          ReportPreviewModal.show(context, data: payload);
+        }
+      },
+      icon: Icon(Symbols.print, size: isCompact ? 15 : 18),
       label: const Text(
         'Imprimir',
         maxLines: 1,
@@ -639,11 +669,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFFE0115F),
         foregroundColor: Colors.white,
-        minimumSize: Size(isCompact ? 0 : 110, 42),
-        padding: EdgeInsets.symmetric(horizontal: isCompact ? 6 : 14),
+        padding: EdgeInsets.symmetric(horizontal: isCompact ? 4 : 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         textStyle: GoogleFonts.plusJakartaSans(
-          fontSize: isCompact ? 11 : 12.5,
+          fontSize: isCompact ? 10.5 : 12.5,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -662,7 +691,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 color: AppTheme.primary,
               ),
             )
-          : Icon(Symbols.save, size: isCompact ? 16 : 18),
+          : Icon(Symbols.save, size: isCompact ? 15 : 18),
       label: const Text(
         'Guardar',
         maxLines: 1,
@@ -671,11 +700,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
       style: OutlinedButton.styleFrom(
         foregroundColor: AppTheme.primary,
         side: const BorderSide(color: AppTheme.primary),
-        minimumSize: Size(isCompact ? 0 : 110, 42),
-        padding: EdgeInsets.symmetric(horizontal: isCompact ? 6 : 14),
+        padding: EdgeInsets.symmetric(horizontal: isCompact ? 4 : 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         textStyle: GoogleFonts.plusJakartaSans(
-          fontSize: isCompact ? 11 : 12.5,
+          fontSize: isCompact ? 10.5 : 12.5,
           fontWeight: FontWeight.w600,
         ),
       ),

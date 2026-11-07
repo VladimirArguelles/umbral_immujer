@@ -1,22 +1,41 @@
 import 'report_models.dart';
 
-/// Generador de documento HTML limpio y optimizado para impresión web nativa (@media print).
+/// Generador de documento HTML limpio, seguro (con sanitización contra XSS) y optimizado para @media print.
 /// Permite invocar `window.print()` en navegadores móviles (Chrome Android / Safari iOS)
 /// conectando directamente con el spooler e impresoras del sistema sin descargar archivos.
 class HtmlReportGenerator {
-  /// Genera el código HTML completo con estilos de impresión A4 y auto-trigger de impresión.
+  /// Escapa caracteres especiales HTML para evitar inyecciones de código o fallos de renderizado.
+  static String _escapeHtml(dynamic input) {
+    if (input == null) return '';
+    return input
+        .toString()
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+  }
+
+  /// Genera el código HTML completo con estilos de impresión A4, orientación dinámica y auto-print.
   static String generateHtml(ReportDataPayload data, {bool isLandscape = false}) {
     final buffer = StringBuffer();
-    final orientation = isLandscape ? 'landscape' : 'portrait';
+    final effectiveLandscape = isLandscape || data.isWideTable;
+    final pageSize = effectiveLandscape ? 'A4 landscape' : 'A4 portrait';
+
+    final escapedTitle = _escapeHtml(data.reportTitle);
+    final escapedInst = _escapeHtml(data.institutionName);
+    final escapedRif = _escapeHtml(data.institutionalId);
+    final escapedPeriod = _escapeHtml(data.formattedPeriod);
+    final escapedEmission = _escapeHtml(data.formattedEmissionDate);
 
     buffer.writeln('<!DOCTYPE html>');
     buffer.writeln('<html lang="es">');
     buffer.writeln('<head>');
     buffer.writeln('  <meta charset="utf-8">');
     buffer.writeln('  <meta name="viewport" content="width=device-width, initial-scale=1.0">');
-    buffer.writeln('  <title>${data.reportTitle}</title>');
+    buffer.writeln('  <title>$escapedTitle</title>');
     buffer.writeln('  <style>');
-    buffer.writeln('    @page { size: A4 $orientation; margin: 10mm; }');
+    buffer.writeln('    @page { size: $pageSize; margin: 1cm; }');
     buffer.writeln('    * { box-sizing: border-box; }');
     buffer.writeln('    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; margin: 0; padding: 15px; color: #111827; background: #fff; font-size: 11px; }');
     buffer.writeln('    .header-box { border-bottom: 2px solid #E0115F; padding-bottom: 8px; margin-bottom: 12px; }');
@@ -44,10 +63,10 @@ class HtmlReportGenerator {
 
     // Encabezado
     buffer.writeln('  <div class="header-box">');
-    buffer.writeln('    <div class="inst-name">${data.institutionName}</div>');
-    buffer.writeln('    <div class="inst-rif">RIF: ${data.institutionalId}</div>');
-    buffer.writeln('    <div class="title">${data.reportTitle}</div>');
-    buffer.writeln('    <div class="meta">Período: ${data.formattedPeriod} &nbsp;|&nbsp; Emisión: ${data.formattedEmissionDate}</div>');
+    buffer.writeln('    <div class="inst-name">$escapedInst</div>');
+    buffer.writeln('    <div class="inst-rif">RIF: $escapedRif</div>');
+    buffer.writeln('    <div class="title">$escapedTitle</div>');
+    buffer.writeln('    <div class="meta">Período: $escapedPeriod &nbsp;|&nbsp; Emisión: $escapedEmission</div>');
     buffer.writeln('  </div>');
 
     // Tarjetas de KPIs
@@ -55,20 +74,20 @@ class HtmlReportGenerator {
       buffer.writeln('  <div class="kpi-row">');
       for (final kpi in data.kpis) {
         buffer.writeln('    <div class="kpi-card">');
-        buffer.writeln('      <div class="kpi-val">${kpi.value}</div>');
-        buffer.writeln('      <div class="kpi-lbl">${kpi.label}</div>');
+        buffer.writeln('      <div class="kpi-val">${_escapeHtml(kpi.value)}</div>');
+        buffer.writeln('      <div class="kpi-lbl">${_escapeHtml(kpi.label)}</div>');
         buffer.writeln('    </div>');
       }
       buffer.writeln('  </div>');
     }
 
-    // Tabla
+    // Tabla de Datos
     buffer.writeln('  <table>');
     buffer.writeln('    <thead>');
     buffer.writeln('      <tr>');
     for (int i = 0; i < data.headers.length; i++) {
       final isNum = i == 0 || i >= data.headers.length - 2;
-      buffer.writeln('        <th class="${isNum ? 'num' : ''}">${data.headers[i]}</th>');
+      buffer.writeln('        <th class="${isNum ? 'num' : ''}">${_escapeHtml(data.headers[i])}</th>');
     }
     buffer.writeln('      </tr>');
     buffer.writeln('    </thead>');
@@ -77,7 +96,7 @@ class HtmlReportGenerator {
       buffer.writeln('      <tr>');
       for (int i = 0; i < row.length; i++) {
         final isNum = i == 0 || (row[i] is num) || (row[i].toString().startsWith(r'$'));
-        buffer.writeln('        <td class="${isNum ? 'num' : ''}">${row[i]}</td>');
+        buffer.writeln('        <td class="${isNum ? 'num' : ''}">${_escapeHtml(row[i])}</td>');
       }
       buffer.writeln('      </tr>');
     }
@@ -86,24 +105,26 @@ class HtmlReportGenerator {
       for (int i = 0; i < data.headers.length; i++) {
         final val = data.totalsRow![data.headers[i]] ?? (i == 0 ? 'TOTALES' : '');
         final isNum = i > 0 && val.toString().isNotEmpty;
-        buffer.writeln('        <td class="${isNum ? 'num' : ''}">$val</td>');
+        buffer.writeln('        <td class="${isNum ? 'num' : ''}">${_escapeHtml(val)}</td>');
       }
       buffer.writeln('      </tr>');
     }
     buffer.writeln('    </tbody>');
     buffer.writeln('  </table>');
 
-    // Pie
+    // Pie de página
     buffer.writeln('  <div class="footer">');
     buffer.writeln('    Generado por Sistema UMBRAL - IMMUJER &nbsp;|&nbsp; Documento Administrativo Oficial');
     buffer.writeln('  </div>');
 
-    // Disparador de impresión directa al cargar la página
+    // Disparador de impresión directa al cargar la página con delay de seguridad de 500ms
     buffer.writeln('  <script>');
     buffer.writeln('    window.addEventListener("load", function() {');
     buffer.writeln('      setTimeout(function() {');
-    buffer.writeln('        window.print();');
-    buffer.writeln('      }, 300);');
+    buffer.writeln('        if (typeof window.print === "function") {');
+    buffer.writeln('          window.print();');
+    buffer.writeln('        }');
+    buffer.writeln('      }, 500);');
     buffer.writeln('    });');
     buffer.writeln('  </script>');
     buffer.writeln('</body>');

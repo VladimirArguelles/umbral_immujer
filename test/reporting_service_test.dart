@@ -73,16 +73,45 @@ void main() {
       expect(excelBytes[1], equals(0x4B));
     });
 
-    test('HtmlReportGenerator genera documento HTML imprimible con auto-print', () {
+    test('HtmlReportGenerator genera documento HTML imprimible con auto-print y sanitización XSS', () {
       final html = HtmlReportGenerator.generateHtml(payload);
 
       expect(html, contains('<!DOCTYPE html>'));
       expect(html, contains('Control de Asistencia Consolidada'));
       expect(html, contains('IMMUJER - Sistema UMBRAL'));
       expect(html, contains('window.print()'));
+      expect(html, contains('500'));
       expect(html, contains('Costura Básica'));
       expect(html, contains('3 Alumnos'));
       expect(html, contains('1.400,00 Bs'));
+    });
+
+    test('HtmlReportGenerator escapa caracteres especiales HTML para evitar XSS', () {
+      final xssPayload = ReportDataPayload(
+        reportTitle: '<script>alert("hack")</script>',
+        institutionName: 'IMMUJER & "Alcaldía"',
+        institutionalId: "G-123'45",
+        headers: ['<Col 1>', 'Col 2 & test'],
+        rows: [
+          ['<img src=x onerror=alert(1)>', 'Normal "Value"'],
+        ],
+      );
+
+      final html = HtmlReportGenerator.generateHtml(xssPayload);
+
+      expect(html, isNot(contains('<script>alert')));
+      expect(html, contains('&lt;script&gt;alert(&quot;hack&quot;)&lt;/script&gt;'));
+      expect(html, contains('IMMUJER &amp; &quot;Alcaldía&quot;'));
+      expect(html, contains('G-123&#39;45'));
+      expect(html, contains('&lt;img src=x onerror=alert(1)&gt;'));
+    });
+
+    test('HtmlReportGenerator adapta @page orientation a landscape o portrait dinámicamente', () {
+      final verticalHtml = HtmlReportGenerator.generateHtml(payload, isLandscape: false);
+      expect(verticalHtml, contains('@page { size: A4 portrait; margin: 1cm; }'));
+
+      final horizontalHtml = HtmlReportGenerator.generateHtml(payload, isLandscape: true);
+      expect(horizontalHtml, contains('@page { size: A4 landscape; margin: 1cm; }'));
     });
   });
 }
