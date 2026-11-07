@@ -1,13 +1,21 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:umbral_immujer/core/utils/schedule_parser.dart';
 import 'package:umbral_immujer/src/core/theme/app_colors.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/core/utils/formatters.dart';
 import 'package:umbral_immujer/features/coordinator/domain/coordinator_models.dart';
 import 'package:umbral_immujer/features/coordinator/data/coordinator_repository.dart';
 
-/// Pantalla que muestra SOLAMENTE los cursos que se encuentran activos en el momento/jornada actual
+enum FiltroCursosActivos {
+  enClaseAhora,
+  todosHoy,
+}
+
+/// Pantalla que muestra en tiempo real los cursos que se encuentran activos según la hora de consulta
 class CursosActivosPage extends StatefulWidget {
   final List<CourseDashboardItem> initialCursos;
   final CoordinatorRepository coordinatorRepository;
@@ -26,11 +34,23 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
   late List<CourseDashboardItem> _cursos;
   bool _isLoading = false;
   String _searchQuery = '';
+  FiltroCursosActivos _filtro = FiltroCursosActivos.enClaseAhora;
+  Timer? _realtimeTimer;
 
   @override
   void initState() {
     super.initState();
     _cursos = List.from(widget.initialCursos);
+    // Refresco reactivo en tiempo real cada 30 segundos según la hora actual
+    _realtimeTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _realtimeTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _refresh() async {
@@ -206,13 +226,24 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
   @override
   Widget build(BuildContext context) {
     final isDark = AppTheme.isDark;
+    final now = DateTime.now();
     final diaHoy = _getNombreDiaHoy();
+    final horaActualStr = DateFormat('h:mm a').format(now);
 
-    // FILTRADO ESTRICTO: SOLAMENTE CURSOS QUE SE ENCUENTRAN ACTIVOS HOY
-    final cursosActivosHoy = _cursos.where((c) => c.isActiveToday).toList();
-    final totalMatriculadas = cursosActivosHoy.fold<int>(0, (prev, c) => prev + c.alumnosInscritos);
+    // Cursos programados para hoy en cualquier hora
+    final cursosProgramadosHoy = _cursos.where((c) => c.isActiveToday).toList();
 
-    final filteredList = cursosActivosHoy.where((c) {
+    // Cursos activos en clase en este momento exacto
+    final cursosActivosAhora = cursosProgramadosHoy.where((c) => c.isActiveNow).toList();
+
+    // Lista según el filtro activo (por defecto: en clase ahora en tiempo real)
+    final cursosSegunFiltro = _filtro == FiltroCursosActivos.enClaseAhora
+        ? cursosActivosAhora
+        : cursosProgramadosHoy;
+
+    final totalMatriculadas = cursosSegunFiltro.fold<int>(0, (prev, c) => prev + c.alumnosInscritos);
+
+    final filteredList = cursosSegunFiltro.where((c) {
       if (_searchQuery.isNotEmpty) {
         final q = _searchQuery.toLowerCase();
         final matchNombre = c.nombre.toLowerCase().contains(q);
@@ -239,7 +270,9 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
               ),
             ),
             Text(
-              'Cursos activos en jornada de hoy ($diaHoy)',
+              _filtro == FiltroCursosActivos.enClaseAhora
+                  ? 'En clase ahora ($diaHoy, $horaActualStr)'
+                  : 'Cursos programados hoy ($diaHoy)',
               style: TextStyle(fontSize: 11.5, color: AppTheme.dynamicTextMuted),
             ),
           ],
@@ -265,32 +298,81 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            // Selector de Modo: En Clase Ahora (Tiempo Real) vs Jornada Hoy
+            Container(
+              margin: const EdgeInsets.only(bottom: 14),
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: AppTheme.dynamicCard,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.dynamicBorder),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildFilterTab(
+                      label: 'En Clase Ahora (${cursosActivosAhora.length})',
+                      icon: Icons.access_time_filled_rounded,
+                      isSelected: _filtro == FiltroCursosActivos.enClaseAhora,
+                      isRealtime: true,
+                      onTap: () => setState(() => _filtro = FiltroCursosActivos.enClaseAhora),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: _buildFilterTab(
+                      label: 'Jornada Hoy (${cursosProgramadosHoy.length})',
+                      icon: Icons.calendar_today_rounded,
+                      isSelected: _filtro == FiltroCursosActivos.todosHoy,
+                      isRealtime: false,
+                      onTap: () => setState(() => _filtro = FiltroCursosActivos.todosHoy),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             // KPI Header Summary
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppColors.primary.withValues(alpha: isDark ? 0.22 : 0.12),
+                    (_filtro == FiltroCursosActivos.enClaseAhora
+                            ? const Color(0xFF0BD984)
+                            : AppColors.primary)
+                        .withValues(alpha: isDark ? 0.20 : 0.10),
                     AppTheme.dynamicCard,
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: (_filtro == FiltroCursosActivos.enClaseAhora
+                          ? const Color(0xFF0BD984)
+                          : AppColors.primary)
+                      .withValues(alpha: 0.3),
+                ),
               ),
               child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.2),
+                      color: (_filtro == FiltroCursosActivos.enClaseAhora
+                              ? const Color(0xFF0BD984)
+                              : AppColors.primary)
+                          .withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Icon(
-                      Symbols.school,
-                      color: AppColors.primary,
+                    child: Icon(
+                      _filtro == FiltroCursosActivos.enClaseAhora
+                          ? Symbols.schedule
+                          : Symbols.school,
+                      color: _filtro == FiltroCursosActivos.enClaseAhora
+                          ? const Color(0xFF0BD984)
+                          : AppColors.primary,
                       size: 28,
                     ),
                   ),
@@ -300,9 +382,11 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${cursosActivosHoy.length} Cursos Activos Hoy ($diaHoy)',
+                          _filtro == FiltroCursosActivos.enClaseAhora
+                              ? '${cursosActivosAhora.length} ${cursosActivosAhora.length == 1 ? 'Curso Activo Ahora' : 'Cursos Activos Ahora'} ($diaHoy)'
+                              : '${cursosProgramadosHoy.length} Cursos Programados Hoy ($diaHoy)',
                           style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16,
+                            fontSize: 15.5,
                             fontWeight: FontWeight.w800,
                             color: AppTheme.dynamicText,
                           ),
@@ -313,18 +397,26 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
                             Container(
                               width: 8,
                               height: 8,
-                              decoration: const BoxDecoration(
-                                color: AppColors.mintNeon,
+                              decoration: BoxDecoration(
+                                color: _filtro == FiltroCursosActivos.enClaseAhora
+                                    ? const Color(0xFF0BD984)
+                                    : AppTheme.primary,
                                 shape: BoxShape.circle,
                               ),
                             ),
                             const SizedBox(width: 6),
-                            Text(
-                              'En sesión formativa hoy • $totalMatriculadas alumnas',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppTheme.dynamicTextMuted,
-                                fontWeight: FontWeight.w500,
+                            Expanded(
+                              child: Text(
+                                _filtro == FiltroCursosActivos.enClaseAhora
+                                    ? 'En sesión formativa a las $horaActualStr • $totalMatriculadas alumnas'
+                                    : 'Jornada completa de hoy • $totalMatriculadas alumnas',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  color: AppTheme.dynamicTextMuted,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -367,15 +459,21 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
                   child: Column(
                     children: [
                       Icon(
-                        _searchQuery.isNotEmpty ? Icons.search_off_rounded : Symbols.event_busy,
+                        _searchQuery.isNotEmpty
+                            ? Icons.search_off_rounded
+                            : (_filtro == FiltroCursosActivos.enClaseAhora
+                                ? Symbols.schedule
+                                : Symbols.event_busy),
                         size: 48,
                         color: AppTheme.dynamicTextMuted,
                       ),
                       const SizedBox(height: 12),
                       Text(
                         _searchQuery.isNotEmpty
-                            ? 'No se encontraron cursos activos con ese nombre'
-                            : 'No hay cursos con clases programadas para hoy ($diaHoy)',
+                            ? 'No se encontraron cursos activos con ese nombre o docente'
+                            : (_filtro == FiltroCursosActivos.enClaseAhora
+                                ? 'No hay cursos en clase activa en este momento ($horaActualStr).'
+                                : 'No hay cursos con clases programadas para hoy ($diaHoy).'),
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 13,
@@ -383,6 +481,21 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
                           color: AppTheme.dynamicTextMuted,
                         ),
                       ),
+                      if (_filtro == FiltroCursosActivos.enClaseAhora &&
+                          _searchQuery.isEmpty &&
+                          cursosProgramadosHoy.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          onPressed: () => setState(() => _filtro = FiltroCursosActivos.todosHoy),
+                          icon: const Icon(Icons.calendar_today_rounded, size: 16),
+                          label: Text('Ver los ${cursosProgramadosHoy.length} cursos de hoy ($diaHoy)'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                            side: const BorderSide(color: AppColors.primary),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -395,20 +508,108 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
     );
   }
 
+  Widget _buildFilterTab({
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required bool isRealtime,
+    required VoidCallback onTap,
+  }) {
+    final activeColor = isRealtime ? const Color(0xFF0BD984) : AppColors.primary;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(9),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? activeColor.withValues(alpha: 0.16) : Colors.transparent,
+          borderRadius: BorderRadius.circular(9),
+          border: isSelected ? Border.all(color: activeColor, width: 1.2) : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 15,
+              color: isSelected ? activeColor : AppTheme.dynamicTextMuted,
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 11.5,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: isSelected ? activeColor : AppTheme.dynamicTextMuted,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildCourseCard(CourseDashboardItem curso, bool isDark) {
+    final status = curso.timeStatus;
+    final isActiveNow = status == CourseTimeStatus.activeNow;
+
+    Color badgeBg;
+    Color badgeBorder;
+    Color badgeText;
+    String badgeLabel;
+    IconData badgeIcon;
+
+    switch (status) {
+      case CourseTimeStatus.activeNow:
+        badgeBg = const Color(0xFF0BD984).withValues(alpha: 0.15);
+        badgeBorder = const Color(0xFF0BD984).withValues(alpha: 0.6);
+        badgeText = const Color(0xFF0BD984);
+        badgeLabel = 'EN CLASE AHORA';
+        badgeIcon = Icons.circle;
+        break;
+      case CourseTimeStatus.upcomingToday:
+        badgeBg = const Color(0xFFF59E0B).withValues(alpha: 0.15);
+        badgeBorder = const Color(0xFFF59E0B).withValues(alpha: 0.6);
+        badgeText = const Color(0xFFF59E0B);
+        badgeLabel = 'INICIA MÁS TARDE';
+        badgeIcon = Icons.schedule_rounded;
+        break;
+      case CourseTimeStatus.endedToday:
+        badgeBg = Colors.grey.withValues(alpha: 0.15);
+        badgeBorder = Colors.grey.withValues(alpha: 0.4);
+        badgeText = AppTheme.dynamicTextMuted;
+        badgeLabel = 'FINALIZADO HOY';
+        badgeIcon = Icons.check_circle_outline;
+        break;
+      case CourseTimeStatus.notToday:
+        badgeBg = Colors.grey.withValues(alpha: 0.1);
+        badgeBorder = Colors.grey.withValues(alpha: 0.3);
+        badgeText = AppTheme.dynamicTextMuted;
+        badgeLabel = 'OTRO DÍA';
+        badgeIcon = Icons.event_note_rounded;
+        break;
+    }
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: AppTheme.dynamicCard,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.5),
-          width: 1.4,
+          color: isActiveNow
+              ? const Color(0xFF0BD984).withValues(alpha: 0.7)
+              : AppTheme.dynamicBorder,
+          width: isActiveNow ? 1.6 : 1.0,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
+            color: isActiveNow
+                ? const Color(0xFF0BD984).withValues(alpha: 0.08)
+                : Colors.black.withValues(alpha: 0.05),
+            blurRadius: isActiveNow ? 12 : 8,
             offset: const Offset(0, 2),
           ),
         ],
@@ -434,28 +635,21 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: AppColors.mintNeon.withValues(alpha: 0.15),
+                    color: badgeBg,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: AppColors.mintNeon.withValues(alpha: 0.6),
-                      width: 0.8,
-                    ),
+                    border: Border.all(color: badgeBorder, width: 0.8),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
-                        Icons.circle,
-                        size: 8,
-                        color: AppColors.mintNeon,
-                      ),
+                      Icon(badgeIcon, size: 8, color: badgeText),
                       const SizedBox(width: 4),
                       Text(
-                        'ACTIVO HOY',
+                        badgeLabel,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 9.5,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.mintNeon,
+                          color: badgeText,
                         ),
                       ),
                     ],

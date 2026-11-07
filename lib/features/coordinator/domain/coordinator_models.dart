@@ -1,3 +1,5 @@
+import 'package:umbral_immujer/core/utils/schedule_parser.dart';
+
 class CourseDashboardItem {
   final String id;
   final String nombre;
@@ -25,25 +27,14 @@ class CourseDashboardItem {
     return (presentesHoy / total) * 100;
   }
 
-  bool get isActiveToday {
-    if (horario == null || horario!.trim().isEmpty) return false;
-    final now = DateTime.now();
-    final hLower = horario!.toLowerCase();
-    final diasMap = {
-      1: ['lunes', 'lun'],
-      2: ['martes', 'mar'],
-      3: ['miercoles', 'miércoles', 'mie', 'mié'],
-      4: ['jueves', 'jue'],
-      5: ['viernes', 'vie'],
-      6: ['sabado', 'sábado', 'sab', 'sáb'],
-      7: ['domingo', 'dom'],
-    };
-    final todayTokens = diasMap[now.weekday] ?? [];
-    if (hLower.contains('lunes a viernes') && now.weekday >= 1 && now.weekday <= 5) {
-      return true;
-    }
-    return todayTokens.any((t) => hLower.contains(t));
-  }
+  /// Indica si el curso tiene clases programadas para el día de hoy (cualquier hora).
+  bool get isActiveToday => ScheduleParser.isCourseActiveToday(horario);
+
+  /// Indica si el curso se encuentra en clase activa en este momento exacto.
+  bool get isActiveNow => ScheduleParser.isCourseActiveNow(horario);
+
+  /// Retorna el estado temporal preciso respecto al día y hora de consulta en tiempo real.
+  CourseTimeStatus get timeStatus => ScheduleParser.getCourseStatus(horario);
 }
 
 class LiveAbsence {

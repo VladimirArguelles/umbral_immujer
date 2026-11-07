@@ -1,3 +1,4 @@
+import 'package:umbral_immujer/core/utils/schedule_parser.dart';
 import 'package:umbral_immujer/src/core/widgets/formation_image_carousel.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -602,23 +603,7 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
   }
 
   bool _isCourseActiveNow(String? horario) {
-    if (horario == null || horario.trim().isEmpty) return false;
-    final now = DateTime.now();
-    final hLower = horario.toLowerCase();
-    final diasMap = {
-      1: ['lunes', 'lun'],
-      2: ['martes', 'mar'],
-      3: ['miercoles', 'miércoles', 'mie', 'mié'],
-      4: ['jueves', 'jue'],
-      5: ['viernes', 'vie'],
-      6: ['sabado', 'sábado', 'sab', 'sáb'],
-      7: ['domingo', 'dom'],
-    };
-    final todayTokens = diasMap[now.weekday] ?? [];
-    if (hLower.contains('lunes a viernes') && now.weekday >= 1 && now.weekday <= 5) {
-      return true;
-    }
-    return todayTokens.any((t) => hLower.contains(t));
+    return ScheduleParser.isCourseActiveNow(horario);
   }
 
   void _abrirCentroNotificaciones(List<SolicitudNotificacionItem> solicitudes) {
@@ -1241,7 +1226,8 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
             ? 100.0
             : ((totalPresentes / totalAsistenciasMarcadas) * 100);
 
-        final cursosOperandoHoy = cursos.where((c) => _isCourseActiveNow(c.horario)).length;
+        final cursosOperandoAhora = cursos.where((c) => _isCourseActiveNow(c.horario)).length;
+        final cursosOperandoHoy = cursos.where((c) => c.isActiveToday).length;
 
         return RefreshIndicator(
           onRefresh: () async => _loadAll(),
@@ -1339,8 +1325,8 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
                   final cards = [
                     _buildMetricCard(
                       title: 'Cursos Activos',
-                      value: '${cursos.length}',
-                      subtitle: '$cursosOperandoHoy activos hoy',
+                      value: '$cursosOperandoAhora',
+                      subtitle: '$cursosOperandoHoy programados hoy',
                       icon: Icons.calendar_today_rounded,
                       color: AppTheme.primary,
                       onTap: () {
