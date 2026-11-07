@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:printing/printing.dart';
+import 'package:umbral_immujer/core/services/reporting/reporting_service.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 
 import '../data/reports_repository.dart';
@@ -177,23 +178,131 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
   }
 
-  Future<void> _handleImprimirDirecto() async {
-    setState(() => _isGeneratingPdf = true);
-    try {
-      final bytes = await _generatePdfBytes();
-      if (bytes != null) {
-        final nombreArchivo =
-            'reporte_${_tipoReporte.name}_${DateFormat('yyyyMMdd_HHmm').format(DateTime.now())}';
-        await Printing.layoutPdf(
-          name: nombreArchivo,
-          onLayout: (format) async => bytes,
+  ReportDataPayload? _buildReportPayload() {
+    final cursoNombre = _currentCursoNombre;
+
+    switch (_tipoReporte) {
+      case TipoReporte.alumnos:
+        if (_filteredAlumnos.isEmpty) return null;
+        return ReportDataPayload(
+          reportTitle: 'Matrícula Oficial de Alumnos - $cursoNombre',
+          institutionName: 'IMMUJER - Sistema UMBRAL',
+          institutionalId: 'G-20012345-6',
+          kpis: [
+            ReportKpi(label: 'Total Matriculados', value: '${_filteredAlumnos.length} Alumnos'),
+            ReportKpi(label: 'Curso', value: cursoNombre),
+          ],
+          headers: const ['N°', 'CÉDULA', 'NOMBRE COMPLETO', 'TELÉFONO', 'CORREO', 'ESTADO'],
+          rows: List.generate(_filteredAlumnos.length, (index) {
+            final a = _filteredAlumnos[index];
+            return [
+              index + 1,
+              a.cedula,
+              a.nombreCompleto.toUpperCase(),
+              a.telefono.isNotEmpty ? a.telefono : 'N/A',
+              a.correo,
+              a.estadoInscripcion.toUpperCase(),
+            ];
+          }),
+          totalsRow: {
+            'N°': 'Total: ${_filteredAlumnos.length}',
+          },
         );
-      }
-    } catch (e) {
-      _showSnack('Error al imprimir documento: $e');
-    } finally {
-      if (mounted) setState(() => _isGeneratingPdf = false);
+
+      case TipoReporte.asistencia:
+        if (_filteredAsistencias.isEmpty) return null;
+        final presentes =
+            _filteredAsistencias.where((a) => a.estado.toLowerCase() == 'presente').length;
+        final ausentes = _filteredAsistencias.length - presentes;
+        final tasa = _filteredAsistencias.isNotEmpty
+            ? ((presentes / _filteredAsistencias.length) * 100).toStringAsFixed(1)
+            : '0.0';
+        return ReportDataPayload(
+          reportTitle: 'Control de Asistencias - $cursoNombre',
+          institutionName: 'IMMUJER - Sistema UMBRAL',
+          institutionalId: 'G-20012345-6',
+          kpis: [
+            ReportKpi(label: 'Total Registros', value: '${_filteredAsistencias.length}'),
+            ReportKpi(label: 'Asistencia', value: '$tasa% ($presentes)'),
+            ReportKpi(label: 'Ausencias', value: '$ausentes'),
+          ],
+          headers: const ['N°', 'FECHA', 'ALUMNO', 'CÉDULA', 'ESTADO'],
+          rows: List.generate(_filteredAsistencias.length, (index) {
+            final r = _filteredAsistencias[index];
+            return [
+              index + 1,
+              r.fecha,
+              r.nombreCompleto.toUpperCase(),
+              r.cedula,
+              r.estado.toUpperCase(),
+            ];
+          }),
+          totalsRow: {
+            'N°': 'Total: ${_filteredAsistencias.length}',
+            'ESTADO': 'Presentes: $presentes | Ausentes: $ausentes',
+          },
+        );
+
+      case TipoReporte.temario:
+        if (_filteredTemas.isEmpty) return null;
+        return ReportDataPayload(
+          reportTitle: 'Plan Curricular y Temario - $cursoNombre',
+          institutionName: 'IMMUJER - Sistema UMBRAL',
+          institutionalId: 'G-20012345-6',
+          kpis: [
+            ReportKpi(label: 'Total Temas', value: '${_filteredTemas.length} Contenidos'),
+            ReportKpi(label: 'Curso', value: cursoNombre),
+          ],
+          headers: const ['ORDEN', 'MÓDULO', 'TEMA / TÍTULO', 'DESCRIPCIÓN'],
+          rows: List.generate(_filteredTemas.length, (index) {
+            final t = _filteredTemas[index];
+            return [
+              t.orden,
+              t.modulo.isEmpty ? 'General' : t.modulo,
+              t.titulo,
+              t.descripcion,
+            ];
+          }),
+          totalsRow: {
+            'ORDEN': 'Total: ${_filteredTemas.length} Temas',
+          },
+        );
+
+      case TipoReporte.profesores:
+        if (_filteredProfesores.isEmpty) return null;
+        return ReportDataPayload(
+          reportTitle: 'Distribución de Carga Docente',
+          institutionName: 'IMMUJER - Sistema UMBRAL',
+          institutionalId: 'G-20012345-6',
+          kpis: [
+            ReportKpi(label: 'Total Profesores', value: '${_filteredProfesores.length} Docentes'),
+          ],
+          headers: const ['N°', 'CÉDULA', 'PROFESOR', 'TELÉFONO', 'CORREO', 'CURSO ASIGNADO'],
+          rows: List.generate(_filteredProfesores.length, (index) {
+            final p = _filteredProfesores[index];
+            return [
+              index + 1,
+              p.cedula,
+              p.profesorNombre.toUpperCase(),
+              p.telefono ?? 'N/A',
+              p.correo ?? 'N/A',
+              p.cursoNombre,
+            ];
+          }),
+          totalsRow: {
+            'N°': 'Total: ${_filteredProfesores.length} Docentes',
+          },
+        );
     }
+  }
+
+  void _handleImprimirDirecto() {
+    final payload = _buildReportPayload();
+    if (payload == null) {
+      _showSnack('No hay registros cargados para previsualizar o imprimir.');
+      return;
+    }
+    ReportPreviewModal.show(context, data: payload);
   }
 
   Future<void> _handleGuardar() async {
@@ -510,17 +619,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Widget _buildImprimirButton() {
     return ElevatedButton.icon(
-      onPressed: _isGeneratingPdf ? null : _handleImprimirDirecto,
-      icon: _isGeneratingPdf
-          ? const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
-            )
-          : const Icon(Symbols.print, size: 18),
+      onPressed: _handleImprimirDirecto,
+      icon: const Icon(Symbols.print, size: 18),
       label: const Text('Imprimir'),
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFFE0115F),
