@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:umbral_immujer/core/services/error_console_service.dart';
@@ -18,7 +19,14 @@ class ErrorConsoleScreen extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Symbols.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).maybePop(),
+          tooltip: 'Regresar',
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/superadmin');
+            }
+          },
         ),
         title: Row(
           children: [
