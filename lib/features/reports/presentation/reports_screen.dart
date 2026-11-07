@@ -428,13 +428,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 const SizedBox(height: 8),
                 _buildCursoDropdown(),
                 const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                Row(
                   children: [
-                    _buildVerRegistrosButton(),
-                    _buildImprimirButton(),
-                    _buildGuardarButton(),
+                    Expanded(child: _buildVerRegistrosButton(isCompact: true)),
+                    const SizedBox(width: 8),
+                    Expanded(child: _buildImprimirButton(isCompact: true)),
+                    const SizedBox(width: 8),
+                    Expanded(child: _buildGuardarButton(isCompact: true)),
                   ],
                 ),
               ],
@@ -589,75 +589,87 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildVerRegistrosButton() {
+  Widget _buildVerRegistrosButton({bool isCompact = false}) {
     return ElevatedButton.icon(
       onPressed: _isLoading ? null : _loadReportData,
       icon: _isLoading
           ? const SizedBox(
-              width: 16,
-              height: 16,
+              width: 14,
+              height: 14,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
                 color: AppTheme.onPrimary,
               ),
             )
-          : const Icon(Symbols.visibility, size: 18),
-      label: const Text('Ver Registros'),
+          : Icon(Symbols.visibility, size: isCompact ? 16 : 18),
+      label: Text(
+        'Ver Registros',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
       style: ElevatedButton.styleFrom(
         backgroundColor: AppTheme.primary,
         foregroundColor: AppTheme.onPrimary,
-        minimumSize: const Size(120, 44),
-        padding: const EdgeInsets.symmetric(horizontal: 14),
+        minimumSize: Size(isCompact ? 0 : 120, 42),
+        padding: EdgeInsets.symmetric(horizontal: isCompact ? 6 : 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         textStyle: GoogleFonts.plusJakartaSans(
-          fontSize: 12.5,
+          fontSize: isCompact ? 11 : 12.5,
           fontWeight: FontWeight.w600,
         ),
       ),
     );
   }
 
-  Widget _buildImprimirButton() {
+  Widget _buildImprimirButton({bool isCompact = false}) {
     return ElevatedButton.icon(
       onPressed: _handleImprimirDirecto,
-      icon: const Icon(Symbols.print, size: 18),
-      label: const Text('Imprimir'),
+      icon: Icon(Symbols.print, size: isCompact ? 16 : 18),
+      label: const Text(
+        'Imprimir',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFFE0115F),
         foregroundColor: Colors.white,
-        minimumSize: const Size(110, 44),
-        padding: const EdgeInsets.symmetric(horizontal: 14),
+        minimumSize: Size(isCompact ? 0 : 110, 42),
+        padding: EdgeInsets.symmetric(horizontal: isCompact ? 6 : 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         textStyle: GoogleFonts.plusJakartaSans(
-          fontSize: 12.5,
+          fontSize: isCompact ? 11 : 12.5,
           fontWeight: FontWeight.w600,
         ),
       ),
     );
   }
 
-  Widget _buildGuardarButton() {
+  Widget _buildGuardarButton({bool isCompact = false}) {
     return OutlinedButton.icon(
       onPressed: _isGeneratingPdf ? null : _handleGuardar,
       icon: _isGeneratingPdf
           ? const SizedBox(
-              width: 16,
-              height: 16,
+              width: 14,
+              height: 14,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
                 color: AppTheme.primary,
               ),
             )
-          : const Icon(Symbols.save, size: 18),
-      label: const Text('Guardar'),
+          : Icon(Symbols.save, size: isCompact ? 16 : 18),
+      label: const Text(
+        'Guardar',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
       style: OutlinedButton.styleFrom(
         foregroundColor: AppTheme.primary,
         side: const BorderSide(color: AppTheme.primary),
-        minimumSize: const Size(110, 44),
-        padding: const EdgeInsets.symmetric(horizontal: 14),
+        minimumSize: Size(isCompact ? 0 : 110, 42),
+        padding: EdgeInsets.symmetric(horizontal: isCompact ? 6 : 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         textStyle: GoogleFonts.plusJakartaSans(
-          fontSize: 12.5,
+          fontSize: isCompact ? 11 : 12.5,
           fontWeight: FontWeight.w600,
         ),
       ),
