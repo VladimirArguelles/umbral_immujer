@@ -459,13 +459,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 _buildCursoDropdown(),
                 const SizedBox(height: 10),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Flexible(child: _buildVerRegistrosButton(isCompact: true)),
-                    const SizedBox(width: 6),
-                    Flexible(child: _buildImprimirButton(isCompact: true)),
-                    const SizedBox(width: 6),
-                    Flexible(child: _buildGuardarButton(isCompact: true)),
+                    Expanded(child: _buildVerRegistrosButton(isCompact: true)),
+                    const SizedBox(width: 8),
+                    Expanded(child: _buildImprimirButton(isCompact: true)),
+                    const SizedBox(width: 8),
+                    Expanded(child: _buildGuardarButton(isCompact: true)),
                   ],
                 ),
               ],
@@ -641,8 +640,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
       style: ElevatedButton.styleFrom(
         backgroundColor: AppTheme.primary,
         foregroundColor: AppTheme.onPrimary,
-        padding: EdgeInsets.symmetric(horizontal: isCompact ? 4 : 14),
+        minimumSize: Size(isCompact ? 0 : 130, isCompact ? 40 : 44),
+        padding: EdgeInsets.symmetric(horizontal: isCompact ? 2 : 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        elevation: 0,
         textStyle: GoogleFonts.plusJakartaSans(
           fontSize: isCompact ? 10.5 : 12.5,
           fontWeight: FontWeight.w600,
@@ -669,8 +670,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFFE0115F),
         foregroundColor: Colors.white,
-        padding: EdgeInsets.symmetric(horizontal: isCompact ? 4 : 14),
+        minimumSize: Size(isCompact ? 0 : 130, isCompact ? 40 : 44),
+        padding: EdgeInsets.symmetric(horizontal: isCompact ? 2 : 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        elevation: 0,
         textStyle: GoogleFonts.plusJakartaSans(
           fontSize: isCompact ? 10.5 : 12.5,
           fontWeight: FontWeight.w600,
@@ -680,7 +683,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Widget _buildGuardarButton({bool isCompact = false}) {
-    return OutlinedButton.icon(
+    return ElevatedButton.icon(
       onPressed: _isGeneratingPdf ? null : _handleGuardar,
       icon: _isGeneratingPdf
           ? const SizedBox(
@@ -688,7 +691,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               height: 14,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: AppTheme.primary,
+                color: Colors.white,
               ),
             )
           : Icon(Symbols.save, size: isCompact ? 15 : 18),
@@ -697,11 +700,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: AppTheme.primary,
-        side: const BorderSide(color: AppTheme.primary),
-        padding: EdgeInsets.symmetric(horizontal: isCompact ? 4 : 14),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF059669),
+        foregroundColor: Colors.white,
+        minimumSize: Size(isCompact ? 0 : 130, isCompact ? 40 : 44),
+        padding: EdgeInsets.symmetric(horizontal: isCompact ? 2 : 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        elevation: 0,
         textStyle: GoogleFonts.plusJakartaSans(
           fontSize: isCompact ? 10.5 : 12.5,
           fontWeight: FontWeight.w600,
