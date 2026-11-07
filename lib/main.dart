@@ -2,8 +2,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import 'core/router/app_router.dart';
+import 'core/services/error_console_service.dart';
 import 'src/core/config/supabase_config.dart';
-import 'src/core/services/error_notification/system_error_notification_service.dart';
 import 'src/core/services/online_user_presence_service.dart';
 import 'src/core/theme/app_theme.dart';
 
@@ -17,27 +17,21 @@ Future<void> main() async {
   // Inicializa y recupera la preferencia de tema guardada (claro/oscuro).
   await ThemeController.initialize();
 
-  // Configura observadores globales para notificar errores no capturados al Super Admin.
+  // Configura observadores globales para registrar errores en la consola de diagnóstico en memoria.
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
-    SystemErrorNotificationService.reportarError(
-      modulo: 'Framework Flutter UI',
-      titulo: 'Error no controlado en interfaz',
+    ErrorConsoleService.instance.registrarError(
+      origen: 'Framework Flutter UI',
       error: details.exceptionAsString(),
-      stackTrace: details.stack,
-      dondeEstaElProblema: details.context?.toString() ?? 'Widget tree context',
-      causasProbables: 'Excepción de renderizado o estado inconsistente en la vista.',
+      causa: details.stack,
     );
   };
 
   PlatformDispatcher.instance.onError = (error, stack) {
-    SystemErrorNotificationService.reportarError(
-      modulo: 'Motor Dart Asíncrono',
-      titulo: 'Excepción asíncrona no capturada',
+    ErrorConsoleService.instance.registrarError(
+      origen: 'Motor Dart Asíncrono',
       error: error,
-      stackTrace: stack,
-      dondeEstaElProblema: 'PlatformDispatcher',
-      causasProbables: 'Fallo en llamada asíncrona de red, base de datos o timeout.',
+      causa: stack,
     );
     return true;
   };

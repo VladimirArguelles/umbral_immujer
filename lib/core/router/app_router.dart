@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:umbral_immujer/features/admin/presentation/screens/error_console_screen.dart';
 import 'package:umbral_immujer/features/assistant/presentation/screens/mia_chat_screen.dart';
 import 'package:umbral_immujer/features/coordinator/presentation/coordinator_dashboard_page.dart';
 import 'package:umbral_immujer/features/landing/presentation/pages/landing_page.dart';
@@ -205,6 +206,17 @@ final GoRouter appRouter = GoRouter(
         allowedRoles: const [UserRole.superAdmin],
         builder: (profile) => const ConfiguracionGeneralScreen(),
       ),
+    ),
+    GoRoute(
+      path: '/admin/error-console',
+      builder: (context, state) => _AuthenticatedDashboardPage(
+        allowedRoles: const [UserRole.superAdmin],
+        builder: (profile) => const ErrorConsoleScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/superadmin/error-console',
+      redirect: (context, state) => '/admin/error-console',
     ),
     GoRoute(
       path: '/configuracion-general',

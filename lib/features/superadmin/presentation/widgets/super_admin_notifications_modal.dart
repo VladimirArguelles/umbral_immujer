@@ -41,8 +41,7 @@ class SuperAdminNotificationItem {
     );
   }
 
-  bool get isOperationalIssue => tipo == 'incidencia_operacion' || tipo == 'error_sistema';
-  bool get isSystemError => tipo == 'error_sistema';
+  bool get isOperationalIssue => tipo == 'incidencia_operacion';
   String? get dondeEstaElProblema => datos['donde_esta_el_problema']?.toString();
   String? get queDebeRevisar => datos['que_debe_revisar']?.toString();
   String? get usuarioNombre => datos['usuario_nombre']?.toString();
@@ -607,11 +606,8 @@ class _SuperAdminNotificationsModalState
     required Color textMain,
     required Color textMuted,
   }) {
-    final isError = item.isSystemError;
     final isIssue = item.isOperationalIssue;
-    final accentColor = isError
-        ? AppColors.error
-        : (isIssue ? AppColors.warning : AppColors.primary);
+    final accentColor = isIssue ? AppColors.warning : AppColors.primary;
 
     return Container(
       decoration: BoxDecoration(
@@ -654,17 +650,13 @@ class _SuperAdminNotificationsModalState
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      isError
-                          ? Symbols.error
-                          : (isIssue ? Symbols.warning : Symbols.info),
+                      isIssue ? Symbols.warning : Symbols.info,
                       size: 13,
                       color: accentColor,
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      isError
-                          ? 'ERROR DEL SISTEMA'
-                          : (isIssue ? 'INCIDENCIA UMBY' : 'NOTIFICACIÓN'),
+                      isIssue ? 'INCIDENCIA UMBY' : 'NOTIFICACIÓN',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 9.5,
                         fontWeight: FontWeight.w800,
@@ -763,20 +755,18 @@ class _SuperAdminNotificationsModalState
                 children: [
                   Row(
                     children: [
-                      Icon(
-                        isError ? Symbols.bug_report : Symbols.psychology,
+                      const Icon(
+                        Symbols.psychology,
                         size: 16,
-                        color: accentColor,
+                        color: AppColors.warning,
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        isError
-                            ? 'DIAGNÓSTICO TÉCNICO Y CAUSAS'
-                            : 'ANÁLISIS DE LA IA (UMBY)',
+                        'ANÁLISIS DE LA IA (UMBY)',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 10,
                           fontWeight: FontWeight.w900,
-                          color: accentColor,
+                          color: AppColors.warning,
                           letterSpacing: 0.6,
                         ),
                       ),

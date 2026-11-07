@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
-import 'package:umbral_immujer/src/core/services/error_notification/system_error_notification_service.dart';
+import 'package:umbral_immujer/core/services/error_console_service.dart';
 import 'excel_report_generator.dart';
 import 'html_report_generator.dart';
 import 'pdf_report_generator.dart';
@@ -209,13 +209,10 @@ class _ReportPreviewModalState extends State<ReportPreviewModal> {
         );
       }
     } catch (e, stack) {
-      await SystemErrorNotificationService.reportarError(
-        modulo: 'Reportes e Impresión',
-        titulo: 'Fallo al invocar servicio de impresión',
+      ErrorConsoleService.instance.registrarError(
+        origen: 'ReportPreviewModal._handlePrint',
         error: e,
-        stackTrace: stack,
-        dondeEstaElProblema: 'ReportPreviewModal._handlePrint',
-        causasProbables: 'Bloqueo del spooler o del visor de impresión en el dispositivo.',
+        causa: stack,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
