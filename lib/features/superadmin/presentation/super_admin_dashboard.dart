@@ -379,6 +379,29 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF38BDF8),
+                        side: const BorderSide(color: Color(0xFF38BDF8)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        context.go('/admin/error-console');
+                      },
+                      icon: const Icon(Symbols.terminal),
+                      label: const Text(
+                        'Consola de Diagnóstico (Terminal)',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
                         foregroundColor: cAccent,
                         side: const BorderSide(color: cAccent),
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -548,6 +571,36 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                 Navigator.of(context)
                     .push(MaterialPageRoute(builder: (_) => const GestionCursosPage()))
                     .then((_) => _loadMetrics());
+              },
+            ),
+            const SizedBox(height: 6),
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF38BDF8).withAlpha(40),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Symbols.terminal, color: Color(0xFF38BDF8), size: 22),
+              ),
+              title: Text(
+                'Consola de Diagnóstico',
+                style: GoogleFonts.plusJakartaSans(
+                  color: cTextMain,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+              subtitle: const Text(
+                'Monitoreo y depuración en vivo de excepciones y errores',
+                style: TextStyle(color: cTextMuted, fontSize: 12),
+              ),
+              trailing: const Icon(Symbols.chevron_right, color: cTextDim, size: 20),
+              onTap: () {
+                Navigator.pop(ctx);
+                context.go('/admin/error-console');
               },
             ),
           ],
