@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:printing/printing.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 
 import '../data/reports_repository.dart';
@@ -176,18 +177,40 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
   }
 
-  Future<void> _handleGuardar() async {
+  Future<void> _handleImprimirDirecto() async {
     setState(() => _isGeneratingPdf = true);
     try {
       final bytes = await _generatePdfBytes();
       if (bytes != null) {
         final nombreArchivo =
             'reporte_${_tipoReporte.name}_${DateFormat('yyyyMMdd_HHmm').format(DateTime.now())}';
-        await PdfExportService.descargar(bytes, nombreArchivo);
-        _showSnack('Reporte guardado correctamente.');
+        await Printing.layoutPdf(
+          name: nombreArchivo,
+          onLayout: (format) async => bytes,
+        );
       }
     } catch (e) {
-      _showSnack('Error al guardar el documento: $e');
+      _showSnack('Error al imprimir documento: $e');
+    } finally {
+      if (mounted) setState(() => _isGeneratingPdf = false);
+    }
+  }
+
+  Future<void> _handleGuardar() async {
+    setState(() => _isGeneratingPdf = true);
+    try {
+      final bytes = await _generatePdfBytes();
+      if (bytes != null) {
+        final nombreArchivo =
+            'reporte_${_tipoReporte.name}_${DateFormat('yyyyMMdd_HHmm').format(DateTime.now())}.pdf';
+        await Printing.sharePdf(
+          bytes: bytes,
+          filename: nombreArchivo,
+        );
+        _showSnack('Documento generado exitosamente.');
+      }
+    } catch (e) {
+      _showSnack('Error al guardar o compartir el documento: $e');
     } finally {
       if (mounted) setState(() => _isGeneratingPdf = false);
     }
@@ -254,11 +277,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ),
         actions: [
           IconButton(
-            tooltip: 'Ajustes de Impresora',
-            icon: Icon(Symbols.print_connect, color: AppTheme.dynamicText),
-            onPressed: () => context.push('/printer-settings'),
-          ),
-          IconButton(
             tooltip: 'Actualizar Datos',
             icon: Icon(Symbols.refresh, color: AppTheme.primary),
             onPressed: _isLoading ? null : _loadReportData,
@@ -292,7 +310,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final isMobile = constraints.maxWidth < 650;
+          final isMobile = constraints.maxWidth < 750;
           if (isMobile) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -301,11 +319,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 const SizedBox(height: 8),
                 _buildCursoDropdown(),
                 const SizedBox(height: 10),
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
-                    Expanded(child: _buildVerRegistrosButton()),
-                    const SizedBox(width: 8),
-                    Expanded(child: _buildGuardarButton()),
+                    _buildVerRegistrosButton(),
+                    _buildImprimirButton(),
+                    _buildGuardarButton(),
                   ],
                 ),
               ],
@@ -318,6 +338,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 Expanded(flex: 4, child: _buildCursoDropdown()),
                 const SizedBox(width: 10),
                 _buildVerRegistrosButton(),
+                const SizedBox(width: 8),
+                _buildImprimirButton(),
                 const SizedBox(width: 8),
                 _buildGuardarButton(),
               ],
@@ -476,6 +498,34 @@ class _ReportsScreenState extends State<ReportsScreen> {
         backgroundColor: AppTheme.primary,
         foregroundColor: AppTheme.onPrimary,
         minimumSize: const Size(120, 44),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        textStyle: GoogleFonts.plusJakartaSans(
+          fontSize: 12.5,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImprimirButton() {
+    return ElevatedButton.icon(
+      onPressed: _isGeneratingPdf ? null : _handleImprimirDirecto,
+      icon: _isGeneratingPdf
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : const Icon(Symbols.print, size: 18),
+      label: const Text('Imprimir'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFFE0115F),
+        foregroundColor: Colors.white,
+        minimumSize: const Size(110, 44),
         padding: const EdgeInsets.symmetric(horizontal: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         textStyle: GoogleFonts.plusJakartaSans(

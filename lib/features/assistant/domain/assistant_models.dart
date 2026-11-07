@@ -144,12 +144,11 @@ class AssistantModuleContext {
         subtitle: 'Aprobaciones, reportes y supervisión operativa',
         icon: Symbols.military_tech,
         description:
-            'Te oriento en la programación de cursos formativos, la revisión y aprobación de solicitudes docentes, la calibración de la impresora térmica y la emisión de reportes.',
+            'Te oriento en la programación de cursos formativos, la revisión y aprobación de solicitudes docentes y la emisión de reportes.',
         quickPrompts: [
           '¿Cómo registrar y programar un nuevo curso?',
           '¿Cómo revisar y aprobar solicitudes de temarios docentes?',
-          '¿Cómo filtrar y exportar reportes consolidados en PDF?',
-          '¿Cómo configurar y calibrar la impresora térmica Bluetooth ESC/POS?',
+          '¿Cómo previsualizar, imprimir y exportar reportes en PDF y Excel?',
         ],
       );
     }
@@ -166,7 +165,7 @@ class AssistantModuleContext {
           '¿Cómo modificar roles de usuarios y auditar permisos?',
           '¿Cómo verificar y forzar la sincronización de la tasa oficial BCV?',
           '¿Cómo auditar y verificar el estado de las políticas RLS?',
-          '¿Cómo configurar y calibrar la impresora térmica Bluetooth ESC/POS?',
+          '¿Cómo previsualizar, imprimir y exportar reportes en PDF y Excel?',
         ],
       );
     }
@@ -208,7 +207,7 @@ class AssistantModuleContext {
           'Soy Umby, tu asistente de soporte técnico y guía inteligente en la plataforma UMBRAL del Instituto Municipal de la Mujer (IMMUJER). Puedo diagnosticar fallos, orientarte paso a paso y resolver dudas.',
       quickPrompts: [
         '¿Cómo actualizar fotografía y número telefónico en Mi Perfil?',
-        '¿Cómo configurar y calibrar la impresora térmica Bluetooth ESC/POS?',
+        '¿Cómo previsualizar, imprimir y exportar reportes en PDF y Excel?',
       ],
     );
   }

@@ -6,10 +6,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:umbral_immujer/features/assistant/presentation/screens/mia_chat_screen.dart';
 import 'package:umbral_immujer/features/coordinator/presentation/coordinator_dashboard_page.dart';
 import 'package:umbral_immujer/features/landing/presentation/pages/landing_page.dart';
-import 'package:umbral_immujer/features/printing/presentation/printer_settings_screen.dart';
 import 'package:umbral_immujer/features/reports/presentation/reports_screen.dart';
 import 'package:umbral_immujer/features/student/presentation/student_dashboard_page.dart';
 import 'package:umbral_immujer/features/superadmin/presentation/configuracion_general_screen.dart';
+import 'package:umbral_immujer/features/superadmin/presentation/gestion_alumnos_page.dart';
+import 'package:umbral_immujer/features/superadmin/presentation/gestion_cursos_page.dart';
 import 'package:umbral_immujer/features/superadmin/presentation/gestion_profesores_page.dart';
 import 'package:umbral_immujer/features/superadmin/presentation/super_admin_dashboard.dart';
 import 'package:umbral_immujer/features/teacher/presentation/teacher_dashboard_page.dart';
@@ -38,8 +39,6 @@ final GoRouter appRouter = GoRouter(
         _matchesPrefix(path, '/coordinador') ||
         _matchesPrefix(path, '/reports') ||
         _matchesPrefix(path, '/reportes') ||
-        _matchesPrefix(path, '/printer-settings') ||
-        _matchesPrefix(path, '/impresora') ||
         _matchesPrefix(path, '/assistant') ||
         _matchesPrefix(path, '/asistente') ||
         _matchesPrefix(path, '/mia') ||
@@ -187,6 +186,20 @@ final GoRouter appRouter = GoRouter(
       ),
     ),
     GoRoute(
+      path: '/superadmin/cursos',
+      builder: (context, state) => _AuthenticatedDashboardPage(
+        allowedRoles: const [UserRole.superAdmin],
+        builder: (profile) => const GestionCursosPage(),
+      ),
+    ),
+    GoRoute(
+      path: '/superadmin/alumnos',
+      builder: (context, state) => _AuthenticatedDashboardPage(
+        allowedRoles: const [UserRole.superAdmin],
+        builder: (profile) => const GestionAlumnosPage(),
+      ),
+    ),
+    GoRoute(
       path: '/superadmin/configuracion',
       builder: (context, state) => _AuthenticatedDashboardPage(
         allowedRoles: const [UserRole.superAdmin],
@@ -202,6 +215,14 @@ final GoRouter appRouter = GoRouter(
       redirect: (context, state) => '/superadmin/profesores',
     ),
     GoRoute(
+      path: '/gestion-cursos',
+      redirect: (context, state) => '/superadmin/cursos',
+    ),
+    GoRoute(
+      path: '/gestion-alumnos',
+      redirect: (context, state) => '/superadmin/alumnos',
+    ),
+    GoRoute(
       path: '/reports',
       builder: (context, state) {
         final cursoId = state.uri.queryParameters['cursoId'];
@@ -211,16 +232,6 @@ final GoRouter appRouter = GoRouter(
         );
       },
     ),
-    GoRoute(
-      path: '/printer-settings',
-      builder: (context, state) {
-        return _AuthenticatedDashboardPage(
-          allowedRoles: const [UserRole.coordinador, UserRole.superAdmin, UserRole.profesor],
-          builder: (profile) => const PrinterSettingsScreen(),
-        );
-      },
-    ),
-    GoRoute(path: '/impresora', redirect: (context, state) => '/printer-settings'),
     GoRoute(path: '/reportes', redirect: (context, state) => '/reports'),
     GoRoute(path: '/coordinador', redirect: (context, state) => '/coordinator'),
     GoRoute(

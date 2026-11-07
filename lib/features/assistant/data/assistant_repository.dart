@@ -466,11 +466,11 @@ class AssistantRepository {
               '3. Utiliza los botones de exportación a **PDF** o planilla digital para la gestión administrativa de IMMUJER.';
           nextSuggestions = [
             '¿Cómo registrar y programar un nuevo curso?',
-            '¿Cómo configurar y calibrar la impresora térmica Bluetooth ESC/POS?',
+            '¿Cómo previsualizar, imprimir y exportar reportes en PDF y Excel?',
           ];
         } else {
           responseText =
-              'Coordinador(a) $userFirstName, en esta interfaz puedes registrar ofertas de cursos, aprobar temarios docentes, calibrar la impresión térmica y exportar reportes oficiales de IMMUJER.';
+              'Coordinador(a) $userFirstName, en esta interfaz puedes registrar ofertas de cursos, aprobar temarios docentes y previsualizar, imprimir y exportar reportes oficiales de IMMUJER.';
           nextSuggestions = const [];
         }
         break;
@@ -500,7 +500,7 @@ class AssistantRepository {
               'El rol Super Admin cuenta con directivas de bypass e inspección de esquemas mediante `pg_policies` para auditar la integridad de la base de datos institucional.';
           nextSuggestions = [
             '¿Cómo modificar roles de usuarios y auditar permisos?',
-            '¿Cómo configurar y calibrar la impresora térmica Bluetooth ESC/POS?',
+            '¿Cómo previsualizar, imprimir y exportar reportes en PDF y Excel?',
           ];
         } else {
           responseText =

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
-import 'package:umbral_immujer/features/assistant/presentation/widgets/mia_assistant_widget.dart';
 import 'package:umbral_immujer/features/superadmin/presentation/widgets/super_admin_notifications_modal.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/services/online_user_presence_service.dart';
@@ -592,10 +591,6 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
       data: AppTheme.lightTheme.copyWith(scaffoldBackgroundColor: cBg),
       child: Scaffold(
         backgroundColor: cBg,
-        floatingActionButton: MiaFloatingAssistant(
-          profile: widget.profile,
-          currentModule: 'superadmin',
-        ),
         body: LayoutBuilder(
           builder: (context, constraints) {
             final isDesktop = constraints.maxWidth >= 1024;
