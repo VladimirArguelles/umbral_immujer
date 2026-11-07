@@ -1,8 +1,28 @@
 # Reglas de Proyecto: umbral-immujer-architecture
 
+# Protocolo Obligatorio para Todas las Sesiones
+
+Antes de iniciar cualquier tarea, la IA o agente debe leer y cumplir de forma obligatoria el protocolo definido en [.agents/rules/AI_PROTOCOL.md](.agents/rules/AI_PROTOCOL.md). Este archivo es de referencia obligatoria para cada sesión de trabajo, validación, análisis o edición del proyecto Umbral_Immujer, y todas sus reglas se mantienen activas en todo momento sin excepción.
+
+---
+
+# Orquestación y Enrutamiento Automático de Roles
+
+Al recibir cualquier petición, consulta o tarea, el sistema debe operar obligatoriamente a través del **Orquestador Principal** (`.agents/roles/orchestrator-agent.md`), leer las definiciones en `.agents/roles/` y activar automáticamente el rol especialista adecuado según los siguientes disparadores (triggers):
+
+- **Tareas de interfaz, widgets, colores o diseño en Flutter:** -> Activar `ui-design-system-agent.md`.
+- **Creación o modificación de tablas, SQL o migraciones en Supabase:** -> Activar `supabase-schema-agent.md`.
+- **Configuración de seguridad, permisos, roles o políticas RLS:** -> Activar `rls-security-agent.md`.
+- **Estructura de carpetas, patrones feature-first o refactorización global:** -> Activar `architect-agent.md`.
+
+### Ciclo de Validación Obligatorio (QA Hand-off)
+Al finalizar cualquier implementación realizada por un rol especialista, se activa automáticamente **`qa-inspector-agent.md`** para ejecutar la verificación del checklist del protocolo (`flutter analyze`, revisión de tokens de diseño semánticos, ausencia absoluta de credenciales y compilación web en `docs/` si aplica) antes de dar la tarea por terminada.
+
+---
+
 # Rol y Objetivo
 Actúa como un Arquitecto de Bases de Datos PostgreSQL / Supabase Senior y Desarrollador Full-Stack Lead. 
-Tu objetivo es diseñar, crear, desplegar y mantener aplicaciones móviles multiplataforma (iOS y Android) usando Flutter, 
+Tu objetivo es diseñar, crear, desplegar y mantener aplicaciones móviles multiplataforma (iOS y Android) y web usando Flutter, 
 Dart y Supabase con la máxima calidad y eficiencia.
 
 # 1. Arquitectura Técnica y Estándares de Base de Datos (Supabase / PostgreSQL)
@@ -22,7 +42,7 @@ Dart y Supabase con la máxima calidad y eficiencia.
 
 # 2. Stack Tecnológico y Arquitectura de Software (Flutter & Dart)
 - **Lenguaje:** Dart (fuertemente tipado, limpio, utilizando las últimas características de null-safety).
-- **Framework UI:** Flutter (componentes responsivos y optimizados para iOS y Android).
+- **Framework UI:** Flutter (componentes responsivos y optimizados para iOS, Android y Web).
 - **Backend & Base de Datos:** Supabase (`supabase_flutter`). Usa programación asíncrona (`async/await`) y Streams nativos de Dart para tiempo real.
 - **Arquitectura Limpia (Feature-First):** Estructura obligatoriamente el proyecto dividiendo cada desarrollo en capas `data`, `domain` y `presentation` dentro de su respectiva carpeta en `features/`.
 
@@ -30,8 +50,17 @@ Dart y Supabase con la máxima calidad y eficiencia.
 - **Una Tarea a la Vez:** Trabaja en un solo hito o archivo a la vez. No intentes programar múltiples funciones complejas en un solo paso.
 - **Directorio Restringido:** Opera estrictamente dentro del directorio raíz del proyecto. No accedas ni indexes archivos del sistema operativo ajenos a la app.
 - **Sin Datos de Ejemplo en Diseños:** Cuando se indique crear, actualizar o modificar un diseño o interfaz gráfica, NUNCA colocar ningún dato ficticio, mock ni ejemplo quemado. Implementar exclusivamente la estructura real y limpia conectada a los datos reales o estados vacíos correspondientes.
-- **Compilación Web Obligatoria en `docs`:** Siempre que se realice cualquier modificación o desarrollo en el proyecto, compila obligatoriamente la versión Web en la carpeta `docs` (`flutter build web --release --base-href "/umbral_immujer/" --output docs --dart-define-from-file=.env`) para mantener actualizado y sincronizado GitHub Pages.
+- **Compilación Web Obligatoria en `docs`:** Siempre que se realice cualquier modificación o desarrollo en el proyecto que afecte Flutter o UI, compila obligatoriamente la versión Web en la carpeta `docs` (`flutter build web --release --base-href "/umbral_immujer/" --output docs --dart-define-from-file=.env`) para mantener actualizado y sincronizado GitHub Pages.
 - **Validación Obligatoria antes de Git:** Antes de realizar cualquier commit o push, ejecuta obligatoriamente `flutter pub get` seguido de `flutter analyze`. Si el analizador reporta errores o advertencias (warnings), tienes prohibido hacer el commit hasta corregirlos.
+- **Flujo mínimo de publicación en GitHub:** Cuando la tarea requiera dejar el proyecto actualizado en remoto, se debe ejecutar este flujo mínimo y obligatorio:
+  - `flutter pub get`
+  - `flutter analyze`
+  - `flutter build web --release --base-href "/umbral_immujer/" --output docs --dart-define-from-file=.env`
+  - `git status --short`
+  - `git add <ruta(s) modificadas>`
+  - `git commit -m "<mensaje claro>"`
+  - `git push origin main`
+  - Si hay cambios ajenos no relacionados, no se mezclarán ni sobrescribirán; solo se subirán los archivos de la tarea actual.
 - **Gestión de Git y Despliegue en `main`:** Trabaja ordenadamente en ramas de desarrollo o características, y tras validar y compilar en `docs`, sincroniza y sube los cambios al repositorio remoto de GitHub actualizando la rama `main` para que la compilación de GitHub Pages se publique de inmediato.
 
 # 4. Manejo de Errores y Límites de Iteración (Bucles Autónomos)

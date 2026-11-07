@@ -115,7 +115,7 @@ class _SuperAdminNotificationBellButtonState
     final border = AppColors.outline;
 
     return Tooltip(
-      message: 'Notificaciones del Sistema e Incidencias Umby',
+      message: 'Notificaciones del Sistema e Incidencias',
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -182,7 +182,7 @@ class _SuperAdminNotificationBellButtonState
   }
 }
 
-/// Diálogo Modal Completo de Notificaciones y Diagnósticos Umby para Super Admin
+/// Diálogo modal de notificaciones y diagnósticos del sistema para Super Admin.
 class SuperAdminNotificationsModal extends StatefulWidget {
   const SuperAdminNotificationsModal({super.key});
 
@@ -205,7 +205,7 @@ class _SuperAdminNotificationsModalState
   List<SuperAdminNotificationItem> _notifications = [];
   bool _isLoading = true;
   String? _errorMessage;
-  int _selectedFilter = 0; // 0 = Todas, 1 = Solo Incidencias Umby
+  int _selectedFilter = 0; // 0 = Todas, 1 = Solo incidencias operativas
 
   @override
   void initState() {
@@ -441,7 +441,7 @@ class _SuperAdminNotificationsModalState
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Incidencias operativas reportadas por usuarios a Umby',
+                            'Incidencias operativas reportadas por usuarios y equipos del sistema',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
                               color: textMuted,
@@ -488,7 +488,7 @@ class _SuperAdminNotificationsModalState
                         color: AppColors.warning,
                       ),
                       label: Text(
-                        'Incidencias Umby (${_notifications.where((n) => n.isOperationalIssue).length})',
+                        'Incidencias del sistema (${_notifications.where((n) => n.isOperationalIssue).length})',
                       ),
                       selected: _selectedFilter == 1,
                       onSelected: (val) => setState(() => _selectedFilter = 1),
