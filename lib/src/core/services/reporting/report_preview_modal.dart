@@ -1,11 +1,15 @@
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
+import 'package:umbral_immujer/src/core/services/error_notification/system_error_notification_service.dart';
 import 'excel_report_generator.dart';
+import 'html_report_generator.dart';
 import 'pdf_report_generator.dart';
 import 'report_models.dart';
+import 'web_printer.dart';
 
 /// Modal Glassmorphism de Previsualización, Impresión y Exportación de Informes UMBRAL.
 class ReportPreviewModal extends StatefulWidget {
@@ -187,19 +191,35 @@ class _ReportPreviewModalState extends State<ReportPreviewModal> {
   Future<void> _handlePrint() async {
     setState(() => _isProcessing = true);
     try {
-      await Printing.layoutPdf(
-        name: widget.data.reportTitle,
-        format: _format,
-        onLayout: (fmt) => PdfReportGenerator.generatePdf(data: widget.data, format: _format),
+      if (kIsWeb) {
+        final html = HtmlReportGenerator.generateHtml(widget.data, isLandscape: _isLandscape);
+        final launched = await printHtmlViaBrowser(html, title: widget.data.reportTitle);
+        if (!launched) {
+          await Printing.layoutPdf(
+            name: widget.data.reportTitle,
+            format: _format,
+            onLayout: (fmt) => PdfReportGenerator.generatePdf(data: widget.data, format: _format),
+          );
+        }
+      } else {
+        await Printing.layoutPdf(
+          name: widget.data.reportTitle,
+          format: _format,
+          onLayout: (fmt) => PdfReportGenerator.generatePdf(data: widget.data, format: _format),
+        );
+      }
+    } catch (e, stack) {
+      await SystemErrorNotificationService.reportarError(
+        modulo: 'Reportes e Impresión',
+        titulo: 'Fallo al invocar servicio de impresión',
+        error: e,
+        stackTrace: stack,
+        dondeEstaElProblema: 'ReportPreviewModal._handlePrint',
+        causasProbables: 'Bloqueo del spooler o del visor de impresión en el dispositivo.',
       );
-    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al conectar con el servicio de impresión: $e'),
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
-          ),
+          SnackBar(content: Text('Error al imprimir: $e'), backgroundColor: Colors.redAccent),
         );
       }
     } finally {

@@ -24,6 +24,7 @@ dependencies:
   printing: ^5.15.1
   flutter_blue_plus: ^2.3.14
   excel: ^4.0.6
+  web: ^1.1.0
 
 dev_dependencies:
   flutter_test:

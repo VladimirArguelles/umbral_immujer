@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pdf/pdf.dart';
 import 'package:umbral_immujer/src/core/services/reporting/excel_report_generator.dart';
+import 'package:umbral_immujer/src/core/services/reporting/html_report_generator.dart';
 import 'package:umbral_immujer/src/core/services/reporting/pdf_report_generator.dart';
 import 'package:umbral_immujer/src/core/services/reporting/report_models.dart';
 
@@ -70,6 +71,18 @@ void main() {
       // Los archivos .xlsx son ZIP binarios con encabezado 'PK' (0x50, 0x4B)
       expect(excelBytes[0], equals(0x50));
       expect(excelBytes[1], equals(0x4B));
+    });
+
+    test('HtmlReportGenerator genera documento HTML imprimible con auto-print', () {
+      final html = HtmlReportGenerator.generateHtml(payload);
+
+      expect(html, contains('<!DOCTYPE html>'));
+      expect(html, contains('Control de Asistencia Consolidada'));
+      expect(html, contains('IMMUJER - Sistema UMBRAL'));
+      expect(html, contains('window.print()'));
+      expect(html, contains('Costura Básica'));
+      expect(html, contains('3 Alumnos'));
+      expect(html, contains('1.400,00 Bs'));
     });
   });
 }

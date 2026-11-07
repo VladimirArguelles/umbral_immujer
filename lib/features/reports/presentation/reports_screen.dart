@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:printing/printing.dart';
 import 'package:umbral_immujer/core/services/reporting/reporting_service.dart';
+import 'package:umbral_immujer/src/core/services/error_notification/system_error_notification_service.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 
 import '../data/reports_repository.dart';
@@ -318,7 +319,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
         );
         _showSnack('Documento generado exitosamente.');
       }
-    } catch (e) {
+    } catch (e, stack) {
+      await SystemErrorNotificationService.reportarError(
+        modulo: 'Reportes e Impresión',
+        titulo: 'Fallo al exportar o compartir documento',
+        error: e,
+        stackTrace: stack,
+        dondeEstaElProblema: 'ReportsScreen._handleGuardar',
+        causasProbables: 'Fallo al procesar los bytes o al invocar el almacenamiento/compartir.',
+      );
       _showSnack('Error al guardar o compartir el documento: $e');
     } finally {
       if (mounted) setState(() => _isGeneratingPdf = false);
