@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:pdf/pdf.dart';
@@ -184,14 +185,35 @@ class _ReportPreviewModalState extends State<ReportPreviewModal> {
     );
   }
 
+  bool get _isMobileWeb =>
+      kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
+
   Future<void> _handlePrint() async {
     setState(() => _isProcessing = true);
     try {
-      await Printing.layoutPdf(
-        name: widget.data.reportTitle,
-        format: _format,
-        onLayout: (fmt) => PdfReportGenerator.generatePdf(data: widget.data, format: _format),
-      );
+      final bytes = await PdfReportGenerator.generatePdf(data: widget.data, format: _format);
+      if (_isMobileWeb) {
+        final filename = 'Impresion_${widget.data.reportTitle.replaceAll(RegExp(r'\s+'), '_')}.pdf';
+        await Printing.sharePdf(bytes: bytes, filename: filename);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Documento enviado al lector/servicio de impresión móvil.'),
+              backgroundColor: Color(0xFF1E112A),
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      } else {
+        await Printing.layoutPdf(
+          name: widget.data.reportTitle,
+          format: _format,
+          onLayout: (fmt) async => bytes,
+        );
+      }
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
