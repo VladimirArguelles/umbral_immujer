@@ -1,0 +1,16 @@
+# ==============================================================================
+# Plantilla de configuración de firma para Release (Umbral Immujer - Android)
+# ==============================================================================
+# Para configurar la firma oficial de producción:
+# 1. Copia este archivo como 'key.properties' en esta misma carpeta (android/).
+# 2. Genera tu Keystore con el comando keytool y guárdalo (ej. android/app/my_release_keystore.jks).
+# 3. Completa los valores a continuación.
+#
+# IMPORTANTE: 'key.properties' y los archivos '*.jks' / '*.keystore' están ignorados
+# en '.gitignore' para que nunca suban contraseñas o claves privadas a GitHub.
+# ==============================================================================
+
+storePassword=TU_PASSWORD_DEL_KEYSTORE
+keyPassword=TU_PASSWORD_DEL_ALIAS
+keyAlias=my_key_alias
+storeFile=app/my_release_keystore.jks
