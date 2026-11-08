@@ -4,11 +4,65 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:umbral_immujer/core/services/error_console_service.dart';
+import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 
-/// Pantalla de consola de diagnóstico de errores en estilo terminal oscuro (#0F172A).
-/// Permite al Super Admin visualizar, depurar e inspeccionar excepciones en tiempo de ejecución.
-class ErrorConsoleScreen extends StatelessWidget {
+/// Pantalla de consola de diagnóstico de errores y auditoría de IA en estilo terminal oscuro (#0F172A).
+/// Permite al Super Admin visualizar excepciones en memoria e historial de interacciones de Umby / Gemini.
+class ErrorConsoleScreen extends StatefulWidget {
   const ErrorConsoleScreen({super.key});
+
+  @override
+  State<ErrorConsoleScreen> createState() => _ErrorConsoleScreenState();
+}
+
+class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+  List<Map<String, dynamic>> _assistantLogs = [];
+  bool _isLoadingAssistantLogs = false;
+  String? _assistantLogsError;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _cargarAssistantLogs();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _cargarAssistantLogs() async {
+    setState(() {
+      _isLoadingAssistantLogs = true;
+      _assistantLogsError = null;
+    });
+
+    try {
+      final data = await SupabaseConfig.client
+          .from('assistant_logs')
+          .select()
+          .order('created_at', ascending: false)
+          .limit(60);
+
+      if (mounted) {
+        setState(() {
+          _assistantLogs = List<Map<String, dynamic>>.from(data);
+          _isLoadingAssistantLogs = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _assistantLogsError = e.toString();
+          _isLoadingAssistantLogs = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +115,11 @@ class ErrorConsoleScreen extends StatelessWidget {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Symbols.refresh, color: Color(0xFF38BDF8)),
+            tooltip: 'Recargar auditoría IA',
+            onPressed: _cargarAssistantLogs,
+          ),
+          IconButton(
             icon: const Icon(Icons.delete_sweep, color: Color(0xFFF87171)),
             tooltip: 'Limpiar logs de memoria',
             onPressed: () {
@@ -75,38 +134,359 @@ class ErrorConsoleScreen extends StatelessWidget {
             },
           ),
         ],
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: const Color(0xFF38BDF8),
+          indicatorWeight: 3,
+          labelColor: const Color(0xFF38BDF8),
+          unselectedLabelColor: const Color(0xFF94A3B8),
+          labelStyle: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold),
+          tabs: [
+            Tab(
+              icon: const Icon(Symbols.bug_report, size: 18),
+              text: 'Excepciones en Vivo',
+            ),
+            Tab(
+              icon: const Icon(Symbols.smart_toy, size: 18),
+              text: 'Auditoría IA Umby (${_assistantLogs.length})',
+            ),
+          ],
+        ),
       ),
-      body: AnimatedBuilder(
-        animation: ErrorConsoleService.instance,
-        builder: (context, _) {
-          final logs = ErrorConsoleService.instance.logs;
-          if (logs.isEmpty) return _buildTerminalEmptyState();
-
-          return Column(
-            children: [
-              _buildStatusBar(logs.length),
-              Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: logs.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) => _buildLogCard(context, logs[index]),
-                ),
-              ),
-            ],
-          );
-        },
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildMemoryLogsTab(),
+          _buildAssistantLogsTab(),
+        ],
       ),
     );
   }
 
-  Widget _buildStatusBar(int count) {
+  // ===========================================================================
+  // PESTAÑA 1: EXCEPCIONES EN VIVO
+  // ===========================================================================
+  Widget _buildMemoryLogsTab() {
+    return AnimatedBuilder(
+      animation: ErrorConsoleService.instance,
+      builder: (context, _) {
+        final logs = ErrorConsoleService.instance.logs;
+        if (logs.isEmpty) return _buildTerminalEmptyState();
+
+        return Column(
+          children: [
+            _buildStatusBar(
+              'BÚFER: ${logs.length}/${ErrorConsoleService.maxLogs} entradas en memoria | Auto-rotativo',
+            ),
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.all(12),
+                itemCount: logs.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 8),
+                itemBuilder: (context, index) => _buildLogCard(context, logs[index]),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ===========================================================================
+  // PESTAÑA 2: AUDITORÍA DE IA Y CONSULTAS DE UMBY
+  // ===========================================================================
+  Widget _buildAssistantLogsTab() {
+    if (_isLoadingAssistantLogs) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFF38BDF8)),
+      );
+    }
+
+    if (_assistantLogsError != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Symbols.error, color: Color(0xFFEF4444), size: 44),
+              const SizedBox(height: 12),
+              Text(
+                'Error al consultar assistant_logs:',
+                style: GoogleFonts.firaCode(color: const Color(0xFFF87171), fontSize: 13),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _assistantLogsError!,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.plusJakartaSans(color: const Color(0xFF94A3B8), fontSize: 12),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: _cargarAssistantLogs,
+                icon: const Icon(Symbols.refresh, size: 18),
+                label: const Text('Reintentar'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1E293B),
+                  foregroundColor: const Color(0xFF38BDF8),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_assistantLogs.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFF334155)),
+                ),
+                child: const Icon(Symbols.smart_toy, color: Color(0xFF38BDF8), size: 44),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                r'$ select * from assistant_logs',
+                style: GoogleFonts.firaCode(
+                  fontSize: 14,
+                  color: const Color(0xFF38BDF8),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'No hay interacciones registradas aún en la tabla assistant_logs.\nLas consultas de los usuarios se registrarán aquí automáticamente.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF94A3B8)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        _buildStatusBar(
+          'AUDITORÍA: ${_assistantLogs.length} interacciones registradas en Supabase | Orden DESC',
+        ),
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.all(12),
+            itemCount: _assistantLogs.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 10),
+            itemBuilder: (context, index) => _buildAssistantLogCard(_assistantLogs[index]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAssistantLogCard(Map<String, dynamic> item) {
+    final userNombre = item['user_nombre'] as String? ?? 'Anónimo';
+    final userRol = (item['user_rol'] as String? ?? 'alumno').toUpperCase();
+    final modulo = (item['modulo_id'] as String? ?? 'general').toUpperCase();
+    final modelo = item['modelo_ia'] as String? ?? 'gemini-2.5-flash';
+    final question = item['user_question'] as String? ?? '';
+    final answer = item['bot_answer'] as String? ?? '';
+    final ticketId = item['ticket_id'] as String?;
+    final createdAtRaw = item['created_at'] as String?;
+
+    String horaFormateada = '';
+    if (createdAtRaw != null) {
+      try {
+        final dt = DateTime.parse(createdAtRaw).toLocal();
+        horaFormateada =
+            '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}:${dt.second.toString().padLeft(2, '0')}';
+      } catch (_) {
+        horaFormateada = createdAtRaw;
+      }
+    }
+
+    final isGemini = modelo.toLowerCase().contains('gemini');
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFF334155)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: ExpansionTile(
+        collapsedIconColor: const Color(0xFF94A3B8),
+        iconColor: const Color(0xFF38BDF8),
+        tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: isGemini
+                ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                : const Color(0xFFF59E0B).withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            isGemini ? Symbols.neurology : Symbols.memory,
+            color: isGemini ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+            size: 20,
+          ),
+        ),
+        title: Wrap(
+          spacing: 6,
+          runSpacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFF38BDF8).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                '[$modulo]',
+                style: GoogleFonts.firaCode(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF38BDF8),
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: isGemini
+                    ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                    : const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                modelo,
+                style: GoogleFonts.firaCode(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: isGemini ? const Color(0xFF34D399) : const Color(0xFFFBBF24),
+                ),
+              ),
+            ),
+            if (ticketId != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEF4444).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: const Color(0xFFEF4444), width: 0.8),
+                ),
+                child: Text(
+                  'TICKET #${ticketId.substring(0, 8)}',
+                  style: GoogleFonts.firaCode(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFFF87171),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '👤 $userNombre ($userRol) • $horaFormateada',
+                style: GoogleFonts.firaCode(fontSize: 11, color: const Color(0xFF94A3B8)),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '💬 "$question"',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12.5,
+                  color: const Color(0xFFF1F5F9),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        children: [
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF090D16),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: const Color(0xFF334155)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'RESPUESTA GENERADA POR UMBY / GEMINI:',
+                      style: GoogleFonts.firaCode(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF38BDF8),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Symbols.content_copy, size: 16, color: Color(0xFF38BDF8)),
+                      tooltip: 'Copiar interacción',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () {
+                        Clipboard.setData(
+                          ClipboardData(
+                            text: 'PREGUNTA ($userNombre - $modulo):\n$question\n\nRESPUESTA:\n$answer',
+                          ),
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Interacción copiada al portapapeles.'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                SelectableText(
+                  answer.trim().isNotEmpty ? answer : 'Sin contenido de respuesta registrado.',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    color: const Color(0xFFCBD5E1),
+                    height: 1.45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusBar(String text) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       color: const Color(0xFF1E293B).withValues(alpha: 0.6),
       child: Text(
-        'BÚFER: $count/${ErrorConsoleService.maxLogs} entradas registradas | Auto-rotativo',
+        text,
         style: GoogleFonts.firaCode(fontSize: 11, color: const Color(0xFF94A3B8)),
       ),
     );
@@ -131,7 +511,11 @@ class ErrorConsoleScreen extends StatelessWidget {
             const SizedBox(height: 18),
             Text(
               r'$ umbral --diagnostico-status',
-              style: GoogleFonts.firaCode(fontSize: 14, color: const Color(0xFF38BDF8), fontWeight: FontWeight.w600),
+              style: GoogleFonts.firaCode(
+                fontSize: 14,
+                color: const Color(0xFF38BDF8),
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -175,7 +559,11 @@ class ErrorConsoleScreen extends StatelessWidget {
               Flexible(
                 child: Text(
                   item.origen,
-                  style: GoogleFonts.firaCode(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFFF1F5F9)),
+                  style: GoogleFonts.firaCode(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFFF1F5F9),
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -207,7 +595,11 @@ class ErrorConsoleScreen extends StatelessWidget {
                     children: [
                       Text(
                         'STACK TRACE / CAUSA TÉCNICA:',
-                        style: GoogleFonts.firaCode(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF94A3B8)),
+                        style: GoogleFonts.firaCode(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF94A3B8),
+                        ),
                       ),
                       IconButton(
                         icon: const Icon(Symbols.content_copy, size: 16, color: Color(0xFF38BDF8)),
@@ -217,7 +609,10 @@ class ErrorConsoleScreen extends StatelessWidget {
                         onPressed: () {
                           Clipboard.setData(ClipboardData(text: '${item.mensaje}\n\n${item.causa}'));
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Diagnóstico copiado al portapapeles.'), duration: Duration(seconds: 2)),
+                            const SnackBar(
+                              content: Text('Diagnóstico copiado al portapapeles.'),
+                              duration: Duration(seconds: 2),
+                            ),
                           );
                         },
                       ),

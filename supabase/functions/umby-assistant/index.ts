@@ -326,6 +326,30 @@ serve(async (req: Request) => {
       );
     }
 
+    // Registro de auditoría e historial en assistant_logs
+    try {
+      await adminClient.from("assistant_logs").insert({
+        user_id: userId || null,
+        user_nombre: userName,
+        user_rol: role,
+        modulo_id: currentModule,
+        user_question: query,
+        bot_answer: responseText,
+        modelo_ia: modelUsed,
+        ticket_id: autoTicketId || null,
+        metadatos: {
+          telemetry,
+          red: telemetry.networkStatus || "Normal",
+          bluetooth: telemetry.bluetoothStatus || "N/A",
+          ultimo_error: lastError,
+          ticket_generado: autoTicketId != null,
+          notificacion_admin: notificationSentToAdmin,
+        },
+      });
+    } catch (auditErr) {
+      console.warn("[Umby] Error al guardar auditoría en assistant_logs:", auditErr);
+    }
+
     // 5. Respuesta JSON estructurada hacia Flutter
     return new Response(
       JSON.stringify({
