@@ -130,6 +130,7 @@ class _MiaChatScreenState extends State<MiaChatScreen> {
         query: text,
         moduleContext: _moduleContext,
         profile: widget.profile,
+        history: _messages,
       );
 
       if (!mounted) return;

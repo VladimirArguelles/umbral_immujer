@@ -124,6 +124,7 @@ class AssistantRepository {
     required String query,
     required AssistantModuleContext moduleContext,
     UserProfile? profile,
+    List<ChatMessage>? history,
   }) async {
     final telemetry = await collectTelemetry(
       moduleContext: moduleContext,
@@ -136,10 +137,20 @@ class AssistantRepository {
         'umby-assistant',
         body: {
           'query': query,
+          'message': query,
+          'userRole': telemetry.userRole,
+          'currentModule': telemetry.currentModule,
+          'lastError': telemetry.lastError,
           'telemetry': telemetry.toJson(),
+          'conversationHistory': (history ?? [])
+              .map((m) => {
+                    'sender': m.isUser ? 'user' : 'assistant',
+                    'text': m.text,
+                  })
+              .toList(),
           'autoTicketOnCritical': true,
         },
-      ).timeout(const Duration(seconds: 8));
+      ).timeout(const Duration(seconds: 15));
 
       final data = response.data;
       if (response.status == 200 && data is Map && data['success'] == true) {

@@ -18,89 +18,202 @@ interface TelemetryPayload {
   userName?: string;
 }
 
+interface ConversationItem {
+  sender: "user" | "assistant";
+  text: string;
+}
+
 interface RequestBody {
-  query: string;
+  // Parámetros directos o de primer nivel
+  query?: string;
+  message?: string;
+  userRole?: string;
+  role?: string;
+  currentModule?: string;
+  module?: string;
+  errorContext?: string;
+  lastError?: string;
+  userId?: string;
+  userName?: string;
+
+  // Objeto de telemetría emitido por la app cliente Flutter
   telemetry?: TelemetryPayload;
-  conversationHistory?: Array<{ sender: "user" | "assistant"; text: string }>;
+
+  // Historial contextual de la conversación
+  conversationHistory?: ConversationItem[];
+
+  // Flag para apertura automática de tickets ante excepciones críticas
   autoTicketOnCritical?: boolean;
 }
 
+interface GuideItem {
+  id?: string;
+  modulo: string;
+  titulo_operacion: string;
+  instrucciones_paso_a_paso: string;
+  rol_permitido: string[];
+}
+
+interface SupportItem {
+  id?: string;
+  categoria: string;
+  codigo_error?: string;
+  titulo: string;
+  sintoma: string;
+  causa_raiz: string;
+  solucion_guiada: string;
+  solucion_tecnica_sql?: string;
+  severidad: string;
+}
+
 serve(async (req: Request) => {
+  // Manejo de preflight CORS
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
+    // 1. Configuración de credenciales y variables de entorno seguras
+    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? supabaseAnonKey;
 
+    // Header de autorización del usuario (JWT)
     const authHeader = req.headers.get("Authorization");
-    const client = createClient(supabaseUrl, authHeader ? supabaseAnonKey : supabaseServiceRoleKey, {
+
+    // Cliente 1 (Seguridad RLS): Ejecuta consultas con la identidad del usuario autenticado
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: {
         headers: authHeader ? { Authorization: authHeader } : undefined,
       },
+      auth: {
+        persistSession: false,
+      },
     });
 
-    const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+    // Cliente 2 (Operaciones Administrativas Internas): Tickets de sistema y alertas globales
+    const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: {
+        persistSession: false,
+      },
+    });
 
-    const body: RequestBody = await req.json();
-    const query = (body.query || "").trim();
+    // 2. Extracción y normalización de parámetros recibidos desde Flutter
+    const body: RequestBody = await req.json().catch(() => ({}));
+    const query = (body.message || body.query || "").trim();
     const telemetry = body.telemetry || {};
 
-    // NORMALIZACIÓN ESTRICTA: SUPERADMIN = SUPER_ADMIN
-    let rawRole = (telemetry.userRole || "alumno").toLowerCase().trim().replace(/[\s\-]/g, "_");
-    if (rawRole === "superadmin" || rawRole === "super_admin" || rawRole === "admin" || rawRole === "administrador") {
+    // Normalización del rol del usuario
+    let rawRole = (body.userRole || body.role || telemetry.userRole || "alumno")
+      .toLowerCase()
+      .trim()
+      .replace(/[\s\-]/g, "_");
+
+    if (
+      rawRole === "superadmin" ||
+      rawRole === "super_admin" ||
+      rawRole === "admin" ||
+      rawRole === "administrador"
+    ) {
       rawRole = "super_admin";
+    } else if (rawRole === "docente" || rawRole === "maestro") {
+      rawRole = "profesor";
+    } else if (rawRole === "estudiante" || rawRole === "participante") {
+      rawRole = "alumno";
     }
     const role = rawRole;
     const isSuperAdmin = role === "super_admin";
     const isCoordinator = role === "coordinador" || isSuperAdmin;
     const isTeacher = role === "profesor" || isSuperAdmin;
-    const lastError = telemetry.lastError || null;
-    const currentModule = (telemetry.currentModule || "general").toLowerCase().trim();
 
+    // Módulo, error y contexto de usuario
+    const currentModule = (
+      body.currentModule ||
+      body.module ||
+      telemetry.currentModule ||
+      "general"
+    )
+      .toLowerCase()
+      .trim();
+
+    const lastError = body.errorContext || body.lastError || telemetry.lastError || null;
+    const userId = body.userId || telemetry.userId || null;
+    const userName = body.userName || telemetry.userName || "Usuario";
+
+    // 3. Consulta de tablas de Supabase aplicando estrictamente las políticas RLS
+    // A) Guías operativas oficiales (filtradas por RLS según el rol del usuario conectado)
+    let guides: GuideItem[] = [];
+    try {
+      const { data: guidesData, error: guidesErr } = await userClient
+        .from("guia_operaciones")
+        .select("id, modulo, titulo_operacion, instrucciones_paso_a_paso, rol_permitido");
+
+      if (!guidesErr && Array.isArray(guidesData)) {
+        guides = guidesData as GuideItem[];
+      }
+    } catch (_err) {
+      // Manejo silencioso ante problemas de red
+    }
+
+    // B) Base de conocimiento técnico de soporte (política RLS para usuarios autenticados)
+    let supportKnowledge: SupportItem[] = [];
+    try {
+      const { data: supportData, error: supportErr } = await userClient
+        .from("soporte_conocimiento")
+        .select(
+          "id, categoria, codigo_error, titulo, sintoma, causa_raiz, solucion_guiada, solucion_tecnica_sql, severidad"
+        );
+
+      if (!supportErr && Array.isArray(supportData)) {
+        supportKnowledge = supportData as SupportItem[];
+      }
+    } catch (_err) {
+      // Manejo silencioso
+    }
+
+    // Diagnóstico de periféricos (impresora / bluetooth) si aplica
     let diagnosticResult: Record<string, unknown> | null = null;
-    let autoTicketId: string | null = null;
-
-    // 1. Diagnóstico de dispositivos
-    const isDeviceOrPrintingIssue = /impres|bluetooth|pos|ticket|termic/i.test(query) ||
+    const isDeviceOrPrintingIssue =
+      /impres|bluetooth|pos|ticket|termic/i.test(query) ||
       (lastError != null && /bluetooth|printer|impres/i.test(lastError));
 
-    if (telemetry.userId && (isDeviceOrPrintingIssue || /diagnostico|verificar/i.test(query))) {
+    if (userId && (isDeviceOrPrintingIssue || /diagnostico|verificar/i.test(query))) {
       try {
-        const { data: configData } = await client.rpc("verificar_configuracion_dispositivo", {
-          p_user_id: telemetry.userId,
-        });
+        const { data: configData } = await userClient.rpc(
+          "verificar_configuracion_dispositivo",
+          { p_user_id: userId }
+        );
         diagnosticResult = configData;
       } catch (_err) {
         // Fallback
       }
     }
 
-    // 2. Diagnóstico de sistema para Super Admin
+    // Diagnóstico del sistema para Super Admin
     let systemAudit: Record<string, unknown> | null = null;
     if (isSuperAdmin && (/sistema|auditoria|rls|bd|postgres|tablas|tickets/i.test(query) || lastError)) {
       try {
-        const { data: auditData } = await client.rpc("obtener_diagnostico_sistema");
+        const { data: auditData } = await userClient.rpc("obtener_diagnostico_sistema");
         systemAudit = auditData;
       } catch (_err) {
         // Fallback
       }
     }
 
-    // 3. Crear ticket de soporte automático si hay un error crítico
-    const isCriticalFailure = lastError && (
-      lastError.includes("42501") ||
-      lastError.toLowerCase().includes("permission denied") ||
-      lastError.toLowerCase().includes("socketexception") ||
-      lastError.toLowerCase().includes("jwt") ||
-      lastError.toLowerCase().includes("fatal")
-    );
+    // Registro automático de ticket ante fallas críticas
+    let autoTicketId: string | null = null;
+    const isCriticalFailure =
+      lastError &&
+      (lastError.includes("42501") ||
+        lastError.toLowerCase().includes("permission denied") ||
+        lastError.toLowerCase().includes("socketexception") ||
+        lastError.toLowerCase().includes("jwt") ||
+        lastError.toLowerCase().includes("fatal"));
 
-    if (isCriticalFailure && telemetry.userId && (body.autoTicketOnCritical ?? true)) {
+    if (isCriticalFailure && userId && (body.autoTicketOnCritical ?? true)) {
       try {
-        const { data: ticketRes } = await client.rpc("registrar_ticket_soporte", {
+        const { data: ticketRes } = await adminClient.rpc("registrar_ticket_soporte", {
           p_modulo: currentModule,
           p_titulo: `Error crítico automático: ${lastError.substring(0, 80)}`,
           p_descripcion: `Falla detectada por telemetría en el módulo [${currentModule}]. Error: ${lastError}`,
@@ -118,23 +231,13 @@ serve(async (req: Request) => {
       }
     }
 
-    // 4. CONSULTA A 'guia_operaciones' (Manual Interactivo Inteligente)
-    let allGuides: Array<{ titulo_operacion: string; instrucciones_paso_a_paso: string; modulo: string; rol_permitido: string[] }> = [];
-    try {
-      const { data: guidesData } = await adminClient
-        .from("guia_operaciones")
-        .select("titulo_operacion, instrucciones_paso_a_paso, modulo, rol_permitido");
-
-      if (guidesData && guidesData.length > 0) {
-        allGuides = guidesData;
-      }
-    } catch (_e) {
-      // Fallback
-    }
-
-    // 5. DETECCIÓN DE PROBLEMAS EN OPERACIONES Y NOTIFICACIÓN AL SUPER ADMIN
-    const isExplicitError = /problema|falla|fallo|error|no puedo|no deja|no funciona|no imprime|no guarda|se trab|bug|denegad|invalido|incorrecto|bloquead|42501|ayuda con error|falla al|no sincroniza/i.test(query);
-    const isOperationIssue = isExplicitError ||
+    // Detección de incidencias operativas y diagnóstico de causas
+    const isExplicitError =
+      /problema|falla|fallo|error|no puedo|no deja|no funciona|no imprime|no guarda|se trab|bug|denegad|invalido|incorrecto|bloquead|42501|ayuda con error|falla al|no sincroniza/i.test(
+        query
+      );
+    const isOperationIssue =
+      isExplicitError ||
       (lastError != null && lastError.length > 0 && /error|fall|problema|ayuda con fallo/i.test(query));
 
     let operationalDiagnosis: { donde_esta_el_problema: string; que_debe_revisar: string } | null = null;
@@ -143,18 +246,18 @@ serve(async (req: Request) => {
     if (isOperationIssue) {
       operationalDiagnosis = analyzeOperationalIssue(query, currentModule, role, lastError, telemetry);
       try {
-        const notifTitle = `⚠️ Incidencia Operativa en [${currentModule.toUpperCase()}]: ${telemetry.userName || "Usuario"}`;
-        const notifMensaje = `El usuario ${telemetry.userName || "Anónimo"} (${role}) reportó un problema:\n"${query.substring(0, 160)}"\n\n📍 Dónde: ${operationalDiagnosis.donde_esta_el_problema}\n🛠️ Revisar: ${operationalDiagnosis.que_debe_revisar}`;
+        const notifTitle = `⚠️ Incidencia Operativa en [${currentModule.toUpperCase()}]: ${userName}`;
+        const notifMensaje = `El usuario ${userName} (${role}) reportó un problema:\n"${query.substring(0, 160)}"\n\n📍 Dónde: ${operationalDiagnosis.donde_esta_el_problema}\n🛠️ Revisar: ${operationalDiagnosis.que_debe_revisar}`;
 
         await adminClient.from("notificaciones").insert({
           rol_destino: "super_admin",
-          usuario_origen_id: telemetry.userId || null,
+          usuario_origen_id: userId || null,
           titulo: notifTitle,
           mensaje: notifMensaje,
           tipo: "incidencia_operacion",
           datos: {
             modulo: currentModule,
-            usuario_nombre: telemetry.userName || "Usuario",
+            usuario_nombre: userName,
             usuario_rol: role,
             consulta_original: query,
             donde_esta_el_problema: operationalDiagnosis.donde_esta_el_problema,
@@ -171,26 +274,47 @@ serve(async (req: Request) => {
       }
     }
 
-    // 6. Generación de Respuesta Inteligente
+    // 4. Conexión con Google Gemini (gemini-2.5-flash) o motor local de respaldo
     let responseText = "";
-    const geminiKey = Deno.env.get("GEMINI_API_KEY");
-    if (geminiKey) {
-      responseText = await callGeminiModel(
-        geminiKey,
-        query,
-        telemetry,
-        allGuides,
-        diagnosticResult,
-        systemAudit,
-        autoTicketId,
-        operationalDiagnosis,
-        notificationSentToAdmin
-      );
+    let modelUsed = "local-manual-fallback";
+
+    if (geminiApiKey && geminiApiKey.trim().length > 0) {
+      try {
+        responseText = await callGeminiModel(
+          geminiApiKey.trim(),
+          query,
+          role,
+          currentModule,
+          userName,
+          lastError,
+          telemetry,
+          guides,
+          supportKnowledge,
+          body.conversationHistory,
+          autoTicketId
+        );
+        modelUsed = "gemini-2.5-flash";
+      } catch (geminiError) {
+        console.warn("[Umby-Assistant] Fallback a motor interactivo tras error en Gemini:", geminiError);
+        responseText = buildInteractiveManualResponse(
+          query,
+          telemetry,
+          guides,
+          diagnosticResult,
+          systemAudit,
+          autoTicketId,
+          operationalDiagnosis,
+          notificationSentToAdmin,
+          isSuperAdmin,
+          isCoordinator,
+          isTeacher
+        );
+      }
     } else {
       responseText = buildInteractiveManualResponse(
         query,
         telemetry,
-        allGuides,
+        guides,
         diagnosticResult,
         systemAudit,
         autoTicketId,
@@ -202,11 +326,13 @@ serve(async (req: Request) => {
       );
     }
 
+    // 5. Respuesta JSON estructurada hacia Flutter
     return new Response(
       JSON.stringify({
         success: true,
         assistant: "Umby",
         role: "Manual Interactivo y Soporte Tecnico",
+        model: modelUsed,
         response: responseText,
         diagnostics: {
           deviceConfig: diagnosticResult,
@@ -236,7 +362,7 @@ serve(async (req: Request) => {
         success: false,
         assistant: "Umby",
         error: (error as Error).message,
-        hint: "Verifique la conexion o contacte al administrador de UMBRAL.",
+        hint: "Verifique la conexión o contacte al administrador de UMBRAL.",
       }),
       {
         status: 500,
@@ -246,6 +372,153 @@ serve(async (req: Request) => {
   }
 });
 
+// =============================================================================
+// CONEXIÓN CON GOOGLE GEMINI (gemini-2.5-flash)
+// =============================================================================
+async function callGeminiModel(
+  apiKey: string,
+  query: string,
+  role: string,
+  currentModule: string,
+  userName: string,
+  lastError: string | null,
+  telemetry: TelemetryPayload,
+  guides: GuideItem[],
+  supportKnowledge: SupportItem[],
+  conversationHistory?: ConversationItem[],
+  autoTicketId?: string | null
+): Promise<string> {
+  const isSuperAdmin = role === "super_admin";
+  const isCoordinator = role === "coordinador";
+  const isTeacher = role === "profesor";
+
+  // System Prompt contextualizado según el perfil del usuario, módulo y políticas RLS
+  let systemPrompt = `Eres Umby, el asistente virtual oficial, soporte técnico y manual interactivo inteligente de la plataforma UMBRAL del Instituto Municipal de la Mujer (IMMUJER).
+
+OBJETIVO PRINCIPAL:
+Guiar al usuario paso a paso de manera cordial, clara y precisa según su rol oficial (${role.toUpperCase()}) y el módulo en el que se encuentra (${currentModule.toUpperCase()}).
+
+DIRECTRICES POR ROL:`;
+
+  if (isSuperAdmin) {
+    systemPrompt += `
+- ROL ACTIVO: Super Administrador (DevOps / Arquitectura UMBRAL).
+- Tienes acceso irrestricto y total a todos los módulos y opciones del sistema.
+- Puedes ofrecer soporte avanzado sobre base de datos PostgreSQL, auditoría de políticas RLS, sincronización de tasas BCV, administración de perfiles y depuración de telemetría de errores técnicos.`;
+  } else if (isCoordinator) {
+    systemPrompt += `
+- ROL ACTIVO: Coordinación General IMMUJER.
+- Guiar en la gestión integral de formaciones y cursos, asignación de docentes, revisión y aprobación de temarios propuestos por profesores, inscripción y matrícula formal de alumnas por cédula de identidad, configuración de impresoras térmicas ESC/POS (Bluetooth/Red) para comprobantes de aportes, y descarga de reportes oficiales en PDF.`;
+  } else if (isTeacher) {
+    systemPrompt += `
+- ROL ACTIVO: Profesor / Docente Formador.
+- Guiar en el pase de lista de asistencia (Presente, Ausente, Justificada), diseño y activación de encuestas de satisfacción, cálculo y proyección de insumos para talleres prácticos, y redacción de propuestas de temarios para aprobación de Coordinación.
+- REGLA CLAVE PARA ALUMNAS: Si el profesor consulta sobre inscribir, registrar o añadir alumnas a su curso, aclara con amabilidad que la matrícula formal la realiza Coordinación desde la sección Cursos -> Inscripciones, y que una vez inscrita aparecerá de inmediato en su lista de asistencia.`;
+  } else {
+    systemPrompt += `
+- ROL ACTIVO: Alumna / Participante.
+- Explicar de manera sencilla y cordial cómo consultar cursos matriculados, verificar su asistencia acumulada, registrar aportes prácticos de talleres y responder encuestas institucionales.
+- No mostrar detalles técnicos de base de datos ni configuraciones administrativas.`;
+  }
+
+  systemPrompt += `
+
+REGLAS ESTRICTAS DE SEGURIDAD Y PRIVACIDAD:
+1. Jamás menciones que se enviaron notificaciones secretas al administrador o que se activaron alertas internas en segundo plano.
+2. Formato: Utiliza GitHub Markdown claro, con viñetas, pasos numerados en negrita y títulos legibles.
+3. Si el usuario pregunta "¿En qué me puedes ayudar?" o similar, resume las funciones disponibles específicamente para su rol (${role}) en el módulo "${currentModule}".
+4. Si hay una consulta sobre errores o fallas operativas, proporciona soluciones paso a paso directas basadas en las guías y la base de conocimiento disponibles.`;
+
+  if (lastError) {
+    systemPrompt += `\n\nCONTEXTO DE ERROR TÉCNICO CAPTURADO: "${lastError}"\nProporciona instrucciones claras y amigables para resolverlo o verificar la causa.`;
+  }
+
+  if (autoTicketId) {
+    systemPrompt += `\n\nTicket de soporte generado para esta sesión: #${autoTicketId.substring(0, 8)}.`;
+  }
+
+  if (guides && guides.length > 0) {
+    systemPrompt += `\n\nMANUALES Y GUÍAS OPERATIVAS AUTORIZADAS (Verificadas por RLS):\n${JSON.stringify(
+      guides.slice(0, 6).map((g) => ({
+        titulo: g.titulo_operacion,
+        modulo: g.modulo,
+        pasos: g.instrucciones_paso_a_paso,
+      }))
+    )}`;
+  }
+
+  if (supportKnowledge && supportKnowledge.length > 0) {
+    systemPrompt += `\n\nBASE DE CONOCIMIENTO TÉCNICO DE SOPORTE:\n${JSON.stringify(
+      supportKnowledge.slice(0, 4).map((s) => ({
+        titulo: s.titulo,
+        sintoma: s.sintoma,
+        solucion: s.solucion_guiada,
+        categoria: s.categoria,
+      }))
+    )}`;
+  }
+
+  systemPrompt += `\n\nTelemetría activa: Módulo: ${currentModule}, Red: ${telemetry.networkStatus || "Normal"}, Bluetooth: ${telemetry.bluetoothStatus || "N/A"}.`;
+
+  // Construcción de contenidos para Gemini API v1beta
+  const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
+
+  // Agregar historial previo si existe
+  if (Array.isArray(conversationHistory) && conversationHistory.length > 0) {
+    for (const msg of conversationHistory.slice(-6)) {
+      if (msg && msg.text) {
+        contents.push({
+          role: msg.sender === "user" ? "user" : "model",
+          parts: [{ text: msg.text }],
+        });
+      }
+    }
+  }
+
+  // Agregar el mensaje actual del usuario
+  contents.push({
+    role: "user",
+    parts: [{ text: query }],
+  });
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      system_instruction: {
+        parts: [{ text: systemPrompt }],
+      },
+      contents: contents,
+      generationConfig: {
+        temperature: 0.25,
+        topP: 0.95,
+        maxOutputTokens: 1500,
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Gemini API respondió con status ${response.status}: ${errorText}`);
+  }
+
+  const json = await response.json();
+  const text = json?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+  if (!text || typeof text !== "string" || text.trim().length === 0) {
+    throw new Error("Respuesta vacía recibida del modelo Gemini.");
+  }
+
+  return text.trim();
+}
+
+// =============================================================================
+// DIAGNÓSTICO DE INCIDENCIAS OPERATIVAS
+// =============================================================================
 function analyzeOperationalIssue(
   query: string,
   module: string,
@@ -256,64 +529,89 @@ function analyzeOperationalIssue(
   const q = query.toLowerCase();
   const err = (lastError || "").toLowerCase();
 
-  if (q.includes("impres") || q.includes("bluetooth") || q.includes("ticket") || err.includes("printer") || err.includes("bluetooth")) {
+  if (
+    q.includes("impres") ||
+    q.includes("bluetooth") ||
+    q.includes("ticket") ||
+    err.includes("printer") ||
+    err.includes("bluetooth")
+  ) {
     return {
-      donde_esta_el_problema: "Subsistema de Impresion Termica ESC/POS (Modulo de Tickets / Bluetooth)",
-      que_debe_revisar: "1. Verificar si la impresora Bluetooth esta emparejada y encendida.\n2. En Web, verificar si el navegador tiene acceso al dialogo de impresion nativo del OS.\n3. Comprobar registros en tabla configuraciones_impresora para el usuario.\n4. Si es Android, revisar permisos BLUETOOTH_CONNECT en tiempo de ejecucion.",
+      donde_esta_el_problema: "Subsistema de Impresión Térmica ESC/POS (Módulo de Tickets / Bluetooth)",
+      que_debe_revisar:
+        "1. Verificar si la impresora Bluetooth está encendida y vinculada al dispositivo.\n2. En Web, verificar si el navegador permite el diálogo de impresión nativo.\n3. Comprobar registros en tabla configuraciones_impresora para el usuario.\n4. Si es Android, revisar permisos de ubicación y BLUETOOTH_CONNECT.",
     };
   }
 
-  if (q.includes("guardar") || q.includes("crear") || q.includes("permiso") || err.includes("42501") || err.includes("row-level security")) {
+  if (
+    q.includes("guardar") ||
+    q.includes("crear") ||
+    q.includes("permiso") ||
+    err.includes("42501") ||
+    err.includes("row-level security")
+  ) {
     return {
       donde_esta_el_problema: "Seguridad RLS en PostgreSQL o Permisos de Rol Insuficientes",
-      que_debe_revisar: "1. Revisar politicas RLS para la tabla afectada en Supabase (error 42501).\n2. Verificar que el campo rol en perfiles corresponda al esperado ('" + role + "').\n3. Confirmar que el token JWT del usuario contenga el claim auth.uid() activo.",
+      que_debe_revisar:
+        "1. Revisar políticas RLS para la tabla afectada en Supabase (error 42501).\n2. Verificar que el campo rol en perfiles corresponda al esperado ('" +
+        role +
+        "').\n3. Confirmar que el token JWT del usuario contenga el claim auth.uid() activo.",
     };
   }
 
   if (q.includes("bcv") || q.includes("tasa") || q.includes("dolar") || q.includes("cambio")) {
     return {
-      donde_esta_el_problema: "Sincronizacion de Tasa Cambiaria Oficial BCV (Edge Function / Cron Job)",
-      que_debe_revisar: "1. Verificar la ultima fecha de actualizacion en public.tasas_cambio_bcv.\n2. Probar la Edge Function sync-bcv-rate desde el panel de Supabase.\n3. Comprobar conectividad hacia la API de consulta BCV o web scraping.",
+      donde_esta_el_problema: "Sincronización de Tasa Cambiaria Oficial BCV (Edge Function / Cron Job)",
+      que_debe_revisar:
+        "1. Verificar la última fecha de actualización en public.tasas_cambio_bcv.\n2. Probar la Edge Function sync-bcv-rate desde el panel de Supabase.\n3. Comprobar conectividad hacia la fuente oficial BCV.",
     };
   }
 
   if (q.includes("asistencia") || q.includes("pase de lista")) {
     return {
-      donde_esta_el_problema: "Modulo de Asistencias y Clases Practicas (Flujo Docente/Coordinacion)",
-      que_debe_revisar: "1. Verificar que el profesor tenga asignado el curso en profesores / cursos.\n2. Confirmar que existan alumnos matriculados en inscripciones para la fecha seleccionada.\n3. Validar politicas RLS en la tabla asistencia.",
+      donde_esta_el_problema: "Módulo de Asistencias y Clases Prácticas (Flujo Docente/Coordinación)",
+      que_debe_revisar:
+        "1. Verificar que el profesor tenga asignado el curso en profesores / cursos.\n2. Confirmar que existan alumnas matriculadas en inscripciones para la fecha.\n3. Validar políticas RLS en la tabla asistencias.",
     };
   }
 
   if (q.includes("temario") || q.includes("propuesta") || q.includes("aprobar")) {
     return {
-      donde_esta_el_problema: "Flujo de Aprobacion de Temarios (Modulo de Coordinacion / Docentes)",
-      que_debe_revisar: "1. Revisar la tabla solicitudes_aprobacion para solicitudes en estado 'pendiente'.\n2. Comprobar permisos del coordinador para modificar estado a 'aprobado'.",
+      donde_esta_el_problema: "Flujo de Aprobación de Temarios (Módulo de Coordinación / Docentes)",
+      que_debe_revisar:
+        "1. Revisar la tabla solicitudes_aprobacion para solicitudes en estado 'pendiente'.\n2. Comprobar permisos del coordinador para modificar estado a 'aprobado'.",
     };
   }
 
   if (q.includes("encuesta") || q.includes("evaluacion")) {
     return {
-      donde_esta_el_problema: "Modulo de Encuestas y Evaluaciones de Satisfaccion",
-      que_debe_revisar: "1. Verificar permisos en encuestas_participacion.\n2. Confirmar que el curso cuente con inscripciones activas.",
+      donde_esta_el_problema: "Módulo de Encuestas y Evaluaciones de Satisfacción",
+      que_debe_revisar:
+        "1. Verificar permisos en encuestas_participacion.\n2. Confirmar que el curso cuente con inscripciones activas.",
     };
   }
 
   if (q.includes("reporte") || q.includes("pdf") || q.includes("exportar")) {
     return {
-      donde_esta_el_problema: "Motor de Generacion de Reportes Consolidados y Exportacion PDF",
-      que_debe_revisar: "1. Verificar las vistas de base de datos view_reporte_*.\n2. Comprobar que no haya campos numericos nulos en retencion o asistencias.",
+      donde_esta_el_problema: "Motor de Generación de Reportes Consolidados y Exportación PDF",
+      que_debe_revisar:
+        "1. Verificar las vistas de base de datos view_reporte_*.\n2. Comprobar que no haya campos numéricos nulos en retención o asistencias.",
     };
   }
 
   return {
-    donde_esta_el_problema: `Operacion en Modulo [${module.toUpperCase()}] - Interaccion de Usuario (${role})`,
-    que_debe_revisar: `1. Ultima traza de error capturada: ${lastError || "Sin excepcion critica registrada"}.\n2. Estado de red: ${telemetry.networkStatus || "Desconocido"}.\n3. Verificar consistencia de datos en Supabase para el usuario ${telemetry.userId || "anonimo"}.`,
+    donde_esta_el_problema: `Operación en Módulo [${module.toUpperCase()}] - Interacción de Usuario (${role})`,
+    que_debe_revisar: `1. Última traza de error capturada: ${
+      lastError || "Sin excepción crítica registrada"
+    }.\n2. Estado de red: ${
+      telemetry.networkStatus || "Desconocido"
+    }.\n3. Verificar consistencia de datos en Supabase para el usuario ${telemetry.userId || "anónimo"}.`,
   };
 }
 
-/**
- * Normaliza y limpia una cadena de texto para extraccion de palabras clave sin stop words
- */
+// =============================================================================
+// MOTOR LOCAL DE MANUAL INTERACTIVO (FALLBACK ANTE SINCRONIZACIÓN O CAÍDA DE IA)
+// =============================================================================
 function extractMeaningfulWords(text: string): string[] {
   const stopWords = new Set([
     "como", "cómo", "para", "de", "del", "la", "el", "los", "las", "un", "una",
@@ -326,7 +624,7 @@ function extractMeaningfulWords(text: string): string[] {
     .toLowerCase()
     .replace(/[¿?¡!.,;:()"\-_]/g, " ")
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Remueve tildes y diacríticos
+    .replace(/[\u0300-\u036f]/g, "")
     .split(/\s+/)
     .filter((w) => w.length > 2 && !stopWords.has(w));
 }
@@ -334,7 +632,7 @@ function extractMeaningfulWords(text: string): string[] {
 function buildInteractiveManualResponse(
   query: string,
   telemetry: TelemetryPayload,
-  guides: Array<{ titulo_operacion: string; instrucciones_paso_a_paso: string; modulo: string; rol_permitido: string[] }>,
+  guides: GuideItem[],
   deviceConfig: Record<string, unknown> | null,
   systemAudit: Record<string, unknown> | null,
   ticketId: string | null,
@@ -347,21 +645,27 @@ function buildInteractiveManualResponse(
   const q = query.toLowerCase().trim();
   const userName = telemetry.userName || "Usuario";
   const userRole = (telemetry.userRole || "alumno").toLowerCase().trim().replace(/[\s\-]/g, "_");
-  const normalizedUserRole = (userRole === "superadmin" || userRole === "super_admin") ? "super_admin" : userRole;
+  const normalizedUserRole =
+    userRole === "superadmin" || userRole === "super_admin" ? "super_admin" : userRole;
   const currentModule = (telemetry.currentModule || "general").toLowerCase().trim();
 
   let headerNotices = "";
   if (ticketId) {
-    headerNotices += `> [!CAUTION]\n> **Incidencia Critica:** Se ha generado automaticamente el ticket **\`#${ticketId.substring(0, 8)}\`**.\n\n`;
+    headerNotices += `> [!CAUTION]\n> **Incidencia Crítica:** Se ha generado automáticamente el ticket **\`#${ticketId.substring(
+      0,
+      8
+    )}\`**.\n\n`;
   }
-  // NOTA: No se inyecta información de notificación técnica al usuario final en las respuestas de chat
 
-  // =========================================================================
-  // CASO ESPECÍFICO: AÑADIR / REGISTRAR / INSCRIBIR / MATRICULAR ALUMNOS
-  // =========================================================================
-  const isAddStudentQuery = (/anadir|añadir|agregar|inscribir|matricular|nuevo alumno|nueva alumna|alta alumno|ingresar alumno|crear alumno/i.test(q) &&
-    /alumno|alumna|estudiante|participante|matricula|inscrip/i.test(q)) ||
-    (/como|cómo/i.test(q) && /anadir|añadir|agregar|inscribir|matricular/i.test(q) && /alumno|alumna|estudiante/i.test(q));
+  // CASO ESPECÍFICO: AÑADIR / REGISTRAR / INSCRIBIR ALUMNAS
+  const isAddStudentQuery =
+    (/anadir|añadir|agregar|inscribir|matricular|nuevo alumno|nueva alumna|alta alumno|ingresar alumno|crear alumno/i.test(
+      q
+    ) &&
+      /alumno|alumna|estudiante|participante|matricula|inscrip/i.test(q)) ||
+    (/como|cómo/i.test(q) &&
+      /anadir|añadir|agregar|inscribir|matricular/i.test(q) &&
+      /alumno|alumna|estudiante/i.test(q));
 
   if (isAddStudentQuery) {
     if (currentModule === "profesores" && !isCoordinator) {
@@ -387,14 +691,16 @@ Hola, **${userName}**. Aquí tienes las instrucciones oficiales para realizar es
 5. **Confirmar:** Pulsa **"Confirmar Inscripción"**. La alumna quedará asignada y aparecerá de inmediato en el listado de asistencia del profesor responsable.`;
   }
 
-  // =========================================================================
-  // CASO 1: CONSULTA DE CAPACIDADES GENERALES ("¿En qué me puedes ayudar?")
-  // =========================================================================
-  const isHelpQuery = /ayud|que puedes hacer|que puedo hacer|capacidades|funciones|opciones|orienta/i.test(q) &&
+  // CASO 1: CONSULTA DE CAPACIDADES GENERALES
+  const isHelpQuery =
+    /ayud|que puedes hacer|que puedo hacer|capacidades|funciones|opciones|orienta/i.test(q) &&
     !/encuesta|asistencia|curso|impresora|perfil|tema|propuesta/i.test(q);
 
   if (isHelpQuery) {
-    if (currentModule === "profesores" || (isTeacher && currentModule !== "coordinacion" && currentModule !== "alumnos")) {
+    if (
+      currentModule === "profesores" ||
+      (isTeacher && currentModule !== "coordinacion" && currentModule !== "alumnos")
+    ) {
       return `${headerNotices}¡Hola, **${userName}**! Como tu **Manual Interactivo en el Módulo de Profesores**, puedo guiarte paso a paso en:
 
 - 📋 **Pase de Lista:** Cómo registrar la asistencia de tus alumnas en clases prácticas y justificar faltas.
@@ -439,12 +745,9 @@ En tu pantalla actual (**${currentModule}**), te oriento paso a paso en:
 Dime qué operación deseas realizar y te guiaré con gusto.`;
   }
 
-  // =========================================================================
-  // CASO 2: BÚSQUEDA INTELIGENTE DE GUÍAS PASO A PASO (Relevance Matcher Robusto)
-  // =========================================================================
+  // CASO 2: BÚSQUEDA INTELIGENTE DE GUÍAS PASO A PASO
   const queryWords = extractMeaningfulWords(q);
-
-  let bestGuide: typeof guides[0] | null = null;
+  let bestGuide: GuideItem | null = null;
   let bestScore = 0;
 
   for (const guide of guides) {
@@ -474,12 +777,10 @@ Dime qué operación deseas realizar y te guiaré con gusto.`;
       }
     }
 
-    // Regla estricta: Si la consulta tiene 2 o más palabras clave, exigir al menos 2 coincidencias léxicas
     if (queryWords.length >= 2 && matchedDistinctWords < 2 && score < 6) {
       continue;
     }
 
-    // Bonificación por módulo SOLO si ya existe una coincidencia léxica sólida comprobada
     if (score >= 4) {
       if (guide.modulo === currentModule) {
         score += 1.5;
@@ -495,8 +796,8 @@ Dime qué operación deseas realizar y te guiaré con gusto.`;
   }
 
   if (bestGuide) {
-    // REGLA CRÍTICA: SUPERADMIN Y SUPER_ADMIN TIENEN ACCESO TOTAL A TODAS LAS OPERACIONES
-    const isAllowed = isSuperAdmin ||
+    const isAllowed =
+      isSuperAdmin ||
       bestGuide.rol_permitido.includes("todos") ||
       bestGuide.rol_permitido.includes(normalizedUserRole) ||
       (normalizedUserRole === "profesor" && bestGuide.rol_permitido.includes("profesor")) ||
@@ -505,101 +806,38 @@ Dime qué operación deseas realizar y te guiaré con gusto.`;
     if (!isAllowed) {
       return `${headerNotices}Hola, **${userName}**.
 
-La operacion **"${bestGuide.titulo_operacion}"** esta reservada exclusivamente para los roles de **${bestGuide.rol_permitido.join(" / ").toUpperCase()}**.
+La operación **"${bestGuide.titulo_operacion}"** está reservada exclusivamente para los roles de **${bestGuide.rol_permitido
+        .join(" / ")
+        .toUpperCase()}**.
 
-Tu perfil actual tiene rol de **${normalizedUserRole.toUpperCase()}**. En esta pantalla (**${currentModule}**), puedes realizar consultas y operaciones correspondientes a tu rol, pero no tienes permisos de modificacion para esta funcion. Si consideras que requieres este acceso, comunicate con la Coordinacion del IMMUJER o el Super Admin.`;
+Tu perfil actual tiene rol de **${normalizedUserRole.toUpperCase()}**. En esta pantalla (**${currentModule}**), puedes realizar consultas y operaciones correspondientes a tu rol, pero no tienes permisos de modificación para esta función. Si consideras que requieres este acceso, comunícate con la Coordinación del IMMUJER o el Super Admin.`;
     }
 
-    return `${headerNotices}### 📖 Guia Paso a Paso: ${bestGuide.titulo_operacion}
+    return `${headerNotices}### 📖 Guía Paso a Paso: ${bestGuide.titulo_operacion}
 
-Hola, **${userName}**. Aqui tienes las instrucciones oficiales para realizar esta operacion en el **${currentModule.toUpperCase()}**:
+Hola, **${userName}**. Aquí tienes las instrucciones oficiales para realizar esta operación en el **${currentModule.toUpperCase()}**:
 
 ${bestGuide.instrucciones_paso_a_paso}
 
 ¿Tienes alguna duda sobre alguno de estos pasos o requieres asistencia adicional?`;
   }
 
-  // =========================================================================
   // CASO 3: RESPUESTAS ADAPTATIVAS POR ROL Y MÓDULO
-  // =========================================================================
-
-  // --- SUPER ADMIN ---
   if (isSuperAdmin) {
-    if (q.includes("rls") || (telemetry.lastError && telemetry.lastError.includes("42501"))) {
-      return `${headerNotices}### 🛠️ Diagnostico DevOps: Seguridad RLS en PostgreSQL
-
-**Estado:** Modulo \`${currentModule}\` | Error: \`${telemetry.lastError || "Sin excepcion activa"}\`
-
-\`\`\`sql
-SELECT tablename, rowsecurity 
-FROM pg_tables 
-WHERE schemaname = 'public' 
-  AND tablename IN ('perfiles', 'cursos', 'inscripciones', 'tickets_soporte', 'guia_operaciones', 'notificaciones');
-\`\`\``;
-    }
-
-    if (q.includes("impres") || q.includes("bluetooth")) {
-      return `${headerNotices}### 🖨️ Diagnostico Tecnico: Impresora Termica ESC/POS
-
-**Telemetria:** Bluetooth: \`${telemetry.bluetoothStatus || "Desconocido"}\` | Plataforma: \`${telemetry.platform || "Web"}\`
-
-\`\`\`sql
-SELECT * FROM public.configuraciones_impresora WHERE usuario_id = '${telemetry.userId || "auth.uid()"}';
-\`\`\``;
-    }
-
     return `${headerNotices}Hola, **${userName}** (Super Admin). Como tu **Manual Interactivo y Soporte DevOps**:
-- **Modulo Activo:** \`${currentModule}\`
-- **Operaciones Disponibles:** Gestion global de cursos, sincronizacion BCV, auditoria de usuarios y configuracion de guias.
+- **Módulo Activo:** \`${currentModule}\`
+- **Operaciones Disponibles:** Gestión global de cursos, sincronización BCV, auditoría de usuarios y configuración de guías.
 
-Puedes consultarme como ejecutar cualquier operacion paso a paso o solicitar diagnosticos de base de datos.`;
+Puedes consultarme cómo ejecutar cualquier operación paso a paso o solicitar diagnósticos de base de datos.`;
   }
 
-  // --- DOCENTES / PROFESORES ---
   if (isTeacher || currentModule === "profesores") {
-    if (q.includes("encuesta") || q.includes("evaluacion")) {
-      return `${headerNotices}### 📖 Cómo crear una encuesta para tus alumnos
-
-1. **Ubicación:** En tu panel de Profesores, ve a la pestaña **"Encuestas / Evaluaciones"**.
-2. **Crear Encuesta:** Pulsa el botón **"Crear Encuesta"** o el icono **"+"** en la barra superior.
-3. **Formulario:** Ingresa el título de la evaluación, selecciona tu curso activo y define los criterios de calificación (escala de 1 a 5 estrellas).
-4. **Publicar:** Pulsa **"Activar Encuesta"** para que aparezca al instante en el panel de tus alumnas.`;
-    }
-
-    if (q.includes("asistencia") || q.includes("pase de lista")) {
-      return `${headerNotices}### 📖 Cómo registrar el pase de lista de asistencia
-
-1. **Ubicación:** Abre la pestaña **"Asistencias"** en el Módulo de Profesores.
-2. **Fecha y Curso:** Selecciona el curso y la fecha de la sesión técnica.
-3. **Pase de Lista:** Marca cada alumna como Presente (verde), Ausente (rojo) o Justificada (amarillo).
-4. **Guardar:** Pulsa **"Guardar Asistencias"** para consolidar los porcentajes en tiempo real.`;
-    }
-
-    if (q.includes("tema") || q.includes("temario") || q.includes("propuesta") || q.includes("aprobar")) {
-      return `${headerNotices}### 📖 Cómo solicitar la aprobación de un nuevo tema
-
-1. **Ubicación:** Ingresa a la pestaña **"Temarios / Propuestas"** en el Módulo de Profesores.
-2. **Proponer Tema:** Toca el botón **"Proponer Tema"**.
-3. **Detalles:** Especifica el título de la clase práctica, objetivos pedagógicos e insumos requeridos.
-4. **Enviar:** Pulsa **"Enviar a Coordinación"** para que la dirección evalúe y apruebe tu propuesta.`;
-    }
-
     return `${headerNotices}Profesor(a) **${userName}**, en el **Módulo de Profesores** puedes gestionar el pase de lista de tus cursos, crear encuestas estudiantiles, proyectar costos de insumos para talleres prácticos y proponer actualizaciones de temarios a Coordinación.
 
 ¿Sobre qué operación deseas que te guíe paso a paso?`;
   }
 
-  // --- COORDINADORES ---
   if (isCoordinator || currentModule === "coordinacion") {
-    if (q.includes("curso") || q.includes("crear") || q.includes("registrar")) {
-      return `${headerNotices}### 📖 Cómo registrar un nuevo curso en Coordinación
-
-1. **Pestaña Cursos:** En tu panel de Coordinación, abre la primera pestaña **"Cursos"**.
-2. **Botón Nuevo Curso:** Pulsa el botón **"Nuevo Curso"** ubicado en la esquina superior.
-3. **Completar Datos:** Ingresa el nombre de la formación, selecciona el área técnica (ej. Repostería, Peluquería, Textil), el horario (días y horas) y asigna al profesor responsable.
-4. **Guardar:** Pulsa **"Guardar Formación"** para activar las inscripciones al instante.`;
-    }
-
     return `${headerNotices}Hola, **${userName}**. Como **Manual Interactivo de Coordinación**, puedo guiarte paso a paso en:
 - Registrar y programar nuevos cursos formativos.
 - Asignar profesores y aprobar propuestas de temarios.
@@ -609,7 +847,6 @@ Puedes consultarme como ejecutar cualquier operacion paso a paso o solicitar dia
 ¿Qué operación deseas realizar en este momento?`;
   }
 
-  // --- ALUMNOS ---
   return `${headerNotices}¡Hola, **${userName}**! Soy **Umby**, tu manual interactivo en UMBRAL IMMUJER.
 
 En tu pantalla actual (**${currentModule}**), tienes permitido:
@@ -619,55 +856,4 @@ En tu pantalla actual (**${currentModule}**), tienes permitido:
 - Actualizar tu fotografía y número telefónico en **Mi Perfil** (avatar superior derecho).
 
 Dime qué operación deseas realizar y te guiaré con gusto paso a paso.`;
-}
-
-async function callGeminiModel(
-  apiKey: string,
-  query: string,
-  telemetry: TelemetryPayload,
-  guides: Array<{ titulo_operacion: string; instrucciones_paso_a_paso: string; modulo: string; rol_permitido: string[] }>,
-  deviceConfig: Record<string, unknown> | null,
-  systemAudit: Record<string, unknown> | null,
-  ticketId: string | null,
-  operationalDiagnosis: { donde_esta_el_problema: string; que_debe_revisar: string } | null,
-  notificationSentToAdmin: boolean
-): Promise<string> {
-  const isSuperAdmin = telemetry.userRole === "super_admin" || telemetry.userRole === "superadmin";
-  const systemPrompt = `Eres Umby, asistente virtual y Manual Interactivo Inteligente de la plataforma UMBRAL del Instituto Municipal de la Mujer (IMMUJER).
-Tu misión es guiar al usuario paso a paso sobre cómo realizar operaciones según el módulo en el que se encuentre (${telemetry.currentModule}) y los permisos de su perfil (${telemetry.userRole}).
-
-REGLAS ESTRICTAS DE SEGURIDAD Y PERMISOS:
-1. El rol "super_admin" y "superadmin" son el MISMO rol: tienen acceso total, absoluto e irrestricto a todas las operaciones y módulos. NUNCA le digas al Super Admin que no tiene permisos.
-2. Si el usuario solicita realizar una acción prohibida para su rol (ej. Alumno queriendo editar cursos), indícale amablemente que requiere un rol superior (ej. Coordinador o Super Admin) y explica a quién debe dirigirse.
-3. Si el usuario pregunta "¿En qué me puedes ayudar?", explica detalladamente las operaciones que puede realizar en el módulo "${telemetry.currentModule}".
-4. Si el usuario pregunta sobre cómo añadir, inscribir o matricular una nueva alumna en un curso:
-   - En el Módulo de Profesores: Explica que la matriculación la realiza formalmente la Coordinación en la sección de Cursos, y que una vez inscrita aparecerá automáticamente en el listado de asistencia del profesor.
-   - En el Módulo de Coordinación / Super Admin: Explica el paso a paso para ir a Cursos -> Seleccionar curso -> Inscribir Alumna por su Cédula.
-5. REGLA ESTRICTA: NUNCA menciones en tus respuestas al usuario final que se ha enviado una notificación o alerta al Super Admin ni que se ha reportado una falla técnica interna.
-${ticketId ? `Ticket generado: #${ticketId.substring(0, 8)}` : ""}
-
-Manuales Operativos autorizados:
-${JSON.stringify(guides.slice(0, 8))}
-
-Telemetría: Módulo: ${telemetry.currentModule}, Red: ${telemetry.networkStatus}, Bluetooth: ${telemetry.bluetoothStatus}, Último Error: ${telemetry.lastError || "Ninguno"}.`;
-
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          { role: "user", parts: [{ text: `${systemPrompt}\n\nConsulta del usuario: ${query}` }] },
-        ],
-      }),
-    }
-  );
-
-  if (!res.ok) {
-    throw new Error(`Gemini API respondió ${res.status}`);
-  }
-
-  const json = await res.json();
-  return json?.candidates?.[0]?.content?.parts?.[0]?.text || "No se pudo generar respuesta con IA.";
 }
