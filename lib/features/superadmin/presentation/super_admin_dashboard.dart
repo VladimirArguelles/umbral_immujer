@@ -1585,28 +1585,16 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                       },
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.all(5),
                         decoration: BoxDecoration(
                           color: cAccent.withValues(alpha: 0.28),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: cAccent.withValues(alpha: 0.65)),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Symbols.manage_accounts, size: 13, color: Color(0xFFC084FC)),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Gestionar',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFFC084FC),
-                              ),
-                            ),
-                            const SizedBox(width: 2),
-                            const Icon(Symbols.chevron_right, size: 13, color: Color(0xFFC084FC)),
-                          ],
+                        child: const Icon(
+                          Symbols.edit,
+                          size: 15,
+                          color: Color(0xFFC084FC),
                         ),
                       ),
                     ),

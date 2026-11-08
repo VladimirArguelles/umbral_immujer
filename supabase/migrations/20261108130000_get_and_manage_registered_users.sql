@@ -98,3 +98,40 @@ $$;
 
 REVOKE ALL ON FUNCTION public.admin_update_user(UUID, TEXT, TEXT, TEXT, TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.admin_update_user(UUID, TEXT, TEXT, TEXT, TEXT) TO authenticated, service_role;
+
+-- Política de eliminación segura para Super Admin en tabla perfiles
+DROP POLICY IF EXISTS "perfiles_delete_superadmin" ON public.perfiles;
+CREATE POLICY "perfiles_delete_superadmin" ON public.perfiles
+FOR DELETE
+TO authenticated
+USING (public.is_super_admin());
+
+-- Función RPC para eliminar usuario y credenciales en Supabase Auth
+CREATE OR REPLACE FUNCTION public.admin_delete_user(p_user_id UUID)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM public.perfiles
+        WHERE public.perfiles.id = auth.uid() AND public.perfiles.rol = 'super_admin'
+    ) THEN
+        RAISE EXCEPTION 'Acceso denegado: solo Super Admin puede eliminar usuarios';
+    END IF;
+
+    IF auth.uid() = p_user_id THEN
+        RAISE EXCEPTION 'Operación no permitida: no puedes eliminar tu propia cuenta de Super Admin';
+    END IF;
+
+    DELETE FROM public.perfiles WHERE id = p_user_id OR user_id = p_user_id;
+    DELETE FROM auth.users WHERE id = p_user_id;
+
+    RETURN true;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.admin_delete_user(UUID) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.admin_delete_user(UUID) TO authenticated, service_role;
+

@@ -26,6 +26,8 @@ class _GestionUsuariosPageState extends State<GestionUsuariosPage> {
   String? _selectedRole; // null means 'Todos'
   final TextEditingController _searchController = TextEditingController();
 
+  String? get _currentUserId => _supabase.auth.currentUser?.id;
+
   @override
   void initState() {
     super.initState();
@@ -171,216 +173,151 @@ class _GestionUsuariosPageState extends State<GestionUsuariosPage> {
     }
   }
 
-  Future<void> _showEditUserDialog(Map<String, dynamic> user) async {
+  Future<void> _confirmDeleteUser(Map<String, dynamic> user) async {
     final userId = (user['user_id'] ?? user['id']) as String;
-    final nombreCtrl = TextEditingController(text: user['nombre_completo'] ?? '');
-    final cedulaCtrl = TextEditingController(text: user['cedula'] ?? '');
-    final telfCtrl = TextEditingController(text: user['telefono'] ?? '');
-    String selectedRole = user['rol']?.toString().toLowerCase() ?? 'alumno';
+    final nombre = user['nombre_completo'] ?? 'Usuario';
+    final email = user['email'] ?? '';
 
-    // Normalizar rol
-    if (!['super_admin', 'coordinador', 'profesor', 'alumno'].contains(selectedRole)) {
-      if (selectedRole.contains('admin')) {
-        selectedRole = 'super_admin';
-      } else if (selectedRole.contains('coord')) {
-        selectedRole = 'coordinador';
-      } else if (selectedRole.contains('prof')) {
-        selectedRole = 'profesor';
-      } else {
-        selectedRole = 'alumno';
-      }
+    // Seguridad: Evitar que el Super Admin elimine su propia cuenta
+    if (userId == _currentUserId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Operación denegada: no puedes eliminar tu propia cuenta de Super Admin en uso.'),
+          backgroundColor: AppTheme.errorRed,
+        ),
+      );
+      return;
     }
 
-    final formKey = GlobalKey<FormState>();
-
-    await showDialog(
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: AppTheme.surfaceContainerLow,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withAlpha(30),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Symbols.manage_accounts, color: AppTheme.primary, size: 22),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceContainerLow,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.errorRed.withAlpha(30),
+                borderRadius: BorderRadius.circular(10),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Gestionar Usuario',
-                  style: GoogleFonts.plusJakartaSans(
-                    color: AppTheme.onSurface,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppTheme.surfaceContainerLowest,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.outlineVariant),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Symbols.mail, size: 18, color: AppTheme.onSurfaceVariant),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            user['email'] ?? 'Sin correo',
-                            style: GoogleFonts.plusJakartaSans(
-                              color: AppTheme.onSurface,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: nombreCtrl,
-                    style: const TextStyle(color: AppTheme.onSurface),
-                    decoration: const InputDecoration(
-                      labelText: 'Nombre Completo *',
-                      prefixIcon: Icon(Symbols.person),
-                    ),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Campo requerido' : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: cedulaCtrl,
-                    style: const TextStyle(color: AppTheme.onSurface),
-                    decoration: const InputDecoration(
-                      labelText: 'Cédula de Identidad',
-                      prefixIcon: Icon(Symbols.badge),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: telfCtrl,
-                    keyboardType: TextInputType.phone,
-                    style: const TextStyle(color: AppTheme.onSurface),
-                    decoration: const InputDecoration(
-                      labelText: 'Teléfono',
-                      prefixIcon: Icon(Symbols.call),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedRole,
-                    dropdownColor: AppTheme.surfaceContainer,
-                    style: const TextStyle(color: AppTheme.onSurface),
-                    decoration: const InputDecoration(
-                      labelText: 'Rol Institucional *',
-                      prefixIcon: Icon(Symbols.shield_person),
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'super_admin',
-                        child: Text('Super Admin (Control Total)'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'coordinador',
-                        child: Text('Coordinador (Supervisión y Asistencia)'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'profesor',
-                        child: Text('Profesor (Gestión de Cursos y Encuestas)'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'alumno',
-                        child: Text('Alumno (Portal de Aprendizaje)'),
-                      ),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) {
-                        setDialogState(() => selectedRole = val);
-                      }
-                    },
-                  ),
-                ],
-              ),
+              child: const Icon(Symbols.delete_forever, color: AppTheme.errorRed, size: 24),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                foregroundColor: AppTheme.onPrimary,
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                'Eliminar Usuario',
+                style: TextStyle(color: AppTheme.onSurface, fontWeight: FontWeight.bold, fontSize: 18),
               ),
-              onPressed: () async {
-                if (!formKey.currentState!.validate()) return;
-                final messenger = ScaffoldMessenger.of(context);
-                try {
-                  final cleanName = nombreCtrl.text.trim();
-                  final cleanCedula = cedulaCtrl.text.trim();
-                  final cleanPhone = telfCtrl.text.trim();
-
-                  try {
-                    await _supabase.rpc('admin_update_user', params: {
-                      'p_user_id': userId,
-                      'p_nombre_completo': cleanName,
-                      'p_cedula': cleanCedula.isNotEmpty ? cleanCedula : null,
-                      'p_telefono': cleanPhone.isNotEmpty ? cleanPhone : null,
-                      'p_rol': selectedRole,
-                    });
-                  } catch (_) {
-                    // Fallback directo a perfiles
-                    await _supabase.from('perfiles').upsert({
-                      'id': userId,
-                      'user_id': userId,
-                      'nombre_completo': cleanName,
-                      'cedula': cleanCedula.isNotEmpty ? cleanCedula : null,
-                      'telefono': cleanPhone.isNotEmpty ? cleanPhone : null,
-                      'rol': selectedRole,
-                      'updated_at': DateTime.now().toIso8601String(),
-                    });
-                  }
-
-                  if (ctx.mounted) Navigator.pop(ctx);
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      const SnackBar(content: Text('Usuario actualizado correctamente.')),
-                    );
-                    _loadData();
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(content: Text('Error al actualizar usuario: $e'), backgroundColor: AppTheme.errorRed),
-                    );
-                  }
-                }
-              },
-              icon: const Icon(Symbols.check),
-              label: const Text('Guardar'),
             ),
           ],
         ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '¿Estás seguro de que deseas eliminar permanentemente a este usuario?',
+              style: GoogleFonts.plusJakartaSans(
+                color: AppTheme.onSurface,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.outlineVariant),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    nombre,
+                    style: GoogleFonts.plusJakartaSans(
+                      color: AppTheme.onSurface,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                  if (email.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      email,
+                      style: const TextStyle(color: AppTheme.onSurfaceVariant, fontSize: 12),
+                    ),
+                  ],
+                  if (user['cedula'] != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      'Cédula: ${user['cedula']}',
+                      style: const TextStyle(color: AppTheme.onSurfaceVariant, fontSize: 12),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Esta acción revocará inmediatamente su acceso, eliminando su cuenta autenticada y su perfil en Supabase. No se puede deshacer.',
+              style: TextStyle(color: AppTheme.errorRed, fontSize: 12),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.errorRed,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            icon: const Icon(Symbols.delete, size: 18),
+            label: const Text('Eliminar Definitivamente'),
+          ),
+        ],
       ),
     );
+
+    if (confirmed == true && mounted) {
+      final messenger = ScaffoldMessenger.of(context);
+      try {
+        try {
+          await _supabase.rpc('admin_delete_user', params: {'p_user_id': userId});
+        } catch (_) {
+          // Fallback directo a perfiles
+          await _supabase.from('perfiles').delete().eq('id', userId);
+        }
+
+        if (mounted) {
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text('Usuario "$nombre" eliminado exitosamente.'),
+              backgroundColor: AppTheme.tertiary,
+            ),
+          );
+          _loadData();
+        }
+      } catch (e) {
+        if (mounted) {
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text('Error al eliminar usuario: $e'),
+              backgroundColor: AppTheme.errorRed,
+            ),
+          );
+        }
+      }
+    }
   }
 
   Future<void> _showUserDetailsModal(Map<String, dynamic> user) async {
@@ -389,6 +326,7 @@ class _GestionUsuariosPageState extends State<GestionUsuariosPage> {
     final email = user['email'] ?? 'Sin correo';
     final nombre = user['nombre_completo'] ?? 'Usuario';
     final userId = (user['user_id'] ?? user['id']) as String?;
+    final isCurrentUser = userId == _currentUserId;
 
     await showModalBottomSheet(
       context: context,
@@ -467,43 +405,45 @@ class _GestionUsuariosPageState extends State<GestionUsuariosPage> {
               _buildDetailItem(Symbols.calendar_today, 'Fecha de Registro', _formatDate(user['created_at'])),
               _buildDetailItem(Symbols.login, 'Último Inicio de Sesión', _formatDate(user['last_sign_in_at'])),
               const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppTheme.primary,
-                        side: const BorderSide(color: AppTheme.primary),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        _handleResetPassword(email);
-                      },
-                      icon: const Icon(Symbols.lock_reset, size: 20),
-                      label: const Text('Restablecer Clave'),
+              if (!isCurrentUser)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.errorRed,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _confirmDeleteUser(user);
+                    },
+                    icon: const Icon(Symbols.delete, size: 20),
+                    label: const Text('Eliminar Usuario Definitivamente', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
-                        foregroundColor: AppTheme.onPrimary,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                )
+              else
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceContainerLowest,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.outlineVariant),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Symbols.lock, size: 16, color: AppTheme.onSurfaceVariant),
+                      SizedBox(width: 8),
+                      Text(
+                        'Tu cuenta activa de Super Admin (protegida)',
+                        style: TextStyle(color: AppTheme.onSurfaceVariant, fontSize: 13, fontWeight: FontWeight.w600),
                       ),
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        _showEditUserDialog(user);
-                      },
-                      icon: const Icon(Symbols.edit, size: 20),
-                      label: const Text('Editar Usuario'),
-                    ),
+                    ],
                   ),
-                ],
-              ),
+                ),
             ],
           ),
         ),
@@ -539,62 +479,6 @@ class _GestionUsuariosPageState extends State<GestionUsuariosPage> {
     );
   }
 
-  Future<void> _handleResetPassword(String email) async {
-    if (email.isEmpty || !email.contains('@')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('El usuario no posee un correo electrónico válido para restablecer la contraseña.'),
-          backgroundColor: AppTheme.errorRed,
-        ),
-      );
-      return;
-    }
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.surfaceContainerLow,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Restablecer Contraseña', style: TextStyle(color: AppTheme.onSurface, fontWeight: FontWeight.bold)),
-        content: Text(
-          'Se enviará un correo de recuperación seguro a "$email" para que el usuario pueda crear una nueva contraseña.',
-          style: const TextStyle(color: AppTheme.onSurfaceVariant),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: AppTheme.onPrimary,
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Enviar Correo'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true && mounted) {
-      final messenger = ScaffoldMessenger.of(context);
-      try {
-        await _supabase.auth.resetPasswordForEmail(email);
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text('Correo de recuperación enviado exitosamente a $email.'),
-            backgroundColor: AppTheme.tertiary,
-          ),
-        );
-      } catch (e) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text('Error al enviar correo de recuperación: $e'),
-            backgroundColor: AppTheme.errorRed,
-          ),
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     // Conteos por rol
@@ -621,7 +505,7 @@ class _GestionUsuariosPageState extends State<GestionUsuariosPage> {
               ),
             ),
             Text(
-              'Padrón de cuentas autenticadas en Supabase',
+              'Consulta y eliminación de cuentas autenticadas en Supabase',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 11,
                 color: AppTheme.onSurfaceVariant,
@@ -811,6 +695,8 @@ class _GestionUsuariosPageState extends State<GestionUsuariosPage> {
                               final telefono = user['telefono'] ?? 'Sin Teléfono';
                               final roleColor = _getRoleColor(user['rol'] as String?);
                               final roleLabel = _getRoleLabel(user['rol'] as String?);
+                              final userId = (user['user_id'] ?? user['id']) as String?;
+                              final isCurrentUser = userId == _currentUserId;
 
                               return Card(
                                 elevation: 0,
@@ -870,6 +756,20 @@ class _GestionUsuariosPageState extends State<GestionUsuariosPage> {
                                                       ),
                                                     ),
                                                   ),
+                                                  if (isCurrentUser) ...[
+                                                    const SizedBox(width: 6),
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                      decoration: BoxDecoration(
+                                                        color: AppTheme.surfaceContainerHighest,
+                                                        borderRadius: BorderRadius.circular(6),
+                                                      ),
+                                                      child: const Text(
+                                                        'Tú',
+                                                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.onSurfaceVariant),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ],
                                               ),
                                               const SizedBox(height: 4),
@@ -925,16 +825,20 @@ class _GestionUsuariosPageState extends State<GestionUsuariosPage> {
                                             ],
                                           ),
                                         ),
-                                        IconButton(
-                                          icon: const Icon(Symbols.edit, size: 20, color: AppTheme.primary),
-                                          tooltip: 'Editar usuario',
-                                          onPressed: () => _showEditUserDialog(user),
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(Symbols.info, size: 20, color: AppTheme.onSurfaceVariant),
-                                          tooltip: 'Ver detalles',
-                                          onPressed: () => _showUserDetailsModal(user),
-                                        ),
+                                        if (!isCurrentUser)
+                                          IconButton(
+                                            icon: const Icon(Symbols.delete, size: 22, color: AppTheme.errorRed),
+                                            tooltip: 'Eliminar usuario',
+                                            onPressed: () => _confirmDeleteUser(user),
+                                          )
+                                        else
+                                          const Padding(
+                                            padding: EdgeInsets.symmetric(horizontal: 12),
+                                            child: Tooltip(
+                                              message: 'Tu cuenta actual de Super Admin (no eliminable)',
+                                              child: Icon(Symbols.lock, size: 20, color: AppTheme.outline),
+                                            ),
+                                          ),
                                       ],
                                     ),
                                   ),
@@ -963,7 +867,7 @@ class _GestionUsuariosPageState extends State<GestionUsuariosPage> {
           const SizedBox(width: 6),
           Text(
             '$title: ',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 12,
               color: AppTheme.onSurfaceVariant,
               fontWeight: FontWeight.w600,
