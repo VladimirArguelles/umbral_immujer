@@ -55,3 +55,13 @@ WITH CHECK (
     OR user_id IS NULL 
     OR (SELECT rol FROM public.perfiles WHERE id = auth.uid()) = 'super_admin'
 );
+
+-- 4. Política de Eliminación para Super Admin
+DROP POLICY IF EXISTS "assistant_logs_delete_super_admin" ON public.assistant_logs;
+CREATE POLICY "assistant_logs_delete_super_admin"
+ON public.assistant_logs
+FOR DELETE
+TO authenticated
+USING (
+    (SELECT rol FROM public.perfiles WHERE id = auth.uid()) = 'super_admin'
+);

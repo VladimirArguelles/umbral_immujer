@@ -26,6 +26,9 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
     _cargarAssistantLogs();
   }
 
@@ -64,8 +67,172 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
     }
   }
 
+  Future<void> _confirmarYEliminarLog(String id) async {
+    if (id.isEmpty) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(color: Color(0xFF334155)),
+        ),
+        title: Row(
+          children: [
+            const Icon(Symbols.delete_forever, color: Color(0xFFF87171), size: 22),
+            const SizedBox(width: 8),
+            Text(
+              'Eliminar consulta',
+              style: GoogleFonts.firaCode(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          '¿Deseas eliminar permanentemente este registro de consulta revisado?',
+          style: GoogleFonts.plusJakartaSans(
+            color: const Color(0xFFCBD5E1),
+            fontSize: 13,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar', style: TextStyle(color: Color(0xFF94A3B8))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await SupabaseConfig.client.from('assistant_logs').delete().eq('id', id);
+      if (mounted) {
+        setState(() {
+          _assistantLogs.removeWhere((log) => log['id']?.toString() == id);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registro de consulta eliminado de la auditoría.'),
+            backgroundColor: Color(0xFF1E293B),
+            duration: Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al eliminar registro: $e'),
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmarYEliminarTodosLosLogs() async {
+    if (_assistantLogs.isEmpty) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(color: Color(0xFF334155)),
+        ),
+        title: Row(
+          children: [
+            const Icon(Symbols.delete_sweep, color: Color(0xFFF87171), size: 22),
+            const SizedBox(width: 8),
+            Text(
+              'Eliminar auditoría revisada',
+              style: GoogleFonts.firaCode(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          '¿Deseas eliminar permanentemente los ${_assistantLogs.length} registros de consultas revisadas de Umby / Gemini?',
+          style: GoogleFonts.plusJakartaSans(
+            color: const Color(0xFFCBD5E1),
+            fontSize: 13,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar', style: TextStyle(color: Color(0xFF94A3B8))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar todos'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await SupabaseConfig.client
+          .from('assistant_logs')
+          .delete()
+          .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      if (mounted) {
+        setState(() {
+          _assistantLogs.clear();
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Se han eliminado todos los registros de auditoría.'),
+            backgroundColor: Color(0xFF1E293B),
+            duration: Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al limpiar registros: $e'),
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isAssistantTab = _tabController.index == 1;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
@@ -121,16 +288,22 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
           ),
           IconButton(
             icon: const Icon(Icons.delete_sweep, color: Color(0xFFF87171)),
-            tooltip: 'Limpiar logs de memoria',
+            tooltip: isAssistantTab
+                ? 'Eliminar consultas revisadas de IA'
+                : 'Limpiar logs de memoria',
             onPressed: () {
-              ErrorConsoleService.instance.limpiarLogs();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Consola reiniciada: registros en memoria borrados.'),
-                  backgroundColor: Color(0xFF1E293B),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+              if (isAssistantTab) {
+                _confirmarYEliminarTodosLosLogs();
+              } else {
+                ErrorConsoleService.instance.limpiarLogs();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Consola reiniciada: registros en memoria borrados.'),
+                    backgroundColor: Color(0xFF1E293B),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
             },
           ),
         ],
@@ -142,8 +315,8 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
           unselectedLabelColor: const Color(0xFF94A3B8),
           labelStyle: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold),
           tabs: [
-            Tab(
-              icon: const Icon(Symbols.bug_report, size: 18),
+            const Tab(
+              icon: Icon(Symbols.bug_report, size: 18),
               text: 'Excepciones en Vivo',
             ),
             Tab(
@@ -264,7 +437,7 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
               ),
               const SizedBox(height: 8),
               Text(
-                'No hay interacciones registradas aún en la tabla assistant_logs.\nLas consultas de los usuarios se registrarán aquí automáticamente.',
+                'No hay interacciones pendientes o registradas en assistant_logs.\nLas consultas de los usuarios se registrarán aquí automáticamente.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF94A3B8)),
               ),
@@ -276,9 +449,7 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
 
     return Column(
       children: [
-        _buildStatusBar(
-          'AUDITORÍA: ${_assistantLogs.length} interacciones registradas en Supabase | Orden DESC',
-        ),
+        _buildAssistantStatusBar(),
         Expanded(
           child: ListView.separated(
             padding: const EdgeInsets.all(12),
@@ -291,7 +462,45 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
     );
   }
 
+  Widget _buildAssistantStatusBar() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      color: const Color(0xFF1E293B).withValues(alpha: 0.6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Flexible(
+            child: Text(
+              'AUDITORÍA: ${_assistantLogs.length} consultas registradas | Orden DESC',
+              style: GoogleFonts.firaCode(fontSize: 11, color: const Color(0xFF94A3B8)),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          TextButton.icon(
+            onPressed: _confirmarYEliminarTodosLosLogs,
+            icon: const Icon(Symbols.delete_sweep, size: 15, color: Color(0xFFF87171)),
+            label: Text(
+              'Eliminar revisadas (${_assistantLogs.length})',
+              style: GoogleFonts.firaCode(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFFF87171),
+              ),
+            ),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAssistantLogCard(Map<String, dynamic> item) {
+    final logId = item['id']?.toString() ?? '';
     final userNombre = item['user_nombre'] as String? ?? 'Anónimo';
     final userRol = (item['user_rol'] as String? ?? 'alumno').toUpperCase();
     final modulo = (item['modulo_id'] as String? ?? 'general').toUpperCase();
@@ -442,24 +651,37 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
                         color: const Color(0xFF38BDF8),
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Symbols.content_copy, size: 16, color: Color(0xFF38BDF8)),
-                      tooltip: 'Copiar interacción',
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      onPressed: () {
-                        Clipboard.setData(
-                          ClipboardData(
-                            text: 'PREGUNTA ($userNombre - $modulo):\n$question\n\nRESPUESTA:\n$answer',
-                          ),
-                        );
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Interacción copiada al portapapeles.'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      },
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Symbols.content_copy, size: 16, color: Color(0xFF38BDF8)),
+                          tooltip: 'Copiar interacción',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () {
+                            Clipboard.setData(
+                              ClipboardData(
+                                text: 'PREGUNTA ($userNombre - $modulo):\n$question\n\nRESPUESTA:\n$answer',
+                              ),
+                            );
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Interacción copiada al portapapeles.'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 14),
+                        IconButton(
+                          icon: const Icon(Symbols.delete_outline, size: 17, color: Color(0xFFF87171)),
+                          tooltip: 'Eliminar esta consulta revisada',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () => _confirmarYEliminarLog(logId),
+                        ),
+                      ],
                     ),
                   ],
                 ),

@@ -328,6 +328,70 @@ class _SuperAdminNotificationsModalState
     } catch (_) {}
   }
 
+  Future<void> _deleteReviewedNotifications() async {
+    final reviewedCount = _notifications.where((n) => n.leido).length;
+    if (reviewedCount == 0) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.isDark ? const Color(0xFF13111C) : Colors.white,
+        title: Text(
+          'Eliminar notificaciones revisadas',
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          '¿Deseas eliminar permanentemente las $reviewedCount notificaciones que ya fueron revisadas?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _supabase
+          .from('notificaciones')
+          .delete()
+          .eq('leido', true)
+          .or('rol_destino.eq.super_admin,rol_destino.eq.todos');
+
+      if (!mounted) return;
+      setState(() {
+        _notifications.removeWhere((n) => n.leido);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Notificaciones revisadas eliminadas.',
+            style: GoogleFonts.plusJakartaSans(fontSize: 12),
+          ),
+          backgroundColor: AppColors.primary,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al eliminar notificaciones: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = AppTheme.isDark;
@@ -504,6 +568,19 @@ class _SuperAdminNotificationsModalState
                       ),
                     ),
                     const Spacer(),
+                    if (_notifications.any((n) => n.leido))
+                      TextButton.icon(
+                        onPressed: _deleteReviewedNotifications,
+                        icon: const Icon(Symbols.delete_sweep, size: 16),
+                        label: Text(
+                          'Eliminar revisadas (${_notifications.where((n) => n.leido).length})',
+                          style: const TextStyle(fontSize: 11.5),
+                        ),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                        ),
+                      ),
                     if (unreadCount > 0)
                       TextButton.icon(
                         onPressed: _markAllAsRead,
