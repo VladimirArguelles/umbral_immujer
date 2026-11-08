@@ -13,6 +13,7 @@ import 'package:umbral_immujer/features/superadmin/presentation/configuracion_ge
 import 'package:umbral_immujer/features/superadmin/presentation/gestion_alumnos_page.dart';
 import 'package:umbral_immujer/features/superadmin/presentation/gestion_cursos_page.dart';
 import 'package:umbral_immujer/features/superadmin/presentation/gestion_profesores_page.dart';
+import 'package:umbral_immujer/features/superadmin/presentation/gestion_usuarios_page.dart';
 import 'package:umbral_immujer/features/superadmin/presentation/super_admin_dashboard.dart';
 import 'package:umbral_immujer/features/teacher/presentation/teacher_dashboard_page.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
@@ -201,6 +202,13 @@ final GoRouter appRouter = GoRouter(
       ),
     ),
     GoRoute(
+      path: '/superadmin/usuarios',
+      builder: (context, state) => _AuthenticatedDashboardPage(
+        allowedRoles: const [UserRole.superAdmin],
+        builder: (profile) => const GestionUsuariosPage(),
+      ),
+    ),
+    GoRoute(
       path: '/superadmin/configuracion',
       builder: (context, state) => _AuthenticatedDashboardPage(
         allowedRoles: const [UserRole.superAdmin],
@@ -233,6 +241,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/gestion-alumnos',
       redirect: (context, state) => '/superadmin/alumnos',
+    ),
+    GoRoute(
+      path: '/gestion-usuarios',
+      redirect: (context, state) => '/superadmin/usuarios',
     ),
     GoRoute(
       path: '/reports',

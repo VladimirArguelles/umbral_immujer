@@ -14,6 +14,7 @@ import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
 import 'gestion_alumnos_page.dart';
 import 'gestion_cursos_page.dart';
 import 'gestion_profesores_page.dart';
+import 'gestion_usuarios_page.dart';
 
 // ─── Responsive breakpoints ───────────────────────────────────────────────────
 // < 600 px  → mobile  : bottom-nav + single column
@@ -448,6 +449,38 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withAlpha(40),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Symbols.manage_accounts, color: AppTheme.primary, size: 22),
+              ),
+              title: Text(
+                'Gestión de Usuarios',
+                style: GoogleFonts.plusJakartaSans(
+                  color: cTextMain,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+              subtitle: const Text(
+                'Consultar, asignar roles y administrar usuarios registrados',
+                style: TextStyle(color: cTextMuted, fontSize: 12),
+              ),
+              trailing: const Icon(Symbols.chevron_right, color: cTextDim, size: 20),
+              onTap: () {
+                Navigator.pop(ctx);
+                Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (_) => const GestionUsuariosPage()))
+                    .then((_) => _loadMetrics());
+              },
+            ),
+            const SizedBox(height: 6),
             ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1504,7 +1537,6 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
   Widget _buildMetricCardUsers() {
     return Container(
       height: 132,
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: cCard,
         borderRadius: BorderRadius.circular(16),
@@ -1517,46 +1549,100 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Flexible(
-                child: Text(
-                  'Usuarios Registrados',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    color: cTextMuted,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => const GestionUsuariosPage()))
+                .then((_) => _loadMetrics());
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        'Usuarios Registrados',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: cTextMuted,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () {
+                        Navigator.of(context)
+                            .push(MaterialPageRoute(builder: (_) => const GestionUsuariosPage()))
+                            .then((_) => _loadMetrics());
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: cAccent.withValues(alpha: 0.28),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: cAccent.withValues(alpha: 0.65)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Symbols.manage_accounts, size: 13, color: Color(0xFFC084FC)),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Gestionar',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFFC084FC),
+                              ),
+                            ),
+                            const SizedBox(width: 2),
+                            const Icon(Symbols.chevron_right, size: 13, color: Color(0xFFC084FC)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const Icon(Symbols.verified_user, size: 16, color: cMintBright),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            _formatMetric(_totalUsuarios),
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              color: cTextMain,
+                const SizedBox(height: 4),
+                Text(
+                  _formatMetric(_totalUsuarios),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: cTextMain,
+                  ),
+                ),
+                const Spacer(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        'Usuarios autenticados en Supabase',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w600,
+                          color: cTextMuted,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const Icon(Symbols.verified_user, size: 15, color: cMintBright),
+                  ],
+                ),
+              ],
             ),
           ),
-          const Spacer(),
-          Text(
-            'Usuarios autenticados en Supabase',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w600,
-              color: cTextMuted,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+        ),
       ),
     );
   }
