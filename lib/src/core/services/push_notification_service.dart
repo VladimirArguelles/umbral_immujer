@@ -73,7 +73,7 @@ class PushNotificationService {
 
     try {
       await _localNotifications.initialize(
-        settings: initSettings,
+        initSettings,
         onDidReceiveNotificationResponse: (response) {
           debugPrint('[PushNotificationService] Notificación tocada: ${response.payload}');
         },
@@ -178,10 +178,10 @@ class PushNotificationService {
 
     try {
       await _localNotifications.show(
-        id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
-        title: title,
-        body: body,
-        notificationDetails: details,
+        DateTime.now().millisecondsSinceEpoch.remainder(100000),
+        title,
+        body,
+        details,
         payload: payload,
       );
     } catch (e) {

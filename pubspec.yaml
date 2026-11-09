@@ -2,7 +2,7 @@ name: umbral_immujer
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 0.1.0+1
+version: 0.1.1+2
 
 environment:
   sdk: ^3.13.5
@@ -31,7 +31,7 @@ dependencies:
   package_info_plus: ^10.2.2
   firebase_core: ^5.1.0
   firebase_messaging: ^17.0.1
-  flutter_local_notifications: ^23.0.0
+  flutter_local_notifications: 18.0.1
 
 dev_dependencies:
   flutter_test:
