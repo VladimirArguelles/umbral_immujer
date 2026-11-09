@@ -1,4 +1,5 @@
-import 'dart:ui';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -7,6 +8,7 @@ import 'core/services/error_console_service.dart';
 import 'features/teacher/data/attendance_offline_service.dart';
 import 'src/core/config/supabase_config.dart';
 import 'src/core/services/online_user_presence_service.dart';
+import 'src/core/services/push_notification_service.dart';
 import 'src/core/theme/app_theme.dart';
 
 Future<void> main() async {
@@ -15,6 +17,16 @@ Future<void> main() async {
   // Inicializa Hive y el servicio de persistencia y sincronización offline de asistencias.
   await Hive.initFlutter();
   await AttendanceOfflineService.instance.initialize();
+
+  // Inicializa Firebase y el servicio de notificaciones push (FCM y barra de estado)
+  try {
+    if (!kIsWeb) {
+      await Firebase.initializeApp();
+    }
+  } catch (e) {
+    debugPrint('[main] Firebase inicializado en modo fallback local: $e');
+  }
+  await PushNotificationService.instance.initialize();
 
   // Inicializa Supabase con valores de compilación recibidos mediante --dart-define.
   await SupabaseConfig.initialize();

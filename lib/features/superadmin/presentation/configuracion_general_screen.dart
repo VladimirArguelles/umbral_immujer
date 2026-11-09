@@ -7,6 +7,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/services/app_update_service.dart';
+import 'package:umbral_immujer/src/core/services/push_notification_service.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/core/utils/responsive.dart';
 import 'package:umbral_immujer/src/core/widgets/app_update_dialog.dart';
@@ -1025,7 +1026,104 @@ class _ConfiguracionGeneralScreenState
             setState(() {});
           },
         ),
+        const SizedBox(height: 18),
+        _buildPushNotificationsTesterWidget(),
       ],
+    );
+  }
+
+  /// Disparadores de prueba para notificaciones push en barra de estado
+  Widget _buildPushNotificationsTesterWidget() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cCardInner,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: cSky.withAlpha(90),
+          width: 1.2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: cSky.withAlpha(30),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Symbols.notifications_active, color: cSky, size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Notificaciones Push (Barra de Estado / FCM)',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: cTextMain,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Disparadores de prueba para validar avisos en el dispositivo',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        color: cTextMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ActionChip(
+                avatar: const Icon(Symbols.schedule, size: 16, color: cSky),
+                label: const Text('Horario de Clases', style: TextStyle(fontSize: 11.5)),
+                onPressed: () {
+                  PushNotificationService.instance.alertClassScheduleChange(
+                    cursoNombre: 'Costura y Confección',
+                    nuevoHorario: 'Lunes y Miércoles 2:00 PM',
+                  );
+                  _showToast('Notificación enviada a la barra de estado: Horario', isSuccess: true);
+                },
+              ),
+              ActionChip(
+                avatar: const Icon(Symbols.payments, size: 16, color: cEmerald),
+                label: const Text('Aprobación de Aporte', style: TextStyle(fontSize: 11.5)),
+                onPressed: () {
+                  PushNotificationService.instance.alertPaymentApproved(
+                    cursoNombre: 'Panadería Artesanal',
+                    monto: 15.0,
+                  );
+                  _showToast('Notificación enviada a la barra de estado: Aporte', isSuccess: true);
+                },
+              ),
+              ActionChip(
+                avatar: const Icon(Symbols.fact_check, size: 16, color: cAmber),
+                label: const Text('Recordatorio de Asistencia', style: TextStyle(fontSize: 11.5)),
+                onPressed: () {
+                  PushNotificationService.instance.alertAttendanceReminder(
+                    cursoNombre: 'Peluquería Básica',
+                  );
+                  _showToast('Notificación enviada a la barra de estado: Asistencia', isSuccess: true);
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
