@@ -47,6 +47,30 @@ class StudentAttendanceItem {
   });
 
   bool get isPresente => estadoAsistencia == 'Presente';
+
+  Map<String, dynamic> toJson() {
+    return {
+      'alumnoId': alumnoId,
+      'nombreCompleto': nombreCompleto,
+      'cedula': cedula,
+      'telefono': telefono,
+      'estadoAsistencia': estadoAsistencia,
+      'confirmoEncuesta': confirmoEncuesta,
+      'estadoPago': estadoPago,
+    };
+  }
+
+  factory StudentAttendanceItem.fromJson(Map<dynamic, dynamic> json) {
+    return StudentAttendanceItem(
+      alumnoId: (json['alumnoId'] ?? '') as String,
+      nombreCompleto: (json['nombreCompleto'] ?? '') as String,
+      cedula: (json['cedula'] ?? '') as String,
+      telefono: json['telefono'] as String?,
+      estadoAsistencia: (json['estadoAsistencia'] ?? 'Ausente') as String,
+      confirmoEncuesta: json['confirmoEncuesta'] as bool?,
+      estadoPago: json['estadoPago'] as String?,
+    );
+  }
 }
 
 class PaymentAuditItem {

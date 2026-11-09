@@ -1,6 +1,18 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../domain/teacher_models.dart';
+import 'attendance_offline_service.dart';
+
+/// Resultado del guardado de asistencia (indica si fue online o encolado localmente).
+class AttendanceSaveResult {
+  final bool isOffline;
+  final String message;
+
+  const AttendanceSaveResult({
+    required this.isOffline,
+    required this.message,
+  });
+}
 
 class TeacherRepository {
   final SupabaseClient _supabase;
@@ -50,93 +62,111 @@ class TeacherRepository {
     required String courseId,
     required String date, // YYYY-MM-DD
   }) async {
-    // 1. Alumnos inscritos activos
-    final inscritos = await _supabase
-        .from('inscripciones')
-        .select('''
-          alumno_id,
-          alumnos:alumno_id (
-            id,
-            nombre_completo,
-            cedula,
-            telefono
-          )
-        ''')
-        .eq('curso_id', courseId)
-        .isFilter('deleted_at', null);
+    try {
+      // 1. Alumnos inscritos activos
+      final inscritos = await _supabase
+          .from('inscripciones')
+          .select('''
+            alumno_id,
+            alumnos:alumno_id (
+              id,
+              nombre_completo,
+              cedula,
+              telefono
+            )
+          ''')
+          .eq('curso_id', courseId)
+          .isFilter('deleted_at', null);
 
-    // 2. Asistencias ya guardadas para esa fecha
-    final asistenciasExistentes = await _supabase
-        .from('asistencia')
-        .select('alumno_id, estado')
-        .eq('curso_id', courseId)
-        .eq('fecha', date);
+      // 2. Asistencias ya guardadas para esa fecha
+      final asistenciasExistentes = await _supabase
+          .from('asistencia')
+          .select('alumno_id, estado')
+          .eq('curso_id', courseId)
+          .eq('fecha', date);
 
-    final Map<String, String> asistenciaMap = {};
-    for (final a in (asistenciasExistentes as List)) {
-      asistenciaMap[a['alumno_id'] as String] = a['estado'] as String;
-    }
-
-    // 3. Encuesta activa o reciente para este curso y fecha
-    final encuesta = await _supabase
-        .from('encuestas_participacion')
-        .select('id')
-        .eq('curso_id', courseId)
-        .eq('fecha_clase', date)
-        .maybeSingle();
-
-    final Map<String, Map<String, dynamic>> respMap = {};
-    if (encuesta != null) {
-      final resps = await _supabase
-          .from('respuestas_encuesta')
-          .select('alumno_id, asistira, estado_pago')
-          .eq('encuesta_id', encuesta['id']);
-      for (final r in (resps as List)) {
-        respMap[r['alumno_id'] as String] = r;
+      final Map<String, String> asistenciaMap = {};
+      for (final a in (asistenciasExistentes as List)) {
+        asistenciaMap[a['alumno_id'] as String] = a['estado'] as String;
       }
-    }
 
-    final List<StudentAttendanceItem> resultado = [];
+      // 3. Encuesta activa o reciente para este curso y fecha
+      final encuesta = await _supabase
+          .from('encuestas_participacion')
+          .select('id')
+          .eq('curso_id', courseId)
+          .eq('fecha_clase', date)
+          .maybeSingle();
 
-    for (final item in (inscritos as List)) {
-      final alMap = item['alumnos'] as Map<String, dynamic>?;
-      if (alMap == null) continue;
+      final Map<String, Map<String, dynamic>> respMap = {};
+      if (encuesta != null) {
+        final resps = await _supabase
+            .from('respuestas_encuesta')
+            .select('alumno_id, asistira, estado_pago')
+            .eq('encuesta_id', encuesta['id']);
+        for (final r in (resps as List)) {
+          respMap[r['alumno_id'] as String] = r;
+        }
+      }
 
-      final alumnoId = alMap['id'] as String;
-      // Si ya existe asistencia guardada, usarla; si no, inicializar en 'Ausente'
-      final estadoInicial = asistenciaMap[alumnoId] ?? 'Ausente';
+      final List<StudentAttendanceItem> resultado = [];
 
-      final resp = respMap[alumnoId];
+      for (final item in (inscritos as List)) {
+        final alMap = item['alumnos'] as Map<String, dynamic>?;
+        if (alMap == null) continue;
 
-      resultado.add(
-        StudentAttendanceItem(
-          alumnoId: alumnoId,
-          nombreCompleto: (alMap['nombre_completo'] ?? '') as String,
-          cedula: (alMap['cedula'] ?? '') as String,
-          telefono: alMap['telefono'] as String?,
-          estadoAsistencia: estadoInicial,
-          confirmoEncuesta: resp?['asistira'] as bool?,
-          estadoPago: resp?['estado_pago'] as String?,
-        ),
+        final alumnoId = alMap['id'] as String;
+        // Si ya existe asistencia guardada, usarla; si no, inicializar en 'Ausente'
+        final estadoInicial = asistenciaMap[alumnoId] ?? 'Ausente';
+
+        final resp = respMap[alumnoId];
+
+        resultado.add(
+          StudentAttendanceItem(
+            alumnoId: alumnoId,
+            nombreCompleto: (alMap['nombre_completo'] ?? '') as String,
+            cedula: (alMap['cedula'] ?? '') as String,
+            telefono: alMap['telefono'] as String?,
+            estadoAsistencia: estadoInicial,
+            confirmoEncuesta: resp?['asistira'] as bool?,
+            estadoPago: resp?['estado_pago'] as String?,
+          ),
+        );
+      }
+
+      // Ordenar priorizando los que confirmaron encuesta y pagaron
+      resultado.sort((a, b) {
+        if ((a.confirmoEncuesta == true) && (b.confirmoEncuesta != true)) {
+          return -1;
+        }
+        if ((a.confirmoEncuesta != true) && (b.confirmoEncuesta == true)) {
+          return 1;
+        }
+        return a.nombreCompleto.compareTo(b.nombreCompleto);
+      });
+
+      // Respaldar en caché local SQLite / Hive para uso offline
+      await AttendanceOfflineService.instance.cacheStudents(courseId, resultado);
+      await AttendanceOfflineService.instance.cacheAttendanceRecord(
+        courseId: courseId,
+        date: date,
+        students: resultado,
       );
+
+      return resultado;
+    } catch (e) {
+      // Fallback offline si no hay conexión de red
+      final cached = AttendanceOfflineService.instance.getCachedStudents(courseId);
+      if (cached != null && cached.isNotEmpty) {
+        return cached;
+      }
+      rethrow;
     }
-
-    // Ordenar priorizando los que confirmaron encuesta y pagaron
-    resultado.sort((a, b) {
-      if ((a.confirmoEncuesta == true) && (b.confirmoEncuesta != true)) {
-        return -1;
-      }
-      if ((a.confirmoEncuesta != true) && (b.confirmoEncuesta == true)) {
-        return 1;
-      }
-      return a.nombreCompleto.compareTo(b.nombreCompleto);
-    });
-
-    return resultado;
   }
 
-  /// Guarda o actualiza (Upsert) la lista de asistencia completa del día
-  Future<void> saveAttendance({
+  /// Guarda o actualiza (Upsert) la lista de asistencia del día.
+  /// En caso de pérdida de conexión, encola el lote en el almacenamiento local para sincronización en segundo plano.
+  Future<AttendanceSaveResult> saveAttendance({
     required String courseId,
     required String date, // YYYY-MM-DD
     required List<StudentAttendanceItem> students,
@@ -152,9 +182,37 @@ class TeacherRepository {
       };
     }).toList();
 
-    await _supabase
-        .from('asistencia')
-        .upsert(records, onConflict: 'curso_id, alumno_id, fecha');
+    try {
+      await _supabase
+          .from('asistencia')
+          .upsert(records, onConflict: 'curso_id, alumno_id, fecha');
+
+      // Actualizar caché y liberar cualquier tarea pendiente
+      await AttendanceOfflineService.instance.cacheAttendanceRecord(
+        courseId: courseId,
+        date: date,
+        students: students,
+      );
+      await AttendanceOfflineService.instance.removePending(courseId, date);
+
+      return const AttendanceSaveResult(
+        isOffline: false,
+        message: '¡Asistencia sincronizada y guardada exitosamente!',
+      );
+    } catch (e) {
+      // Fallback offline: encolar localmente
+      await AttendanceOfflineService.instance.enqueueForSync(
+        courseId: courseId,
+        date: date,
+        students: students,
+        recordedBy: uid,
+      );
+
+      return const AttendanceSaveResult(
+        isOffline: true,
+        message: 'Asistencia guardada localmente (Modo sin conexión). Se sincronizará automáticamente al recuperar señal.',
+      );
+    }
   }
 
   /// Obtiene la tasa BCV oficial más reciente con Fecha Valor

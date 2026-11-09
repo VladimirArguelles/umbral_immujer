@@ -1,14 +1,20 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 import 'core/router/app_router.dart';
 import 'core/services/error_console_service.dart';
+import 'features/teacher/data/attendance_offline_service.dart';
 import 'src/core/config/supabase_config.dart';
 import 'src/core/services/online_user_presence_service.dart';
 import 'src/core/theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Inicializa Hive y el servicio de persistencia y sincronización offline de asistencias.
+  await Hive.initFlutter();
+  await AttendanceOfflineService.instance.initialize();
 
   // Inicializa Supabase con valores de compilación recibidos mediante --dart-define.
   await SupabaseConfig.initialize();

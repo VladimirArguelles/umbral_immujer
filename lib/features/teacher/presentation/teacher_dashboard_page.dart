@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/core/utils/formatters.dart';
+import 'package:umbral_immujer/features/teacher/data/attendance_offline_service.dart';
 import 'package:umbral_immujer/features/teacher/data/teacher_repository.dart';
 import 'package:umbral_immujer/features/teacher/domain/teacher_models.dart';
 import 'package:umbral_immujer/src/core/widgets/formation_image_carousel.dart';
@@ -694,16 +695,28 @@ class _PaseListaTabState extends State<_PaseListaTab> {
     if (_selectedCurso == null) return;
     setState(() => _isSaving = true);
     try {
-      await widget.teacherRepository.saveAttendance(
+      final result = await widget.teacherRepository.saveAttendance(
         courseId: _selectedCurso!.id,
         date: _fechaSeleccionada,
         students: _alumnos,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('¡Asistencia sincronizada y guardada exitosamente!'),
-            backgroundColor: AppTheme.successGreen,
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(
+                  result.isOffline ? Icons.cloud_off : Icons.check_circle,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(child: Text(result.message)),
+              ],
+            ),
+            backgroundColor:
+                result.isOffline ? const Color(0xFFE65100) : AppTheme.successGreen,
+            duration: Duration(seconds: result.isOffline ? 5 : 3),
           ),
         );
       }
@@ -711,7 +724,7 @@ class _PaseListaTabState extends State<_PaseListaTab> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al guardar asistencia: $e'),
+            content: Text('Error al procesar asistencia: $e'),
             backgroundColor: AppTheme.errorRed,
           ),
         );
@@ -846,6 +859,43 @@ class _PaseListaTabState extends State<_PaseListaTab> {
                     ),
                   ),
                 ],
+              ),
+              ValueListenableBuilder<int>(
+                valueListenable: AttendanceOfflineService.instance.pendingCountNotifier,
+                builder: (context, pendingCount, _) {
+                  if (pendingCount == 0) return const SizedBox.shrink();
+                  return Container(
+                    margin: const EdgeInsets.only(top: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF3E0),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFFFB74D)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.sync_problem, color: Color(0xFFE65100), size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '$pendingCount asistencia(s) pendiente(s) de sincronizar',
+                            style: const TextStyle(
+                              color: Color(0xFFE65100),
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            AttendanceOfflineService.instance.syncPendingQueue(SupabaseConfig.client);
+                          },
+                          child: const Text('Sincronizar ahora', style: TextStyle(fontSize: 11.5)),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ],
           ),
