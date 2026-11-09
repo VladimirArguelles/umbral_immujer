@@ -6,8 +6,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
+import 'package:umbral_immujer/src/core/services/app_update_service.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/core/utils/responsive.dart';
+import 'package:umbral_immujer/src/core/widgets/app_update_dialog.dart';
 import 'package:umbral_immujer/src/core/widgets/skeleton_loader.dart';
 import 'package:umbral_immujer/src/core/widgets/super_admin_nav_bar.dart';
 
@@ -109,6 +111,10 @@ class _ConfiguracionGeneralScreenState
       _ensureDefault('tasa_cambio_oficial', 36.50);
       _ensureDefault('dias_retencion_logs', 90);
       _ensureDefault('limite_intentos_login', 5);
+      _ensureDefault('app_version_latest', '0.1.0');
+      _ensureDefault('app_apk_url', 'https://github.com/VladimirArguelles/umbral_immujer/releases/latest');
+      _ensureDefault('app_update_notes', 'Mejoras de rendimiento, soporte offline de asistencias y actualización directa.');
+      _ensureDefault('app_update_mandatory', false);
 
       // Sincronizar o crear controladores
       _syncControllers();
@@ -145,6 +151,9 @@ class _ConfiguracionGeneralScreenState
     _setControllerText('tasa_cambio_oficial', _currentValues['tasa_cambio_oficial']?.toString() ?? '36.50');
     _setControllerText('dias_retencion_logs', _currentValues['dias_retencion_logs']?.toString() ?? '90');
     _setControllerText('limite_intentos_login', _currentValues['limite_intentos_login']?.toString() ?? '5');
+    _setControllerText('app_version_latest', _currentValues['app_version_latest']?.toString() ?? '0.1.0');
+    _setControllerText('app_apk_url', _currentValues['app_apk_url']?.toString() ?? 'https://github.com/VladimirArguelles/umbral_immujer/releases/latest');
+    _setControllerText('app_update_notes', _currentValues['app_update_notes']?.toString() ?? '');
   }
 
   void _setControllerText(String key, String text) {
@@ -1222,7 +1231,122 @@ class _ConfiguracionGeneralScreenState
         ),
         const SizedBox(height: 12),
         _buildBcvSyncWidget(),
+        const SizedBox(height: 16),
+        _buildAppUpdateManagerWidget(),
       ],
+    );
+  }
+
+  /// Widget de gestión y comprobación de actualización In-App del APK
+  Widget _buildAppUpdateManagerWidget() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cCardInner,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: cPrimary.withAlpha(90),
+          width: 1.2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: cPrimary.withAlpha(30),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Symbols.system_update, color: cPrimary, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Actualizaciones de la Aplicación (In-App)',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w800,
+                        color: cTextMain,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Verificación remota y distribución directa del archivo APK',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        color: cTextMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: cPrimary,
+              side: const BorderSide(color: cPrimary),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            ),
+            onPressed: () async {
+              _showToast('Comprobando actualizaciones...', isSuccess: false);
+              final info = await AppUpdateService.instance.checkForUpdate(client: _supabase);
+              if (!mounted) return;
+              if (info.hasUpdate) {
+                AppUpdateDialog.show(context, info);
+              } else {
+                _showToast('Tu app está actualizada a la última versión (v${info.currentVersion})', isSuccess: true);
+              }
+            },
+            icon: const Icon(Symbols.sync, size: 18),
+            label: const Text('Comprobar Actualizaciones Ahora', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5)),
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1),
+          const SizedBox(height: 14),
+          _buildTextField(
+            keyName: 'app_version_latest',
+            label: 'Versión Publicada más Reciente (ej. 0.1.1)',
+            helperText: 'Si la versión del usuario es menor a este número, se le ofrecerá actualizar.',
+            icon: Symbols.numbers,
+            onChanged: (val) {
+              _currentValues['app_version_latest'] = val;
+              setState(() {});
+            },
+          ),
+          const SizedBox(height: 12),
+          _buildTextField(
+            keyName: 'app_apk_url',
+            label: 'URL de Descarga del APK',
+            helperText: 'Enlace directo de descarga o release de GitHub.',
+            icon: Symbols.link,
+            onChanged: (val) {
+              _currentValues['app_apk_url'] = val;
+              setState(() {});
+            },
+          ),
+          const SizedBox(height: 12),
+          _buildTextField(
+            keyName: 'app_update_notes',
+            label: 'Notas de la Versión (Changelog)',
+            helperText: 'Descripción de novedades que verá el usuario en la ventana de actualización.',
+            icon: Symbols.description,
+            maxLines: 2,
+            onChanged: (val) {
+              _currentValues['app_update_notes'] = val;
+              setState(() {});
+            },
+          ),
+        ],
+      ),
     );
   }
 
