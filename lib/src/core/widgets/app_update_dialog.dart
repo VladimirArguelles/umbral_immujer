@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
-import 'package:open_filex/open_filex.dart';
+
 import '../services/app_update_service.dart';
 import '../theme/app_theme.dart';
 
@@ -10,10 +10,7 @@ import '../theme/app_theme.dart';
 class AppUpdateDialog extends StatefulWidget {
   final UpdateInfo updateInfo;
 
-  const AppUpdateDialog({
-    super.key,
-    required this.updateInfo,
-  });
+  const AppUpdateDialog({super.key, required this.updateInfo});
 
   static bool _isShowing = false;
 
@@ -42,40 +39,6 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
   String? _errorMessage;
 
   Future<void> _startUpdate() async {
-    // Si el archivo ya se descargó previamente y es válido, intentar abrir directamente
-    if (AppUpdateService.instance.hasDownloadedApk) {
-      try {
-        final res = await AppUpdateService.instance.openDownloadedApk();
-        if (res.type == ResultType.done) {
-          if (mounted) {
-            Navigator.of(context, rootNavigator: true).pop();
-          }
-          return;
-        } else if (res.type == ResultType.permissionDenied) {
-          if (mounted) {
-            setState(() {
-              _errorMessage = 'Android requiere autorizar a UMBRAL en Ajustes > Instalar aplicaciones desconocidas.';
-            });
-          }
-          return;
-        } else {
-          if (mounted) {
-            setState(() {
-              _errorMessage = 'Fallo al abrir el instalador (${res.type.name}): ${res.message}';
-            });
-          }
-          return;
-        }
-      } catch (e) {
-        if (mounted) {
-          setState(() {
-            _errorMessage = 'Error al ejecutar el archivo descargado: $e';
-          });
-        }
-        return;
-      }
-    }
-
     setState(() {
       _isDownloading = true;
       _errorMessage = null;
@@ -86,6 +49,7 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
     try {
       await AppUpdateService.instance.downloadAndInstallApk(
         apkUrl: widget.updateInfo.apkUrl,
+        latestVersion: widget.updateInfo.latestVersion,
         onProgress: (progress, status) {
           if (mounted) {
             setState(() {
@@ -110,11 +74,13 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
         if (e is DioException) {
           if (e.response?.statusCode == 404) {
             msg = 'El archivo de actualización no se encuentra disponible en el servidor (HTTP 404).';
-          } else if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
+          } else if (e.type == DioExceptionType.connectionTimeout ||
+              e.type == DioExceptionType.receiveTimeout) {
             msg = 'Tiempo de conexión agotado al descargar la actualización. Revisa tu conexión.';
           } else {
             final detail = e.message ?? e.error?.toString() ?? 'Error de red';
-            msg = 'Error de conexión al descargar el paquete (${e.response?.statusCode ?? detail}).';
+            msg =
+                'Error de conexión al descargar el paquete (${e.response?.statusCode ?? detail}).';
           }
         } else {
           msg = e.toString().replaceAll('Exception: ', '').trim();
@@ -135,7 +101,9 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E2235) : Colors.white;
     final titleColor = isDark ? Colors.white : const Color(0xFF111827);
-    final subtitleColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final subtitleColor = isDark
+        ? const Color(0xFF94A3B8)
+        : const Color(0xFF64748B);
 
     return PopScope(
       canPop: !widget.updateInfo.isMandatory && !_isDownloading,
@@ -190,9 +158,14 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.primary.withValues(alpha: 0.15),
+                                  color: AppTheme.primary.withValues(
+                                    alpha: 0.15,
+                                  ),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
@@ -234,10 +207,14 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
                   constraints: const BoxConstraints(maxHeight: 130),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF131722) : const Color(0xFFF8FAFC),
+                    color: isDark
+                        ? const Color(0xFF131722)
+                        : const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isDark ? const Color(0xFF2E384D) : const Color(0xFFE2E8F0),
+                      color: isDark
+                          ? const Color(0xFF2E384D)
+                          : const Color(0xFFE2E8F0),
                     ),
                   ),
                   child: SingleChildScrollView(
@@ -288,8 +265,12 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
                         borderRadius: BorderRadius.circular(8),
                         child: LinearProgressIndicator(
                           value: _progress > 0 ? _progress : null,
-                          backgroundColor: isDark ? const Color(0xFF2B2D38) : const Color(0xFFE2E8F0),
-                          valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primary),
+                          backgroundColor: isDark
+                              ? const Color(0xFF2B2D38)
+                              : const Color(0xFFE2E8F0),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            AppTheme.primary,
+                          ),
                           minHeight: 8,
                         ),
                       ),
@@ -305,7 +286,9 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
                     decoration: BoxDecoration(
                       color: AppTheme.errorRed.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppTheme.errorRed.withValues(alpha: 0.3)),
+                      border: Border.all(
+                        color: AppTheme.errorRed.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,11 +309,15 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             foregroundColor: AppTheme.primary,
                           ),
-                          onPressed: () => AppUpdateService.instance.launchDownload(widget.updateInfo.apkUrl),
+                          onPressed: () => AppUpdateService.instance
+                              .launchDownload(widget.updateInfo.apkUrl),
                           icon: const Icon(Symbols.open_in_browser, size: 16),
                           label: const Text(
                             'Descargar directamente desde el navegador',
-                            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
@@ -346,7 +333,9 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
                     backgroundColor: AppTheme.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                     elevation: 1,
                   ),
                   onPressed: _isDownloading ? null : _startUpdate,
@@ -356,18 +345,18 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
                           height: 18,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
                         )
                       : const Icon(Symbols.download, size: 20),
                   label: Text(
                     _isDownloading
                         ? 'Descargando...'
-                        : AppUpdateService.instance.hasDownloadedApk
-                            ? 'Instalar Paquete APK'
-                            : _errorMessage != null
-                                ? 'Reintentar Actualización'
-                                : 'Actualizar Ahora (APK)',
+                        : _errorMessage != null
+                        ? 'Reintentar Actualización'
+                        : 'Actualizar Ahora (APK)',
                     style: GoogleFonts.plusJakartaSans(
                       fontWeight: FontWeight.w800,
                       fontSize: 13.5,

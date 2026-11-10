@@ -1,4 +1,5 @@
-import 'dart:io' show File, Directory;
+import 'dart:io' show Directory, File, FileMode, FileSystemException, Platform;
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../widgets/app_update_dialog.dart';
 
 /// Información de la versión de la app y actualización disponible.
@@ -37,105 +39,92 @@ class AppUpdateService {
   static const String defaultReleaseUrl =
       'https://github.com/VladimirArguelles/umbral_immujer/releases/latest';
 
-  String? _lastDownloadedApkPath;
   static bool _hasPromptedThisSession = false;
+  static bool _isCheckingThisSession = false;
 
   /// Restablece la bandera de verificación de actualización para nueva sesión (ej. tras logout).
   static void resetSessionCheck() {
     _hasPromptedThisSession = false;
+    _isCheckingThisSession = false;
   }
 
   /// Verifica si hay una actualización disponible y muestra el diálogo modal únicamente
   /// si el usuario se encuentra en la pantalla principal de inicio (Dashboard inicial tras el login),
   /// evitando que aparezca al navegar entre otros módulos inferiores o secundarios.
-  Future<void> checkAndShowUpdateModal(BuildContext context, {bool force = false}) async {
-    if (!force && _hasPromptedThisSession) {
+  Future<void> checkAndShowUpdateModal(
+    BuildContext context, {
+    bool force = false,
+  }) async {
+    if ((!force && _hasPromptedThisSession) || _isCheckingThisSession) {
       return;
     }
-    _hasPromptedThisSession = true;
 
-    // Validación preliminar de contexto y visibilidad activa
-    if (!context.mounted) return;
-    if (ModalRoute.of(context)?.isCurrent != true) return;
+    if (!context.mounted || !_isActiveRootDashboard(context)) return;
 
+    _isCheckingThisSession = true;
     try {
       final info = await checkForUpdate();
+      if (!context.mounted || !_isActiveRootDashboard(context)) return;
 
-      // Validación estricta tras la respuesta asíncrona:
-      // Si el usuario navegó a un submódulo mientras se consultaba la red, abortar.
-      if (!context.mounted) return;
-      if (ModalRoute.of(context)?.isCurrent != true) return;
-
-      // Verificar que la ruta corresponda estrictamente al Dashboard de inicio
-      try {
-        final location = GoRouterState.of(context).matchedLocation;
-        const rootDashboards = [
-          '/',
-          '/student',
-          '/teacher',
-          '/coordinator',
-          '/superadmin',
-        ];
-        if (!rootDashboards.contains(location)) {
-          debugPrint(
-            '[AppUpdateService] Modal omitido: la ruta actual ($location) no es la raíz de inicio.',
-          );
-          return;
-        }
-      } catch (e) {
-        debugPrint(
-          '[AppUpdateService] Modal omitido: no se pudo verificar la ruta activa ($e).',
-        );
-        return;
-      }
-
+      _hasPromptedThisSession = true;
       if (info.hasUpdate) {
-        AppUpdateDialog.show(context, info);
+        await AppUpdateDialog.show(context, info);
       }
     } catch (e) {
-      debugPrint('[AppUpdateService] Error al verificar actualización en dashboard: $e');
+      debugPrint(
+        '[AppUpdateService] Error al verificar actualización en dashboard: $e',
+      );
+    } finally {
+      _isCheckingThisSession = false;
     }
+  }
+
+  bool _isActiveRootDashboard(BuildContext context) {
+    if (!context.mounted || ModalRoute.of(context)?.isCurrent != true) {
+      return false;
+    }
+
+    try {
+      final location = GoRouterState.of(context).matchedLocation;
+      const rootDashboards = {
+        '/',
+        '/student',
+        '/teacher',
+        '/coordinator',
+        '/superadmin',
+      };
+      if (rootDashboards.contains(location)) return true;
+
+      debugPrint(
+        '[AppUpdateService] Modal omitido: la ruta actual ($location) no es la raíz de inicio.',
+      );
+    } catch (error) {
+      debugPrint(
+        '[AppUpdateService] Modal omitido: no se pudo verificar la ruta activa ($error).',
+      );
+    }
+    return false;
   }
 
   bool get isAndroidPlatform =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
-  Future<String> getUpdateApkPath() async {
-    Directory? baseDir;
+  Future<String> getUpdateApkPath(String version) async {
+    final Directory baseDir;
     if (isAndroidPlatform) {
-      try {
-        // getExternalStorageDirectory() mapea a context.getExternalFilesDir(null)
-        // proporcionando una ruta accesible por el instalador nativo de Android
-        baseDir = await getExternalStorageDirectory();
-      } catch (e) {
-        debugPrint('[AppUpdateService] Error al obtener getExternalStorageDirectory: $e');
+      // getExternalStorageDirectory() mapea a context.getExternalFilesDir(null).
+      final externalDir = await getExternalStorageDirectory();
+      if (externalDir == null) {
+        throw StateError(
+          'Android no proporcionó un directorio externo para guardar el APK.',
+        );
       }
+      baseDir = externalDir;
+    } else {
+      baseDir = await getApplicationSupportDirectory();
     }
-    try {
-      baseDir ??= await getApplicationSupportDirectory();
-    } catch (_) {}
-    baseDir ??= await getTemporaryDirectory();
-    final path = '${baseDir.path}/umbral_latest_update.apk';
-    _lastDownloadedApkPath = path;
-    return path;
-  }
-
-  bool get hasDownloadedApk {
-    if (_lastDownloadedApkPath == null) return false;
-    final file = File(_lastDownloadedApkPath!);
-    return file.existsSync() && file.lengthSync() > 1024 * 1024;
-  }
-
-  Future<OpenResult> openDownloadedApk() async {
-    final path = await getUpdateApkPath();
-    final file = File(path);
-    if (file.existsSync() && file.lengthSync() > 1024 * 1024) {
-      return await OpenFilex.open(
-        path,
-        type: 'application/vnd.android.package-archive',
-      );
-    }
-    return OpenResult(type: ResultType.fileNotFound, message: 'Archivo APK no encontrado o incompleto');
+    final safeVersion = formatSemver(version).replaceAll('.', '_');
+    return '${baseDir.path}${Platform.pathSeparator}umbral_update_$safeVersion.apk';
   }
 
   /// Extrae y normaliza exclusivamente la versión semántica (major, minor, patch),
@@ -196,11 +185,11 @@ class AppUpdateService {
           .from('configuracion_general')
           .select('clave, valor')
           .inFilter('clave', [
-        'app_version_latest',
-        'app_apk_url',
-        'app_update_notes',
-        'app_update_mandatory',
-      ]);
+            'app_version_latest',
+            'app_apk_url',
+            'app_update_notes',
+            'app_update_mandatory',
+          ]);
 
       for (final item in (response as List)) {
         final clave = item['clave'] as String;
@@ -212,12 +201,18 @@ class AppUpdateService {
         } else if (clave == 'app_update_notes' && valor != null) {
           notes = valor.toString().replaceAll('"', '').trim();
         } else if (clave == 'app_update_mandatory' && valor != null) {
-          isMandatory = valor == true || valor.toString().replaceAll('"', '').trim() == 'true';
+          isMandatory =
+              valor == true ||
+              valor.toString().replaceAll('"', '').trim() == 'true';
         }
       }
-      debugPrint('[AppUpdateService] Versión local semver: $localSemverClean | Versión remota: $latestVer | APK: $apkUrl');
+      debugPrint(
+        '[AppUpdateService] Versión local semver: $localSemverClean | Versión remota: $latestVer | APK: $apkUrl',
+      );
     } catch (e) {
-      debugPrint('[AppUpdateService] Consulta a configuracion_general omitida o sin red: $e');
+      debugPrint(
+        '[AppUpdateService] Consulta a configuracion_general omitida o sin red: $e',
+      );
     }
 
     final remoteSemverClean = formatSemver(latestVer);
@@ -255,6 +250,7 @@ class AppUpdateService {
   /// Descarga el APK con Dio al almacenamiento temporal y ejecuta inmediatamente la instalación nativa.
   Future<void> downloadAndInstallApk({
     required String apkUrl,
+    required String latestVersion,
     required void Function(double progress, String statusText) onProgress,
   }) async {
     if (kIsWeb || !isAndroidPlatform) {
@@ -271,29 +267,27 @@ class AppUpdateService {
       ),
     );
 
+    String? temporaryPath;
     try {
       onProgress(0.05, 'Preparando almacenamiento...');
-      final filePath = await getUpdateApkPath();
+      final filePath = await getUpdateApkPath(latestVersion);
+      temporaryPath = '$filePath.part';
 
-      // Limpiar archivo previo si existía y asegurar directorio
       final targetFile = File(filePath);
-      if (!targetFile.parent.existsSync()) {
-        try {
-          targetFile.parent.createSync(recursive: true);
-        } catch (_) {}
-      }
-      if (await targetFile.exists()) {
-        try {
-          await targetFile.delete();
-        } catch (_) {}
-      }
+      await targetFile.parent.create(recursive: true);
+      final temporaryFile = File(temporaryPath);
+      if (await temporaryFile.exists()) await temporaryFile.delete();
 
       onProgress(0.1, 'Descargando paquete de actualización...');
 
-      await dio.download(
+      var receivedBytes = 0;
+      var expectedBytes = 0;
+      final response = await dio.download(
         apkUrl,
-        filePath,
+        temporaryPath,
         onReceiveProgress: (received, total) {
+          receivedBytes = received;
+          expectedBytes = total;
           if (total > 0) {
             final progress = (received / total).clamp(0.0, 1.0);
             final mbReceived = (received / (1024 * 1024)).toStringAsFixed(1);
@@ -309,19 +303,65 @@ class AppUpdateService {
         },
       );
 
-      final downloadedFile = File(filePath);
-      if (!await downloadedFile.exists() || await downloadedFile.length() == 0) {
-        throw Exception('El archivo APK descargado no se pudo guardar correctamente en el dispositivo.');
+      final contentType = response.headers.value('content-type');
+      if (contentType != null &&
+          contentType.toLowerCase().contains('text/html')) {
+        throw StateError(
+          'El servidor entregó una página HTML en lugar del APK (Content-Type: $contentType).',
+        );
       }
 
-      onProgress(1.0, 'Descarga completa. Lanzando instalador nativo de Android...');
+      final downloadedFile = File(temporaryPath);
+      if (!await downloadedFile.exists()) {
+        throw StateError(
+          'El archivo APK descargado no se guardó en el dispositivo.',
+        );
+      }
+      final fileLength = await downloadedFile.length();
+      if (fileLength < 1024 * 1024) {
+        throw StateError(
+          'El archivo descargado parece incompleto: solo contiene $fileLength bytes.',
+        );
+      }
+      if (expectedBytes > 0 && receivedBytes != expectedBytes) {
+        throw StateError(
+          'La descarga quedó incompleta: se recibieron $receivedBytes de $expectedBytes bytes.',
+        );
+      }
+
+      final fileHandle = await downloadedFile.open(mode: FileMode.read);
+      late final List<int> signature;
+      try {
+        signature = await fileHandle.read(4);
+      } finally {
+        await fileHandle.close();
+      }
+      if (signature.length != 4 ||
+          signature[0] != 0x50 ||
+          signature[1] != 0x4b ||
+          signature[2] != 0x03 ||
+          signature[3] != 0x04) {
+        throw StateError(
+          'La descarga no es un APK/ZIP válido. Verifica que app_apk_url apunte al archivo APK.',
+        );
+      }
+
+      if (await targetFile.exists()) await targetFile.delete();
+      await downloadedFile.rename(filePath);
+
+      onProgress(
+        1.0,
+        'Descarga completa. Lanzando instalador nativo de Android...',
+      );
 
       final result = await OpenFilex.open(
         filePath,
         type: 'application/vnd.android.package-archive',
       );
 
-      debugPrint('[AppUpdateService] Resultado de instalación APK: ${result.type} - ${result.message}');
+      debugPrint(
+        '[AppUpdateService] Resultado de instalación APK: ${result.type} - ${result.message}',
+      );
 
       if (result.type != ResultType.done) {
         if (result.type == ResultType.permissionDenied) {
@@ -330,11 +370,17 @@ class AppUpdateService {
             'Por favor autoriza a UMBRAL en Ajustes > Instalar aplicaciones desconocidas.',
           );
         } else if (result.type == ResultType.noAppToOpen) {
-          throw Exception('No se encontró el instalador de paquetes de Android en el dispositivo.');
+          throw Exception(
+            'No se encontró el instalador de paquetes de Android en el dispositivo.',
+          );
         } else if (result.type == ResultType.fileNotFound) {
-          throw Exception('No se encontró el archivo del paquete APK en la ruta: $filePath');
+          throw Exception(
+            'No se encontró el archivo del paquete APK en la ruta: $filePath',
+          );
         } else {
-          throw Exception('Fallo en el instalador nativo (${result.type.name}): ${result.message}');
+          throw Exception(
+            'Fallo en el instalador nativo (${result.type.name}): ${result.message}',
+          );
         }
       }
     } on DioException catch (e) {
@@ -342,10 +388,28 @@ class AppUpdateService {
           ? 'Código HTTP ${e.response?.statusCode}: ${e.response?.statusMessage ?? e.message}'
           : (e.message ?? e.error?.toString() ?? 'Error de conexión');
       debugPrint('[AppUpdateService] Error HTTP/Dio al descargar APK: $detail');
-      throw Exception('Fallo en la descarga del paquete de actualización ($detail)');
+      throw Exception(
+        'Fallo en la descarga del paquete de actualización ($detail)',
+      );
     } catch (e) {
-      debugPrint('[AppUpdateService] Error durante la descarga/instalación: $e');
+      debugPrint(
+        '[AppUpdateService] Error durante la descarga/instalación: $e',
+      );
       rethrow;
+    } finally {
+      if (temporaryPath != null) {
+        final temporaryFile = File(temporaryPath);
+        if (await temporaryFile.exists()) {
+          try {
+            await temporaryFile.delete();
+          } on FileSystemException catch (error) {
+            debugPrint(
+              '[AppUpdateService] No se pudo eliminar el archivo temporal de descarga: $error',
+            );
+          }
+        }
+      }
+      dio.close(force: true);
     }
   }
 
@@ -355,10 +419,7 @@ class AppUpdateService {
     if (uri == null) return false;
 
     try {
-      return await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
+      return await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (e) {
       debugPrint('[AppUpdateService] Error al lanzar URL de descarga: $e');
       return false;
