@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -57,9 +58,19 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
       }
     } catch (e) {
       if (mounted) {
+        String msg = 'No se pudo completar la descarga automática.';
+        if (e is DioException) {
+          if (e.response?.statusCode == 404) {
+            msg = 'El archivo de actualización no se encuentra disponible temporalmente en el servidor.';
+          } else if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
+            msg = 'Tiempo de conexión agotado. Revisa tu conexión a internet.';
+          } else {
+            msg = 'Error de red al descargar el paquete (${e.response?.statusCode ?? 'sin conexión'}).';
+          }
+        }
         setState(() {
           _isDownloading = false;
-          _errorMessage = 'No se pudo completar la descarga automática: $e';
+          _errorMessage = msg;
         });
       }
     }
@@ -236,18 +247,39 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
                 if (_errorMessage != null) ...[
                   const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: AppTheme.errorRed.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: AppTheme.errorRed.withValues(alpha: 0.3)),
                     ),
-                    child: Text(
-                      _errorMessage!,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11.5,
-                        color: AppTheme.errorRed,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _errorMessage!,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.errorRed,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton.icon(
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            foregroundColor: AppTheme.primary,
+                          ),
+                          onPressed: () => AppUpdateService.instance.launchDownload(widget.updateInfo.apkUrl),
+                          icon: const Icon(Symbols.open_in_browser, size: 16),
+                          label: const Text(
+                            'Descargar directamente desde el navegador',
+                            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
