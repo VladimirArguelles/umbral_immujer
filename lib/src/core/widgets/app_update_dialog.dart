@@ -52,12 +52,28 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
           }
           return;
         } else if (res.type == ResultType.permissionDenied) {
-          setState(() {
-            _errorMessage = 'Android requiere autorizar a UMBRAL en Ajustes > Instalar aplicaciones desconocidas.';
-          });
+          if (mounted) {
+            setState(() {
+              _errorMessage = 'Android requiere autorizar a UMBRAL en Ajustes > Instalar aplicaciones desconocidas.';
+            });
+          }
+          return;
+        } else {
+          if (mounted) {
+            setState(() {
+              _errorMessage = 'Fallo al abrir el instalador (${res.type.name}): ${res.message}';
+            });
+          }
           return;
         }
-      } catch (_) {}
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _errorMessage = 'Error al ejecutar el archivo descargado: $e';
+          });
+        }
+        return;
+      }
     }
 
     setState(() {
@@ -93,14 +109,18 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
         String msg = 'No se pudo completar la instalación.';
         if (e is DioException) {
           if (e.response?.statusCode == 404) {
-            msg = 'El archivo de actualización no se encuentra disponible temporalmente en el servidor.';
+            msg = 'El archivo de actualización no se encuentra disponible en el servidor (HTTP 404).';
           } else if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
-            msg = 'Tiempo de conexión agotado. Revisa tu conexión a internet.';
+            msg = 'Tiempo de conexión agotado al descargar la actualización. Revisa tu conexión.';
           } else {
-            msg = 'Error de conexión al descargar el paquete (${e.response?.statusCode ?? 'sin red'}).';
+            final detail = e.message ?? e.error?.toString() ?? 'Error de red';
+            msg = 'Error de conexión al descargar el paquete (${e.response?.statusCode ?? detail}).';
           }
         } else {
           msg = e.toString().replaceAll('Exception: ', '').trim();
+          if (msg.isEmpty) {
+            msg = 'Error durante la instalación: $e';
+          }
         }
         setState(() {
           _isDownloading = false;

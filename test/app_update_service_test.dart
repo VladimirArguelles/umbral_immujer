@@ -22,43 +22,16 @@ void main() {
 
     test('Identifica cuando una versión remota es estrictamente superior y evita bucles', () {
       // Remota 0.1.3 vs Local 0.1.2+3 -> Actualización detectada
-      final r1 = AppUpdateService.parseSemver('0.1.3');
-      final c1 = AppUpdateService.parseSemver('0.1.2+3');
-      bool hasUpdate1 = false;
-      for (int i = 0; i < 3; i++) {
-        if (r1[i] > c1[i]) {
-          hasUpdate1 = true;
-          break;
-        }
-        if (r1[i] < c1[i]) break;
-      }
-      expect(hasUpdate1, isTrue);
+      expect(AppUpdateService.isVersionGreater('0.1.3', '0.1.2+3'), isTrue);
+      expect(AppUpdateService.isVersionGreater('v0.1.3', '0.1.2'), isTrue);
+      expect(AppUpdateService.isVersionGreater('0.2.0', '0.1.9+5'), isTrue);
+      expect(AppUpdateService.isVersionGreater('1.0.0', '0.9.9'), isTrue);
 
       // Una vez actualizada la app a 0.1.3+4 vs Remota 0.1.3 -> NO hay actualización (evita bucle infinito)
-      final r2 = AppUpdateService.parseSemver('0.1.3');
-      final c2 = AppUpdateService.parseSemver('0.1.3+4');
-      bool hasUpdate2 = false;
-      for (int i = 0; i < 3; i++) {
-        if (r2[i] > c2[i]) {
-          hasUpdate2 = true;
-          break;
-        }
-        if (r2[i] < c2[i]) break;
-      }
-      expect(hasUpdate2, isFalse);
-
-      // Versión local igual a remota -> NO hay actualización
-      final r3 = AppUpdateService.parseSemver('0.1.2');
-      final c3 = AppUpdateService.parseSemver('0.1.2+3');
-      bool hasUpdate3 = false;
-      for (int i = 0; i < 3; i++) {
-        if (r3[i] > c3[i]) {
-          hasUpdate3 = true;
-          break;
-        }
-        if (r3[i] < c3[i]) break;
-      }
-      expect(hasUpdate3, isFalse);
+      expect(AppUpdateService.isVersionGreater('0.1.3', '0.1.3+4'), isFalse);
+      expect(AppUpdateService.isVersionGreater('0.1.3', '0.1.3'), isFalse);
+      expect(AppUpdateService.isVersionGreater('0.1.2', '0.1.2+3'), isFalse);
+      expect(AppUpdateService.isVersionGreater('0.1.2', '0.1.3'), isFalse);
     });
   });
 }

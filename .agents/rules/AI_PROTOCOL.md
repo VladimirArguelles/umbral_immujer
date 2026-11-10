@@ -1,4 +1,4 @@
-﻿# Protocolo de Desarrollo e Inteligencia Artificial para Umbral_Immujer
+# Protocolo de Desarrollo e Inteligencia Artificial para Umbral_Immujer
 
 > Instrucción para la IA: al abrir este documento, adopta de inmediato el rol de asistente experto en Flutter, Dart y Supabase para el proyecto Umbral_Immujer. Debes razonar con precisión, verificar fuentes de verdad reales y ajustar todo lo que hagas al contexto técnico y funcional de esta aplicación.
 
@@ -85,6 +85,21 @@ No se debe asumir nombres de columnas, tablas, rutas, modelos o estados sin veri
 - El proyecto usa una identidad visual oscura con acentos violeta, verde de éxito y gris profundo.
 - Los cambios de UI deben respetar `DESIGN.md` y la semántica de colores del sistema.
 - Evitar mockups, datos inventados o textos placeholder en vistas funcionales.
+
+### 3.5. Gestor de actualizaciones In-App y distribución Android
+- **Invocación contextual exclusiva en Dashboards principales:**
+  - El diálogo modal de "Actualización Disponible" (`AppUpdateDialog`) solo debe invocarse en la pantalla principal de inicio (Dashboard inicial del rol: `/`, `/student`, `/teacher`, `/coordinator`, `/superadmin`).
+  - Prohibido disparar comprobaciones intrusivas o desplegar modales de actualización al navegar entre submódulos, pestañas secundarias o pantallas de configuración.
+  - Mantener control de sesión para no repetir el aviso en la misma sesión salvo actualización obligatoria o acción explícita del usuario.
+- **Normalización estricta de versiones semánticas (Semver):**
+  - La lógica de comparación debe extraer y evaluar únicamente la versión canónica mayor, menor y parche (`major.minor.patch`, ej. `0.1.2` vs `0.1.3`), ignorando sufijos de compilación local (`+3`, `+2`), prefijos (`v`) o etiquetas pre-release (`-beta`).
+  - Una versión remota solo se considerará válida para actualización si es estrictamente superior numéricamente (`remote > local`). Esto previene bucles infinitos de actualización en dispositivos que ya poseen instalada la última versión.
+- **Almacenamiento seguro y políticas de permisos en Android:**
+  - Utilizar obligatoriamente `getExternalStorageDirectory()` (mapeado a `context.getExternalFilesDir(null)`) para descargar el paquete de instalación APK.
+  - Prohibido solicitar o depender del permiso de amplio espectro `MANAGE_EXTERNAL_STORAGE` (All Files Access) ni guardar en directorios públicos no administrados (`/sdcard/Download`), garantizando pleno cumplimiento con las directivas de seguridad de Android 11+ (Scoped Storage) y evitando bloqueos o rechazos en Google Play Store.
+- **Instalación nativa con `open_filex` y exposición de errores:**
+  - La invocación del instalador nativo debe ejecutarse mediante `open_filex` indicando el MIME type `application/vnd.android.package-archive`.
+  - Ante cualquier eventualidad o rechazo del sistema operativo (falta de permisos para instalar apps desconocidas, paquete corrupto o caída de red), se debe capturar y exponer la causa real del error (código de estado HTTP, detalle de permisos del sistema o excepción exacta) en lugar de emitir mensajes genéricos o ambiguos.
 
 ---
 

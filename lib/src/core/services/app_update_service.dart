@@ -82,7 +82,12 @@ class AppUpdateService {
           );
           return;
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint(
+          '[AppUpdateService] Modal omitido: no se pudo verificar la ruta activa ($e).',
+        );
+        return;
+      }
 
       if (info.hasUpdate) {
         AppUpdateDialog.show(context, info);
@@ -216,7 +221,7 @@ class AppUpdateService {
     }
 
     final remoteSemverClean = formatSemver(latestVer);
-    final hasUpdate = _isVersionGreater(remoteSemverClean, localSemverClean);
+    final hasUpdate = isVersionGreater(remoteSemverClean, localSemverClean);
 
     return UpdateInfo(
       hasUpdate: hasUpdate,
@@ -228,9 +233,10 @@ class AppUpdateService {
     );
   }
 
-  /// Compara dos strings semánticos de versión (ej. '0.2.0' vs '0.1.0').
-  /// Devuelve true ÚNICAMENTE si remote es estrictamente superior a current.
-  bool _isVersionGreater(String remote, String current) {
+  /// Compara dos strings semánticos de versión (ej. '0.2.0' vs '0.1.0' o '0.1.3' vs '0.1.2+3').
+  /// Devuelve true ÚNICAMENTE si remote es estrictamente superior a current en major, minor o patch.
+  /// Ignora sufijos de compilación (+3, +2), tags de pre-release y prefijos 'v'.
+  static bool isVersionGreater(String remote, String current) {
     try {
       final rParts = parseSemver(remote);
       final cParts = parseSemver(current);
@@ -324,11 +330,19 @@ class AppUpdateService {
             'Por favor autoriza a UMBRAL en Ajustes > Instalar aplicaciones desconocidas.',
           );
         } else if (result.type == ResultType.noAppToOpen) {
-          throw Exception('No se encontró el instalador de paquetes de Android.');
+          throw Exception('No se encontró el instalador de paquetes de Android en el dispositivo.');
+        } else if (result.type == ResultType.fileNotFound) {
+          throw Exception('No se encontró el archivo del paquete APK en la ruta: $filePath');
         } else {
-          throw Exception('No se pudo ejecutar el instalador (${result.message}).');
+          throw Exception('Fallo en el instalador nativo (${result.type.name}): ${result.message}');
         }
       }
+    } on DioException catch (e) {
+      final detail = e.response != null
+          ? 'Código HTTP ${e.response?.statusCode}: ${e.response?.statusMessage ?? e.message}'
+          : (e.message ?? e.error?.toString() ?? 'Error de conexión');
+      debugPrint('[AppUpdateService] Error HTTP/Dio al descargar APK: $detail');
+      throw Exception('Fallo en la descarga del paquete de actualización ($detail)');
     } catch (e) {
       debugPrint('[AppUpdateService] Error durante la descarga/instalación: $e');
       rethrow;
