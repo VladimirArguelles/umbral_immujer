@@ -74,15 +74,16 @@ class AppUpdateService {
         final clave = item['clave'] as String;
         final valor = item['valor'];
         if (clave == 'app_version_latest' && valor != null) {
-          latestVer = valor.toString().trim();
+          latestVer = valor.toString().replaceAll('"', '').trim();
         } else if (clave == 'app_apk_url' && valor != null) {
-          apkUrl = valor.toString().trim();
+          apkUrl = valor.toString().replaceAll('"', '').trim();
         } else if (clave == 'app_update_notes' && valor != null) {
-          notes = valor.toString().trim();
+          notes = valor.toString().replaceAll('"', '').trim();
         } else if (clave == 'app_update_mandatory' && valor != null) {
-          isMandatory = valor == true || valor.toString() == 'true';
+          isMandatory = valor == true || valor.toString().replaceAll('"', '').trim() == 'true';
         }
       }
+      debugPrint('[AppUpdateService] Versión local: $localVersionFull | Versión remota: $latestVer | APK: $apkUrl');
     } catch (e) {
       debugPrint('[AppUpdateService] Consulta a configuracion_general omitida o sin red: $e');
     }

@@ -1327,8 +1327,6 @@ class _ConfiguracionGeneralScreenState
             setState(() {});
           },
         ),
-        const SizedBox(height: 12),
-        _buildBcvSyncWidget(),
         const SizedBox(height: 16),
         _buildAppUpdateManagerWidget(),
       ],
@@ -1410,119 +1408,82 @@ class _ConfiguracionGeneralScreenState
           const SizedBox(height: 16),
           const Divider(height: 1),
           const SizedBox(height: 14),
-          _buildTextField(
-            keyName: 'app_version_latest',
-            label: 'Versión Publicada más Reciente (ej. 0.1.1)',
-            helperText: 'Si la versión del usuario es menor a este número, se le ofrecerá actualizar.',
+          _buildReadOnlyApkInfoRow(
             icon: Symbols.numbers,
-            onChanged: (val) {
-              _currentValues['app_version_latest'] = val;
-              setState(() {});
-            },
+            label: 'Versión Publicada más Reciente',
+            value: _currentValues['app_version_latest']?.toString() ?? '0.1.2',
+            helperText: 'Si la versión del usuario es menor a este número, se le ofrecerá actualizar.',
           ),
-          const SizedBox(height: 12),
-          _buildTextField(
-            keyName: 'app_apk_url',
-            label: 'URL de Descarga del APK',
-            helperText: 'Enlace directo de descarga o release de GitHub.',
+          const SizedBox(height: 10),
+          _buildReadOnlyApkInfoRow(
             icon: Symbols.link,
-            onChanged: (val) {
-              _currentValues['app_apk_url'] = val;
-              setState(() {});
-            },
+            label: 'URL de Descarga del APK',
+            value: _currentValues['app_apk_url']?.toString() ??
+                'https://github.com/VladimirArguelles/umbral_immujer/releases/download/v0.1.2/app-release.apk',
+            helperText: 'Enlace directo de descarga o release oficial de GitHub.',
           ),
-          const SizedBox(height: 12),
-          _buildTextField(
-            keyName: 'app_update_notes',
-            label: 'Notas de la Versión (Changelog)',
-            helperText: 'Descripción de novedades que verá el usuario en la ventana de actualización.',
+          const SizedBox(height: 10),
+          _buildReadOnlyApkInfoRow(
             icon: Symbols.description,
-            maxLines: 2,
-            onChanged: (val) {
-              _currentValues['app_update_notes'] = val;
-              setState(() {});
-            },
+            label: 'Notas de la Versión (Changelog)',
+            value: _currentValues['app_update_notes']?.toString() ??
+                'Actualización oficial UMBRAL: Nueva interfaz responsiva sin desbordes de texto, optimización de tarjetas y nuevo gestor de actualizaciones.',
+            helperText: 'Descripción de novedades que verá el usuario en la ventana de actualización.',
           ),
         ],
       ),
     );
   }
 
-  /// Widget dedicado a la sincronización en vivo de la tasa del Banco Central de Venezuela (BCV)
-  Widget _buildBcvSyncWidget() {
+  Widget _buildReadOnlyApkInfoRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    required String helperText,
+  }) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: cCardInner,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: cEmerald.withAlpha(90),
-          width: 1.2,
-        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
+              Icon(icon, size: 16, color: cSky),
+              const SizedBox(width: 8),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Symbols.verified,
-                          size: 18,
-                          color: cEmerald,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Sincronización Automatizada BCV (Activa)',
-                          style: GoogleFonts.plusJakartaSans(
-                            color: cTextMain,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Sincronización desasistida automática 4 veces al día vía Edge Function (sync-bcv-rate) y pg_cron: 8:00 AM, 11:00 AM, 2:00 PM y 5:00 PM (captura de Fecha Valor oficial).',
-                      style: GoogleFonts.plusJakartaSans(
-                        color: cTextMuted,
-                        fontSize: 11.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: cEmerald.withAlpha(30),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: cEmerald.withAlpha(90)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Symbols.bolt, size: 16, color: cEmerald),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Automático',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12,
-                        color: cEmerald,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  label,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: cTextMuted,
+                  ),
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 6),
+          SelectableText(
+            value.isNotEmpty ? value : 'No configurado',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: cTextMain,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            helperText,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 11,
+              color: cTextMuted.withValues(alpha: 0.8),
+            ),
           ),
         ],
       ),

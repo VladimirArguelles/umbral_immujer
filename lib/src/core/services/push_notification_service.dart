@@ -66,7 +66,7 @@ class PushNotificationService {
     if (_isInitialized) return;
 
     // 1. Inicializar Notificaciones Locales (Barra de estado Android)
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings('@drawable/ic_stat_icono_umbral');
     const initSettings = InitializationSettings(
       android: androidSettings,
     );
@@ -169,7 +169,8 @@ class PushNotificationService {
       channelDescription: activeChannel.description,
       importance: Importance.high,
       priority: Priority.high,
-      icon: '@mipmap/ic_launcher',
+      icon: '@drawable/ic_stat_icono_umbral',
+      largeIcon: const DrawableResourceAndroidBitmap('@drawable/ic_stat_icono_umbral'),
       playSound: true,
       enableVibration: true,
     );
