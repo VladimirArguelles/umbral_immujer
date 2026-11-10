@@ -1,4 +1,4 @@
-import 'dart:io' show Directory, File, FileMode, FileSystemException, Platform;
+import 'dart:io' show Directory, File, FileMode, FileSystemException;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -50,7 +50,8 @@ class AppUpdateService {
 
   /// Verifica si hay una actualización disponible y muestra el diálogo modal únicamente
   /// si el usuario se encuentra en la pantalla principal de inicio (Dashboard inicial tras el login),
-  /// evitando que aparezca al navegar entre otros módulos inferiores o secundarios.
+  /// evitando que aparezca al navegar entre otros módulos inferiores o secundarios, salvo que
+  /// se fuerce explícitamente (`force: true`).
   Future<void> checkAndShowUpdateModal(
     BuildContext context, {
     bool force = false,
@@ -59,12 +60,14 @@ class AppUpdateService {
       return;
     }
 
-    if (!context.mounted || !_isActiveRootDashboard(context)) return;
+    if (!context.mounted) return;
+    if (!force && !_isActiveRootDashboard(context)) return;
 
     _isCheckingThisSession = true;
     try {
       final info = await checkForUpdate();
-      if (!context.mounted || !_isActiveRootDashboard(context)) return;
+      if (!context.mounted) return;
+      if (!force && !_isActiveRootDashboard(context)) return;
 
       _hasPromptedThisSession = true;
       if (info.hasUpdate) {
@@ -85,7 +88,11 @@ class AppUpdateService {
     }
 
     try {
-      final location = GoRouterState.of(context).matchedLocation;
+      final rawLocation = GoRouterState.of(context).matchedLocation.trim();
+      final location = (rawLocation.length > 1 && rawLocation.endsWith('/'))
+          ? rawLocation.substring(0, rawLocation.length - 1)
+          : rawLocation;
+
       const rootDashboards = {
         '/',
         '/student',
@@ -110,6 +117,12 @@ class AppUpdateService {
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   Future<String> getUpdateApkPath(String version) async {
+    if (kIsWeb) {
+      throw UnsupportedError(
+        'No se pueden descargar archivos APK en entorno Web.',
+      );
+    }
+
     final Directory baseDir;
     if (isAndroidPlatform) {
       // getExternalStorageDirectory() mapea a context.getExternalFilesDir(null).
@@ -124,7 +137,10 @@ class AppUpdateService {
       baseDir = await getApplicationSupportDirectory();
     }
     final safeVersion = formatSemver(version).replaceAll('.', '_');
-    return '${baseDir.path}${Platform.pathSeparator}umbral_update_$safeVersion.apk';
+    final basePath = (baseDir.path.endsWith('/') || baseDir.path.endsWith('\\'))
+        ? baseDir.path.substring(0, baseDir.path.length - 1)
+        : baseDir.path;
+    return '$basePath/umbral_update_$safeVersion.apk';
   }
 
   /// Extrae y normaliza exclusivamente la versión semántica (major, minor, patch),
@@ -191,8 +207,8 @@ class AppUpdateService {
             'app_update_mandatory',
           ]);
 
-      for (final item in (response as List)) {
-        final clave = item['clave'] as String;
+      for (final item in response) {
+        final clave = item['clave']?.toString();
         final valor = item['valor'];
         if (clave == 'app_version_latest' && valor != null) {
           latestVer = valor.toString().replaceAll('"', '').trim();
@@ -203,7 +219,8 @@ class AppUpdateService {
         } else if (clave == 'app_update_mandatory' && valor != null) {
           isMandatory =
               valor == true ||
-              valor.toString().replaceAll('"', '').trim() == 'true';
+              valor.toString().replaceAll('"', '').trim().toLowerCase() ==
+                  'true';
         }
       }
       debugPrint(
@@ -264,6 +281,7 @@ class AppUpdateService {
         connectTimeout: const Duration(seconds: 40),
         receiveTimeout: const Duration(minutes: 8),
         followRedirects: true,
+        maxRedirects: 10,
       ),
     );
 
@@ -275,6 +293,10 @@ class AppUpdateService {
 
       final targetFile = File(filePath);
       await targetFile.parent.create(recursive: true);
+
+      // Limpiar versiones anteriores huérfanas de umbral_update_*.apk
+      await _cleanupOldApks(targetFile.parent, filePath);
+
       final temporaryFile = File(temporaryPath);
       if (await temporaryFile.exists()) await temporaryFile.delete();
 
@@ -347,7 +369,15 @@ class AppUpdateService {
       }
 
       if (await targetFile.exists()) await targetFile.delete();
-      await downloadedFile.rename(filePath);
+      try {
+        await downloadedFile.rename(filePath);
+      } catch (renameErr) {
+        debugPrint(
+          '[AppUpdateService] rename atómico no soportado ($renameErr), usando copy + delete...',
+        );
+        await downloadedFile.copy(filePath);
+        await downloadedFile.delete();
+      }
 
       onProgress(
         1.0,
@@ -413,9 +443,35 @@ class AppUpdateService {
     }
   }
 
+  /// Limpia archivos APK temporales o versiones previas que ya no se necesitan.
+  Future<void> _cleanupOldApks(Directory dir, String currentTargetFilePath) async {
+    try {
+      if (!await dir.exists()) return;
+      await for (final entity in dir.list()) {
+        if (entity is File) {
+          final fileName = entity.uri.pathSegments.isNotEmpty
+              ? entity.uri.pathSegments.last
+              : entity.path;
+          if (fileName.startsWith('umbral_update_') &&
+              entity.path != currentTargetFilePath) {
+            try {
+              await entity.delete();
+            } catch (_) {}
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[AppUpdateService] No se pudieron limpiar APKs antiguos: $e');
+    }
+  }
+
   /// Dispara la descarga del APK abriendo el enlace en el navegador o instalador del sistema.
   Future<bool> launchDownload(String url) async {
-    final uri = Uri.tryParse(url.trim());
+    var cleanUrl = url.trim();
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      cleanUrl = 'https://$cleanUrl';
+    }
+    final uri = Uri.tryParse(cleanUrl);
     if (uri == null) return false;
 
     try {
