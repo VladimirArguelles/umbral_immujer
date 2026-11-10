@@ -851,101 +851,142 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Widget _buildAlumnosTable() {
     final list = _filteredAlumnos;
     return ListView.separated(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 88),
       itemCount: list.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 8),
+      separatorBuilder: (context, index) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
         final a = list[index];
+        final isActivo = a.estadoInscripcion == 'activo';
         return Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: AppTheme.dynamicCard,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(color: AppTheme.dynamicBorder),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
-                child: Text(
-                  '${index + 1}',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primary,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 3,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      a.nombreCompleto,
+              // Fila Superior: Badge #, Nombre Alumno y Estado
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  CircleAvatar(
+                    radius: 14,
+                    backgroundColor: AppTheme.primary.withValues(alpha: 0.12),
+                    child: Text(
+                      '${index + 1}',
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      a.nombreCompleto,
+                      softWrap: true,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13.5,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.dynamicText,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'C.I.: ${a.cedula} • ${a.cursoNombre}',
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: isActivo
+                          ? const Color(0xFF059669).withValues(alpha: 0.15)
+                          : Colors.orange.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      a.estadoInscripcion.toUpperCase(),
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11.5,
-                        color: AppTheme.dynamicTextMuted,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: isActivo
+                            ? const Color(0xFF059669)
+                            : Colors.orange,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              Expanded(
-                flex: 3,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      a.correo,
+              const SizedBox(height: 8),
+              // Curso y Documento
+              Row(
+                children: [
+                  const Icon(Symbols.school, size: 14, color: AppTheme.primary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'C.I.: ${a.cedula} • ${a.cursoNombre}',
+                      softWrap: true,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
+                        fontWeight: FontWeight.w600,
                         color: AppTheme.dynamicText,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Tlf: ${a.telefono.isNotEmpty ? a.telefono : "N/A"}',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11.5,
-                        color: AppTheme.dynamicTextMuted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: a.estadoInscripcion == 'activo'
-                      ? const Color(0xFF059669).withValues(alpha: 0.15)
-                      : Colors.orange.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  a.estadoInscripcion.toUpperCase(),
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.bold,
-                    color: a.estadoInscripcion == 'activo'
-                        ? const Color(0xFF059669)
-                        : Colors.orange,
                   ),
-                ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              // Contacto (Correo y Teléfono con ancho completo)
+              Wrap(
+                spacing: 12,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  if (a.correo.isNotEmpty)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Symbols.mail, size: 13, color: AppTheme.dynamicTextMuted),
+                        const SizedBox(width: 4),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 220),
+                          child: Text(
+                            a.correo,
+                            softWrap: true,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11.5,
+                              color: AppTheme.dynamicTextMuted,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  if (a.telefono.isNotEmpty)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Symbols.call, size: 13, color: AppTheme.dynamicTextMuted),
+                        const SizedBox(width: 4),
+                        Text(
+                          a.telefono,
+                          softWrap: true,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11.5,
+                            color: AppTheme.dynamicTextMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
               ),
             ],
           ),
@@ -957,7 +998,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Widget _buildAsistenciaTable() {
     final list = _filteredAsistencias;
     return ListView.separated(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 88),
       itemCount: list.length,
       separatorBuilder: (context, index) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
@@ -969,19 +1010,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: AppTheme.dynamicCard,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(color: AppTheme.dynamicBorder),
           ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               CircleAvatar(
-                radius: 18,
+                radius: 16,
                 backgroundColor: isPresente
-                    ? const Color(0xFF059669).withValues(alpha: 0.1)
-                    : Colors.redAccent.withValues(alpha: 0.1),
+                    ? const Color(0xFF059669).withValues(alpha: 0.12)
+                    : Colors.redAccent.withValues(alpha: 0.12),
                 child: Icon(
                   isPresente ? Symbols.check : Symbols.close,
-                  size: 18,
+                  size: 16,
                   color: isPresente
                       ? const Color(0xFF059669)
                       : Colors.redAccent,
@@ -989,21 +1031,41 @@ class _ReportsScreenState extends State<ReportsScreen> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                flex: 4,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      a.nombreCompleto,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.dynamicText,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            a.nombreCompleto,
+                            softWrap: true,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.dynamicText,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          fechaStr,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.dynamicTextMuted,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
                       'C.I.: ${a.cedula} • ${a.cursoNombre}',
+                      softWrap: true,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11.5,
                         color: AppTheme.dynamicTextMuted,
@@ -1012,20 +1074,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   ],
                 ),
               ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  fechaStr,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.dynamicText,
-                  ),
-                ),
-              ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
+                  horizontal: 8,
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
@@ -1037,7 +1089,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 child: Text(
                   a.estado.toUpperCase(),
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 10.5,
+                    fontSize: 10,
                     fontWeight: FontWeight.bold,
                     color: isPresente
                         ? const Color(0xFF059669)
@@ -1055,71 +1107,87 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Widget _buildTemasTable() {
     final list = _filteredTemas;
     return ListView.separated(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 88),
       itemCount: list.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 8),
+      separatorBuilder: (context, index) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
         final t = list[index];
         return Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: AppTheme.dynamicCard,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(color: AppTheme.dynamicBorder),
           ),
-          child: Row(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  'Sesión ${t.orden}',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primary,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      t.titulo,
+              // Fila Superior: Badge Sesión y Curso
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Sesión ${t.orden}',
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13,
+                        fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.dynamicText,
+                        color: AppTheme.primary,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      t.descripcion,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      t.cursoNombre,
+                      softWrap: true,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
                         color: AppTheme.dynamicTextMuted,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+              const SizedBox(height: 8),
+              // Título en ancho completo para evitar compresión vertical
               Text(
-                t.cursoNombre,
+                t.titulo,
+                softWrap: true,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.dynamicTextMuted,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.dynamicText,
+                  height: 1.3,
                 ),
               ),
+              if (t.descripcion.trim().isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  t.descripcion,
+                  softWrap: true,
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    height: 1.4,
+                    color: AppTheme.dynamicTextMuted,
+                  ),
+                ),
+              ],
             ],
           ),
         );
@@ -1130,95 +1198,129 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Widget _buildProfesoresTable() {
     final list = _filteredProfesores;
     return ListView.separated(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 88),
       itemCount: list.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 8),
+      separatorBuilder: (context, index) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
         final p = list[index];
         return Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: AppTheme.dynamicCard,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(color: AppTheme.dynamicBorder),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: AppTheme.primary.withValues(alpha: 0.15),
-                child: const Icon(
-                  Symbols.person,
-                  size: 22,
-                  color: AppTheme.primary,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 3,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      p.profesorNombre,
+              // Fila Superior: Avatar, Nombre Docente y Badge Alumnos
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  CircleAvatar(
+                    radius: 17,
+                    backgroundColor: AppTheme.primary.withValues(alpha: 0.15),
+                    child: const Icon(
+                      Symbols.person,
+                      size: 19,
+                      color: AppTheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          p.profesorNombre,
+                          softWrap: true,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.dynamicText,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'C.I.: ${p.cedula ?? "N/A"} • ${p.telefono ?? "Sin teléfono"}',
+                          softWrap: true,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11.5,
+                            color: AppTheme.dynamicTextMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${p.totalAlumnos} Alumnos',
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13.5,
+                        fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.dynamicText,
+                        color: AppTheme.primary,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'C.I.: ${p.cedula ?? "N/A"} • ${p.telefono ?? "Sin teléfono"}',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11.5,
-                        color: AppTheme.dynamicTextMuted,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              Expanded(
-                flex: 3,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
+              const SizedBox(height: 10),
+              const Divider(height: 1, thickness: 0.5, color: AppTheme.outlineVariant),
+              const SizedBox(height: 8),
+              // Fila Inferior: Curso asignado y Horario (Ancho completo)
+              Row(
+                children: [
+                  const Icon(Symbols.school, size: 15, color: AppTheme.tertiary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
                       p.cursoNombre,
+                      softWrap: true,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12.5,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                         color: AppTheme.dynamicText,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      p.horario,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11.5,
-                        color: AppTheme.dynamicTextMuted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '${p.totalAlumnos} Alumnos',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primary,
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Symbols.schedule, size: 13, color: AppTheme.dynamicTextMuted),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            p.horario,
+                            softWrap: true,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11.5,
+                              color: AppTheme.dynamicTextMuted,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

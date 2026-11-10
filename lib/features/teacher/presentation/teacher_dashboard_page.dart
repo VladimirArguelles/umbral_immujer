@@ -3502,6 +3502,9 @@ class _GestionAlumnosTabState extends State<_GestionAlumnosTab> {
                                     Expanded(
                                       child: Text(
                                         tema,
+                                        maxLines: 3,
+                                        overflow: TextOverflow.ellipsis,
+                                        softWrap: true,
                                         style: const TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w600,

@@ -625,6 +625,9 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
                 Expanded(
                   child: Text(
                     curso.nombre,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: true,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
@@ -632,6 +635,7 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
@@ -664,12 +668,17 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
               children: [
                 Icon(Icons.badge_outlined, size: 15, color: AppTheme.dynamicTextMuted),
                 const SizedBox(width: 6),
-                Text(
-                  curso.profesorNombre ?? 'Sin profesor asignado',
-                  style: const TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
+                Expanded(
+                  child: Text(
+                    curso.profesorNombre ?? 'Sin profesor asignado',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: true,
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
               ],
@@ -682,12 +691,17 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
                 children: [
                   Icon(Icons.schedule_rounded, size: 15, color: AppTheme.dynamicTextMuted),
                   const SizedBox(width: 6),
-                  Text(
-                    curso.horario!,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.dynamicTextMuted,
-                      fontWeight: FontWeight.w500,
+                  Expanded(
+                    child: Text(
+                      curso.horario!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: true,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.dynamicTextMuted,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
@@ -698,10 +712,14 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
             const Divider(height: 16),
 
             // Métricas y botón de detalle
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.people_alt_rounded, size: 16, color: AppColors.mintNeon),
                     const SizedBox(width: 6),
@@ -713,7 +731,7 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
                         color: AppTheme.dynamicText,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
                     Text(
                       '• ${curso.presentesHoy} presentes hoy',
                       style: TextStyle(

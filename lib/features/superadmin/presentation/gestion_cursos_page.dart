@@ -731,6 +731,9 @@ onReorder: (oldIndex, newIndex) {
                                 Expanded(
                                   child: Text(
                                     tema,
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                    softWrap: true,
                                     style: const TextStyle(
                                       color: AppTheme.onSurface,
                                       fontSize: 13,
@@ -1147,12 +1150,18 @@ onReorder: (oldIndex, newIndex) {
                                             children: [
                                               const Icon(Symbols.person, size: 14, color: AppTheme.primary),
                                               const SizedBox(width: 4),
-                                              Text(
-                                                profNombre,
-                                                style: const TextStyle(
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: AppTheme.primary,
+                                              ConstrainedBox(
+                                                constraints: const BoxConstraints(maxWidth: 180),
+                                                child: Text(
+                                                  profNombre,
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  softWrap: true,
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: AppTheme.primary,
+                                                  ),
                                                 ),
                                               ),
                                             ],
@@ -1162,7 +1171,16 @@ onReorder: (oldIndex, newIndex) {
                                             children: [
                                               const Icon(Symbols.schedule, size: 14, color: AppTheme.onSurfaceVariant),
                                               const SizedBox(width: 4),
-                                              Text(horario, style: const TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant)),
+                                              ConstrainedBox(
+                                                constraints: const BoxConstraints(maxWidth: 180),
+                                                child: Text(
+                                                  horario,
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  softWrap: true,
+                                                  style: const TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant),
+                                                ),
+                                              ),
                                             ],
                                           ),
                                           if (temasCount > 0)
