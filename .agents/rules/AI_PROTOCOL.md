@@ -181,7 +181,13 @@ git push origin main
 
 Si hay cambios ajenos no relacionados, no se deben mezclar ni sobrescribir; se trabajará solo sobre los archivos de la tarea actual.
 
-### 6.4. Control de versión y staging
+### 6.4. Compilación, Actualización del Enlace de Descarga y Notificación de Versión (Obligatorio)
+Siempre que se realice una modificación en la aplicación o su interfaz:
+1. Compilar y publicar la salida web en `docs/`.
+2. Garantizar que la compilación de APK esté disponible y que el enlace de descarga en Supabase (`configuracion_general` -> `app_apk_url`) apunte al asset de descarga pública más reciente (`https://github.com/VladimirArguelles/umbral_immujer/releases/latest/download/app-release.apk`).
+3. Actualizar en Supabase (`configuracion_general` -> `app_version_latest` y `app_update_notes`) la versión correspondiente a `pubspec.yaml` para que los dispositivos cliente activos detecten y notifiquen de inmediato que existe una nueva actualización disponible.
+
+### 6.5. Control de versión y staging
 - Hacer `git add` solo de las rutas modificadas y relevantes para la tarea.
 - No hacer stage global ni sobrescribir cambios ajenos.
 - Si hay cambios no relacionados en el repositorio, no tocarlos ni mezclarlos.
@@ -234,6 +240,7 @@ Si se requiere dejar contexto técnico para un relevo, se debe documentar en un 
 - [ ] He ejecutado `flutter pub get`.
 - [ ] He ejecutado `flutter analyze`.
 - [ ] Si corresponde, he actualizado la compilación web en `docs/`.
+- [ ] He verificado/actualizado el enlace de descarga del APK y la versión en Supabase (`configuracion_general`) para notificar la actualización.
 - [ ] He revisado que los cambios sean limpios y no mezclen trabajo ajeno.
 
 Este protocolo debe aplicarse en cada tarea del proyecto Umbral_Immujer con rigor, criterio técnico y respeto por la arquitectura real del sistema.

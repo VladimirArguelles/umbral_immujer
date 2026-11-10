@@ -757,13 +757,27 @@ class _ReportsScreenState extends State<ReportsScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Mostrando $itemCount registro(s) en ${_tipoReporte.titulo} • $_currentCursoNombre',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.dynamicTextMuted,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: const BoxDecoration(
+                      color: AppTheme.successGreen,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 7),
+                  Text(
+                    '$itemCount ${itemCount == 1 ? 'registro' : 'registros'}',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.successGreen,
+                    ),
+                  ),
+                ],
               ),
               if (_tipoReporte == TipoReporte.asistencia &&
                   _asistenciasResumen.isNotEmpty)
