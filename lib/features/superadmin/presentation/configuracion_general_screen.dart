@@ -110,10 +110,6 @@ class _ConfiguracionGeneralScreenState
       _ensureDefault('tasa_cambio_oficial', 36.50);
       _ensureDefault('dias_retencion_logs', 90);
       _ensureDefault('limite_intentos_login', 5);
-      _ensureDefault('app_version_latest', '0.1.0');
-      _ensureDefault('app_apk_url', 'https://github.com/VladimirArguelles/umbral_immujer/releases/latest');
-      _ensureDefault('app_update_notes', 'Mejoras de rendimiento, soporte offline de asistencias y actualización directa.');
-      _ensureDefault('app_update_mandatory', false);
 
       // Sincronizar o crear controladores
       _syncControllers();
@@ -1020,6 +1016,7 @@ class _ConfiguracionGeneralScreenState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const Icon(Symbols.extension, size: 18, color: cTextMuted),
                 const SizedBox(width: 8),
@@ -1031,6 +1028,7 @@ class _ConfiguracionGeneralScreenState
                       color: cTextMain,
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
+                      height: 1.3,
                     ),
                   ),
                 ),

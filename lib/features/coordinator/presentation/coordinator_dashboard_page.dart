@@ -47,7 +47,7 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
   }
 
   Future<void> _checkAppUpdateSilently() async {
-    if (!mounted) return;
+    if (!mounted || _currentIndex != 0) return;
     await AppUpdateService.instance.checkAndShowUpdateModal(context);
   }
 

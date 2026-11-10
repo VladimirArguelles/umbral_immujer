@@ -47,8 +47,8 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
       try {
         final res = await AppUpdateService.instance.openDownloadedApk();
         if (res.type == ResultType.done) {
-          if (mounted && !widget.updateInfo.isMandatory) {
-            Navigator.of(context).pop();
+          if (mounted) {
+            Navigator.of(context, rootNavigator: true).pop();
           }
           return;
         } else if (res.type == ResultType.permissionDenied) {
@@ -83,11 +83,10 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
       if (mounted) {
         setState(() {
           _isDownloading = false;
-          _statusText = 'Descarga completada. Lanzando instalador nativo...';
+          _statusText = 'Descarga completada. Abriendo instalador nativo...';
         });
-        if (!widget.updateInfo.isMandatory && mounted) {
-          Navigator.of(context).maybePop();
-        }
+        // Cierra el diálogo de forma automática para dar paso al instalador nativo sin clics extra
+        Navigator.of(context, rootNavigator: true).pop();
       }
     } catch (e) {
       if (mounted) {

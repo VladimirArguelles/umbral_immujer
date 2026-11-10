@@ -2,6 +2,7 @@ import 'dart:io' show File, Directory;
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
@@ -45,16 +46,45 @@ class AppUpdateService {
   }
 
   /// Verifica si hay una actualización disponible y muestra el diálogo modal únicamente
-  /// si no se ha consultado previamente en esta sesión de usuario en el Dashboard principal.
+  /// si el usuario se encuentra en la pantalla principal de inicio (Dashboard inicial tras el login),
+  /// evitando que aparezca al navegar entre otros módulos inferiores o secundarios.
   Future<void> checkAndShowUpdateModal(BuildContext context, {bool force = false}) async {
     if (!force && _hasPromptedThisSession) {
       return;
     }
     _hasPromptedThisSession = true;
 
+    // Validación preliminar de contexto y visibilidad activa
+    if (!context.mounted) return;
+    if (ModalRoute.of(context)?.isCurrent != true) return;
+
     try {
       final info = await checkForUpdate();
-      if (info.hasUpdate && context.mounted) {
+
+      // Validación estricta tras la respuesta asíncrona:
+      // Si el usuario navegó a un submódulo mientras se consultaba la red, abortar.
+      if (!context.mounted) return;
+      if (ModalRoute.of(context)?.isCurrent != true) return;
+
+      // Verificar que la ruta corresponda estrictamente al Dashboard de inicio
+      try {
+        final location = GoRouterState.of(context).matchedLocation;
+        const rootDashboards = [
+          '/',
+          '/student',
+          '/teacher',
+          '/coordinator',
+          '/superadmin',
+        ];
+        if (!rootDashboards.contains(location)) {
+          debugPrint(
+            '[AppUpdateService] Modal omitido: la ruta actual ($location) no es la raíz de inicio.',
+          );
+          return;
+        }
+      } catch (_) {}
+
+      if (info.hasUpdate) {
         AppUpdateDialog.show(context, info);
       }
     } catch (e) {
@@ -66,21 +96,23 @@ class AppUpdateService {
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   Future<String> getUpdateApkPath() async {
-    if (_lastDownloadedApkPath != null && _lastDownloadedApkPath!.isNotEmpty) {
-      return _lastDownloadedApkPath!;
-    }
     Directory? baseDir;
-    try {
-      // getExternalStorageDirectory() mapea a context.getExternalFilesDir(null)
-      // que no requiere MANAGE_EXTERNAL_STORAGE en Android 11+ (API 30+)
-      baseDir = await getExternalStorageDirectory();
-    } catch (_) {}
+    if (isAndroidPlatform) {
+      try {
+        // getExternalStorageDirectory() mapea a context.getExternalFilesDir(null)
+        // proporcionando una ruta accesible por el instalador nativo de Android
+        baseDir = await getExternalStorageDirectory();
+      } catch (e) {
+        debugPrint('[AppUpdateService] Error al obtener getExternalStorageDirectory: $e');
+      }
+    }
     try {
       baseDir ??= await getApplicationSupportDirectory();
     } catch (_) {}
     baseDir ??= await getTemporaryDirectory();
-    _lastDownloadedApkPath = '${baseDir.path}/umbral_latest_update.apk';
-    return _lastDownloadedApkPath!;
+    final path = '${baseDir.path}/umbral_latest_update.apk';
+    _lastDownloadedApkPath = path;
+    return path;
   }
 
   bool get hasDownloadedApk {
@@ -101,16 +133,21 @@ class AppUpdateService {
     return OpenResult(type: ResultType.fileNotFound, message: 'Archivo APK no encontrado o incompleto');
   }
 
-  /// Extrae los dígitos semánticos principales (major, minor, patch) ignorando prefijos
-  /// 'v' y sufijos de compilación (+X). Normaliza tanto 'v0.1.2' como '0.1+2' a lista [0, 1, 2].
+  /// Extrae y normaliza exclusivamente la versión semántica (major, minor, patch),
+  /// descartando prefijos 'v', sufijos de compilación (+3) y metadatos pre-release.
+  /// Ejemplo: '0.1.2+3' o 'v0.1.2' se normalizan a [0, 1, 2].
   static List<int> parseSemver(String raw) {
-    var clean = raw.trim();
+    var clean = raw.trim().replaceAll('"', '').replaceAll("'", '');
     if (clean.toLowerCase().startsWith('v')) {
       clean = clean.substring(1).trim();
     }
     // Descartar metadatos de compilación (+X)
     if (clean.contains('+')) {
       clean = clean.split('+').first.trim();
+    }
+    // Descartar pre-releases (-beta, -rc, etc.)
+    if (clean.contains('-')) {
+      clean = clean.split('-').first.trim();
     }
 
     final parts = clean.split('.');
@@ -122,7 +159,7 @@ class AppUpdateService {
     while (nums.length < 3) {
       nums.add(0);
     }
-    return nums;
+    return nums.sublist(0, 3);
   }
 
   /// Formatea la versión en notación semántica canónica (ej. '0.1.2').
@@ -179,7 +216,7 @@ class AppUpdateService {
     }
 
     final remoteSemverClean = formatSemver(latestVer);
-    final hasUpdate = _isVersionGreater(latestVer, localSemverClean);
+    final hasUpdate = _isVersionGreater(remoteSemverClean, localSemverClean);
 
     return UpdateInfo(
       hasUpdate: hasUpdate,
