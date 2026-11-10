@@ -9,8 +9,6 @@ import 'package:umbral_immujer/features/landing/presentation/widgets/module_card
 import 'package:umbral_immujer/features/landing/presentation/widgets/particles_background.dart';
 import 'package:umbral_immujer/src/features/auth/presentation/auth_form_styles.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
-import 'package:umbral_immujer/src/core/services/app_update_service.dart';
-import 'package:umbral_immujer/src/core/widgets/app_update_dialog.dart';
 
 /// Pantalla de bienvenida para elegir un módulo e iniciar la autenticación o registro.
 class LandingPage extends StatefulWidget {
@@ -21,23 +19,6 @@ class LandingPage extends StatefulWidget {
 }
 
 class _LandingPageState extends State<LandingPage> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkAppUpdateSilently();
-    });
-  }
-
-  Future<void> _checkAppUpdateSilently() async {
-    try {
-      final info = await AppUpdateService.instance.checkForUpdate();
-      if (info.hasUpdate && mounted) {
-        AppUpdateDialog.show(context, info);
-      }
-    } catch (_) {}
-  }
-
   void _openAuth(BuildContext context) {
     context.go('/login');
   }

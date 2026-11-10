@@ -9,7 +9,6 @@ import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/services/app_update_service.dart';
 import 'package:umbral_immujer/src/core/services/online_user_presence_service.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
-import 'package:umbral_immujer/src/core/widgets/app_update_dialog.dart';
 import 'package:umbral_immujer/src/core/widgets/super_admin_nav_bar.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
 
@@ -86,12 +85,8 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
   }
 
   Future<void> _checkAppUpdateSilently() async {
-    try {
-      final info = await AppUpdateService.instance.checkForUpdate();
-      if (info.hasUpdate && mounted) {
-        AppUpdateDialog.show(context, info);
-      }
-    } catch (_) {}
+    if (!mounted) return;
+    await AppUpdateService.instance.checkAndShowUpdateModal(context);
   }
 
   @override

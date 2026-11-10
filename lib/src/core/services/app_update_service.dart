@@ -1,11 +1,13 @@
 import 'dart:io' show File, Directory;
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../widgets/app_update_dialog.dart';
 
 /// Información de la versión de la app y actualización disponible.
 class UpdateInfo {
@@ -35,6 +37,30 @@ class AppUpdateService {
       'https://github.com/VladimirArguelles/umbral_immujer/releases/latest';
 
   String? _lastDownloadedApkPath;
+  static bool _hasPromptedThisSession = false;
+
+  /// Restablece la bandera de verificación de actualización para nueva sesión (ej. tras logout).
+  static void resetSessionCheck() {
+    _hasPromptedThisSession = false;
+  }
+
+  /// Verifica si hay una actualización disponible y muestra el diálogo modal únicamente
+  /// si no se ha consultado previamente en esta sesión de usuario en el Dashboard principal.
+  Future<void> checkAndShowUpdateModal(BuildContext context, {bool force = false}) async {
+    if (!force && _hasPromptedThisSession) {
+      return;
+    }
+    _hasPromptedThisSession = true;
+
+    try {
+      final info = await checkForUpdate();
+      if (info.hasUpdate && context.mounted) {
+        AppUpdateDialog.show(context, info);
+      }
+    } catch (e) {
+      debugPrint('[AppUpdateService] Error al verificar actualización en dashboard: $e');
+    }
+  }
 
   bool get isAndroidPlatform =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
@@ -52,22 +78,48 @@ class AppUpdateService {
     return OpenResult(type: ResultType.fileNotFound, message: 'Archivo APK no encontrado');
   }
 
+  /// Extrae los dígitos semánticos principales (major, minor, patch) ignorando prefijos
+  /// 'v' y sufijos de compilación (+X). Normaliza tanto 'v0.1.2' como '0.1+2' a lista [0, 1, 2].
+  static List<int> parseSemver(String raw) {
+    var clean = raw.trim();
+    if (clean.toLowerCase().startsWith('v')) {
+      clean = clean.substring(1).trim();
+    }
+    // Descartar metadatos de compilación (+X)
+    if (clean.contains('+')) {
+      clean = clean.split('+').first.trim();
+    }
+
+    final parts = clean.split('.');
+    final List<int> nums = [];
+    for (final part in parts) {
+      final digits = RegExp(r'\d+').firstMatch(part)?.group(0);
+      nums.add(digits != null ? (int.tryParse(digits) ?? 0) : 0);
+    }
+    while (nums.length < 3) {
+      nums.add(0);
+    }
+    return nums;
+  }
+
+  /// Formatea la versión en notación semántica canónica (ej. '0.1.2').
+  static String formatSemver(String raw) {
+    final parts = parseSemver(raw);
+    return '${parts[0]}.${parts[1]}.${parts[2]}';
+  }
+
   /// Verifica si existe una versión superior a la actualmente instalada.
   Future<UpdateInfo> checkForUpdate({SupabaseClient? client}) async {
     String currentVer = '0.1.0';
-    String buildNumber = '';
     try {
       final info = await PackageInfo.fromPlatform();
       currentVer = info.version;
-      buildNumber = info.buildNumber;
     } catch (e) {
       debugPrint('[AppUpdateService] No se pudo obtener PackageInfo: $e');
     }
 
-    final localVersionFull =
-        buildNumber.isNotEmpty ? '$currentVer+$buildNumber' : currentVer;
-
-    String latestVer = localVersionFull;
+    final localSemverClean = formatSemver(currentVer);
+    String latestVer = localSemverClean;
     String apkUrl = defaultReleaseUrl;
     String notes =
         'Mejoras de rendimiento, corrección de interfaz y nuevas funcionalidades.';
@@ -98,59 +150,43 @@ class AppUpdateService {
           isMandatory = valor == true || valor.toString().replaceAll('"', '').trim() == 'true';
         }
       }
-      debugPrint('[AppUpdateService] Versión local: $localVersionFull | Versión remota: $latestVer | APK: $apkUrl');
+      debugPrint('[AppUpdateService] Versión local semver: $localSemverClean | Versión remota: $latestVer | APK: $apkUrl');
     } catch (e) {
       debugPrint('[AppUpdateService] Consulta a configuracion_general omitida o sin red: $e');
     }
 
-    final hasUpdate = _isVersionGreater(latestVer, localVersionFull);
+    final remoteSemverClean = formatSemver(latestVer);
+    final hasUpdate = _isVersionGreater(latestVer, localSemverClean);
 
     return UpdateInfo(
       hasUpdate: hasUpdate,
-      currentVersion: localVersionFull,
-      latestVersion: latestVer,
+      currentVersion: localSemverClean,
+      latestVersion: remoteSemverClean,
       apkUrl: apkUrl.isNotEmpty ? apkUrl : defaultReleaseUrl,
       releaseNotes: notes,
       isMandatory: isMandatory,
     );
   }
 
-  /// Compara dos strings semánticos de versión (ej. '0.2.0' vs '0.1.0' o con build '0.1.1+3' vs '0.1.1+2').
+  /// Compara dos strings semánticos de versión (ej. '0.2.0' vs '0.1.0').
+  /// Devuelve true ÚNICAMENTE si remote es estrictamente superior a current.
   bool _isVersionGreater(String remote, String current) {
     try {
-      final remoteClean = remote.trim();
-      final currentClean = current.trim();
-      if (remoteClean.isEmpty || remoteClean == currentClean) return false;
-
-      final rSplit = remoteClean.split('+');
-      final cSplit = currentClean.split('+');
-
-      final rParts = rSplit.first.split('.').map((p) => int.tryParse(p) ?? 0).toList();
-      final cParts = cSplit.first.split('.').map((p) => int.tryParse(p) ?? 0).toList();
+      final rParts = parseSemver(remote);
+      final cParts = parseSemver(current);
 
       for (int i = 0; i < 3; i++) {
-        final r = i < rParts.length ? rParts[i] : 0;
-        final c = i < cParts.length ? cParts[i] : 0;
-        if (r > c) return true;
-        if (r < c) return false;
+        if (rParts[i] > cParts[i]) return true;
+        if (rParts[i] < cParts[i]) return false;
       }
-
-      // Si los dígitos mayores.menores.parche coinciden, comparar número de compilación
-      if (rSplit.length > 1 && cSplit.length > 1) {
-        final rBuild = int.tryParse(rSplit[1]) ?? 0;
-        final cBuild = int.tryParse(cSplit[1]) ?? 0;
-        if (rBuild > cBuild) return true;
-      } else if (rSplit.length > 1 && cSplit.length == 1) {
-        final rBuild = int.tryParse(rSplit[1]) ?? 0;
-        if (rBuild > 0) return true;
-      }
+      return false; // Son exactamente iguales o local es mayor
     } catch (e) {
       debugPrint('[AppUpdateService] Error al comparar semver: $e');
+      return false;
     }
-    return false;
   }
 
-  /// Descarga el APK con Dio al almacenamiento temporal y ejecuta la instalación nativa.
+  /// Descarga el APK con Dio al almacenamiento temporal y ejecuta inmediatamente la instalación nativa.
   Future<void> downloadAndInstallApk({
     required String apkUrl,
     required void Function(double progress, String statusText) onProgress,
@@ -186,8 +222,13 @@ class AppUpdateService {
       final filePath = '${baseDir.path}/umbral_latest_update.apk';
       _lastDownloadedApkPath = filePath;
 
-      // Limpiar archivo previo si existía
+      // Limpiar archivo previo si existía y asegurar directorio
       final targetFile = File(filePath);
+      if (!targetFile.parent.existsSync()) {
+        try {
+          targetFile.parent.createSync(recursive: true);
+        } catch (_) {}
+      }
       if (await targetFile.exists()) {
         try {
           await targetFile.delete();
@@ -220,7 +261,7 @@ class AppUpdateService {
         throw Exception('El archivo APK descargado no se pudo guardar correctamente en el dispositivo.');
       }
 
-      onProgress(1.0, 'Descarga completa. Iniciando instalador de paquete...');
+      onProgress(1.0, 'Descarga completa. Lanzando instalador nativo de Android...');
 
       final result = await OpenFilex.open(
         filePath,

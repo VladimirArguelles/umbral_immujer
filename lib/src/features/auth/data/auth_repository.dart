@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:umbral_immujer/src/core/services/app_update_service.dart';
 import 'package:umbral_immujer/src/core/utils/app_logger.dart';
 
 import '../domain/user_profile.dart';
@@ -547,6 +548,7 @@ class AuthRepository {
 
   Future<void> signOut() async {
     try {
+      AppUpdateService.resetSessionCheck();
       await _supabase.auth.signOut();
       AppLogger.info('Sesión cerrada correctamente', tag: 'AUTH_SIGNOUT');
     } catch (e, stackTrace) {

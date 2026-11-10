@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:umbral_immujer/src/core/services/app_update_service.dart';
-import 'package:umbral_immujer/src/core/widgets/app_update_dialog.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/core/utils/formatters.dart';
@@ -48,12 +47,8 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   }
 
   Future<void> _checkAppUpdateSilently() async {
-    try {
-      final info = await AppUpdateService.instance.checkForUpdate();
-      if (info.hasUpdate && mounted) {
-        AppUpdateDialog.show(context, info);
-      }
-    } catch (_) {}
+    if (!mounted) return;
+    await AppUpdateService.instance.checkAndShowUpdateModal(context);
   }
 
   Widget _buildDropdownNav(bool isSuperAdmin) {

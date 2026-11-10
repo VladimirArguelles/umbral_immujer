@@ -1,6 +1,5 @@
 import 'package:umbral_immujer/core/utils/schedule_parser.dart';
 import 'package:umbral_immujer/src/core/services/app_update_service.dart';
-import 'package:umbral_immujer/src/core/widgets/app_update_dialog.dart';
 import 'package:umbral_immujer/src/core/widgets/formation_image_carousel.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -48,12 +47,8 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
   }
 
   Future<void> _checkAppUpdateSilently() async {
-    try {
-      final info = await AppUpdateService.instance.checkForUpdate();
-      if (info.hasUpdate && mounted) {
-        AppUpdateDialog.show(context, info);
-      }
-    } catch (_) {}
+    if (!mounted) return;
+    await AppUpdateService.instance.checkAndShowUpdateModal(context);
   }
 
   Widget _buildDropdownNav(bool isSuperAdmin) {

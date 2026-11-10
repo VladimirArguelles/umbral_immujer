@@ -6,11 +6,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
-import 'package:umbral_immujer/src/core/services/app_update_service.dart';
 import 'package:umbral_immujer/src/core/services/push_notification_service.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/core/utils/responsive.dart';
-import 'package:umbral_immujer/src/core/widgets/app_update_dialog.dart';
 import 'package:umbral_immujer/src/core/widgets/skeleton_loader.dart';
 import 'package:umbral_immujer/src/core/widgets/super_admin_nav_bar.dart';
 
@@ -152,9 +150,6 @@ class _ConfiguracionGeneralScreenState
     _setControllerText('tasa_cambio_oficial', _currentValues['tasa_cambio_oficial']?.toString() ?? '36.50');
     _setControllerText('dias_retencion_logs', _currentValues['dias_retencion_logs']?.toString() ?? '90');
     _setControllerText('limite_intentos_login', _currentValues['limite_intentos_login']?.toString() ?? '5');
-    _setControllerText('app_version_latest', _currentValues['app_version_latest']?.toString() ?? '0.1.0');
-    _setControllerText('app_apk_url', _currentValues['app_apk_url']?.toString() ?? 'https://github.com/VladimirArguelles/umbral_immujer/releases/latest');
-    _setControllerText('app_update_notes', _currentValues['app_update_notes']?.toString() ?? '');
   }
 
   void _setControllerText(String key, String text) {
@@ -512,7 +507,6 @@ class _ConfiguracionGeneralScreenState
                                     Expanded(
                                       child: Column(
                                         children: [
-                                          _buildBcvQuickHeaderCard(),
                                           _buildAcademicSection(),
                                           const SizedBox(height: 20),
                                           _buildStorageSection(),
@@ -542,7 +536,6 @@ class _ConfiguracionGeneralScreenState
                             padding: EdgeInsets.fromLTRB(padding.left, 20, padding.right, 100),
                             children: [
                               if (modifiedCount > 0) _buildPendingChangesBanner(modifiedCount),
-                              _buildBcvQuickHeaderCard(),
                               _buildAcademicSection(),
                               const SizedBox(height: 20),
                               _buildAutomationSection(),
@@ -696,145 +689,6 @@ class _ConfiguracionGeneralScreenState
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  /// Tarjeta de acceso rápido superior para la Tasa Oficial BCV
-  Widget _buildBcvQuickHeaderCard() {
-    final tasa = _currentValues['tasa_cambio_oficial'];
-    final tasaStr = (tasa is num)
-        ? tasa.toStringAsFixed(2)
-        : (tasa?.toString() ?? '36.50');
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: cCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: cEmerald.withAlpha(90),
-          width: 1.2,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x22000000),
-            blurRadius: 10,
-            offset: Offset(0, 3),
-          ),
-        ],
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isNarrow = constraints.maxWidth < 420;
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: cEmerald.withAlpha(30),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Symbols.price_check, color: cEmerald, size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Wrap(
-                      spacing: 6,
-                      runSpacing: 2,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Text(
-                          'Tasa Oficial BCV:',
-                          style: GoogleFonts.plusJakartaSans(
-                            color: cTextMuted,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            'Bs. $tasaStr / USD',
-                            style: GoogleFonts.plusJakartaSans(
-                              color: cEmerald,
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (!isNarrow) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: cEmerald.withAlpha(20),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: cEmerald.withAlpha(60)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Symbols.schedule, size: 14, color: cEmerald),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Automática',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 11,
-                              color: cEmerald,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Sincronización automatizada diaria activa a las 9:00 AM (Caracas).',
-                style: GoogleFonts.plusJakartaSans(
-                  color: cTextDim,
-                  fontSize: 11,
-                ),
-              ),
-              if (isNarrow) ...[
-                const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: cEmerald.withAlpha(20),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: cEmerald.withAlpha(60)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Symbols.schedule, size: 12, color: cEmerald),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Sincronización Automática',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 10.5,
-                          color: cEmerald,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ],
-          );
-        },
       ),
     );
   }
@@ -1169,12 +1023,15 @@ class _ConfiguracionGeneralScreenState
               children: [
                 const Icon(Symbols.extension, size: 18, color: cTextMuted),
                 const SizedBox(width: 8),
-                Text(
-                  'Formatos Permitidos para Comprobantes',
-                  style: GoogleFonts.plusJakartaSans(
-                    color: cTextMain,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
+                Expanded(
+                  child: Text(
+                    'Formatos Permitidos para Comprobantes',
+                    softWrap: true,
+                    style: GoogleFonts.plusJakartaSans(
+                      color: cTextMain,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
               ],
@@ -1327,166 +1184,7 @@ class _ConfiguracionGeneralScreenState
             setState(() {});
           },
         ),
-        const SizedBox(height: 16),
-        _buildAppUpdateManagerWidget(),
       ],
-    );
-  }
-
-  /// Widget de gestión y comprobación de actualización In-App del APK
-  Widget _buildAppUpdateManagerWidget() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cCardInner,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: cPrimary.withAlpha(90),
-          width: 1.2,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: cPrimary.withAlpha(30),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Symbols.system_update, color: cPrimary, size: 22),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Actualizaciones de la Aplicación (In-App)',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w800,
-                        color: cTextMain,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Verificación remota y distribución directa del archivo APK',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11,
-                        color: cTextMuted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: cPrimary,
-              side: const BorderSide(color: cPrimary),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            ),
-            onPressed: () async {
-              _showToast('Comprobando actualizaciones...', isSuccess: false);
-              final info = await AppUpdateService.instance.checkForUpdate(client: _supabase);
-              if (!mounted) return;
-              if (info.hasUpdate) {
-                AppUpdateDialog.show(context, info);
-              } else {
-                _showToast('Tu app está actualizada a la última versión (v${info.currentVersion})', isSuccess: true);
-              }
-            },
-            icon: const Icon(Symbols.sync, size: 18),
-            label: const Text('Comprobar Actualizaciones Ahora', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5)),
-          ),
-          const SizedBox(height: 16),
-          const Divider(height: 1),
-          const SizedBox(height: 14),
-          _buildReadOnlyApkInfoRow(
-            icon: Symbols.numbers,
-            label: 'Versión Publicada más Reciente',
-            value: _currentValues['app_version_latest']?.toString() ?? '0.1.2',
-            helperText: 'Si la versión del usuario es menor a este número, se le ofrecerá actualizar.',
-          ),
-          const SizedBox(height: 10),
-          _buildReadOnlyApkInfoRow(
-            icon: Symbols.link,
-            label: 'URL de Descarga del APK',
-            value: _currentValues['app_apk_url']?.toString() ??
-                'https://github.com/VladimirArguelles/umbral_immujer/releases/download/v0.1.2/app-release.apk',
-            helperText: 'Enlace directo de descarga o release oficial de GitHub.',
-          ),
-          const SizedBox(height: 10),
-          _buildReadOnlyApkInfoRow(
-            icon: Symbols.description,
-            label: 'Notas de la Versión (Changelog)',
-            value: _currentValues['app_update_notes']?.toString() ??
-                'Actualización oficial UMBRAL: Nueva interfaz responsiva sin desbordes de texto, optimización de tarjetas y nuevo gestor de actualizaciones.',
-            helperText: 'Descripción de novedades que verá el usuario en la ventana de actualización.',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildReadOnlyApkInfoRow({
-    required IconData icon,
-    required String label,
-    required String value,
-    required String helperText,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: cCardInner,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: cBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 16, color: cSky),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  label,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: cTextMuted,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          SelectableText(
-            value.isNotEmpty ? value : 'No configurado',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: cTextMain,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            helperText,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 11,
-              color: cTextMuted.withValues(alpha: 0.8),
-            ),
-          ),
-        ],
-      ),
     );
   }
 

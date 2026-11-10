@@ -15,12 +15,20 @@ class AppUpdateDialog extends StatefulWidget {
     required this.updateInfo,
   });
 
-  static Future<void> show(BuildContext context, UpdateInfo updateInfo) {
-    return showDialog(
-      context: context,
-      barrierDismissible: !updateInfo.isMandatory,
-      builder: (_) => AppUpdateDialog(updateInfo: updateInfo),
-    );
+  static bool _isShowing = false;
+
+  static Future<void> show(BuildContext context, UpdateInfo updateInfo) async {
+    if (_isShowing) return;
+    _isShowing = true;
+    try {
+      await showDialog(
+        context: context,
+        barrierDismissible: !updateInfo.isMandatory,
+        builder: (_) => AppUpdateDialog(updateInfo: updateInfo),
+      );
+    } finally {
+      _isShowing = false;
+    }
   }
 
   @override
@@ -70,14 +78,10 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
       if (mounted) {
         setState(() {
           _isDownloading = false;
-          _statusText = 'Descarga completada. Ejecutando instalador...';
+          _statusText = 'Descarga completada. Lanzando instalador nativo...';
         });
-        if (!widget.updateInfo.isMandatory) {
-          Future.delayed(const Duration(seconds: 2), () {
-            if (mounted) {
-              Navigator.of(context).maybePop();
-            }
-          });
+        if (!widget.updateInfo.isMandatory && mounted) {
+          Navigator.of(context).maybePop();
         }
       }
     } catch (e) {
