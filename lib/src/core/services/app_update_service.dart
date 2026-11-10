@@ -1,4 +1,4 @@
-import 'dart:io' show File;
+import 'dart:io' show File, Directory;
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:open_filex/open_filex.dart';
@@ -34,8 +34,23 @@ class AppUpdateService {
   static const String defaultReleaseUrl =
       'https://github.com/VladimirArguelles/umbral_immujer/releases/latest';
 
+  String? _lastDownloadedApkPath;
+
   bool get isAndroidPlatform =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
+  bool get hasDownloadedApk =>
+      _lastDownloadedApkPath != null && File(_lastDownloadedApkPath!).existsSync();
+
+  Future<OpenResult> openDownloadedApk() async {
+    if (hasDownloadedApk) {
+      return await OpenFilex.open(
+        _lastDownloadedApkPath!,
+        type: 'application/vnd.android.package-archive',
+      );
+    }
+    return OpenResult(type: ResultType.fileNotFound, message: 'Archivo APK no encontrado');
+  }
 
   /// Verifica si existe una versión superior a la actualmente instalada.
   Future<UpdateInfo> checkForUpdate({SupabaseClient? client}) async {
@@ -155,9 +170,21 @@ class AppUpdateService {
     );
 
     try {
-      onProgress(0.05, 'Preparando directorio temporal...');
-      final tempDir = await getTemporaryDirectory();
-      final filePath = '${tempDir.path}/umbral_latest_update.apk';
+      onProgress(0.05, 'Preparando almacenamiento...');
+      Directory? baseDir;
+      try {
+        final extCache = await getExternalCacheDirectories();
+        if (extCache != null && extCache.isNotEmpty) {
+          baseDir = extCache.first;
+        }
+      } catch (_) {}
+      try {
+        baseDir ??= await getExternalStorageDirectory();
+      } catch (_) {}
+      baseDir ??= await getTemporaryDirectory();
+
+      final filePath = '${baseDir.path}/umbral_latest_update.apk';
+      _lastDownloadedApkPath = filePath;
 
       // Limpiar archivo previo si existía
       final targetFile = File(filePath);
@@ -188,6 +215,11 @@ class AppUpdateService {
         },
       );
 
+      final downloadedFile = File(filePath);
+      if (!await downloadedFile.exists() || await downloadedFile.length() == 0) {
+        throw Exception('El archivo APK descargado no se pudo guardar correctamente en el dispositivo.');
+      }
+
       onProgress(1.0, 'Descarga completa. Iniciando instalador de paquete...');
 
       final result = await OpenFilex.open(
@@ -196,6 +228,19 @@ class AppUpdateService {
       );
 
       debugPrint('[AppUpdateService] Resultado de instalación APK: ${result.type} - ${result.message}');
+
+      if (result.type != ResultType.done) {
+        if (result.type == ResultType.permissionDenied) {
+          throw Exception(
+            'El sistema Android denegó el permiso para instalar aplicaciones desconocidas. '
+            'Por favor autoriza a UMBRAL en Ajustes > Instalar aplicaciones desconocidas.',
+          );
+        } else if (result.type == ResultType.noAppToOpen) {
+          throw Exception('No se encontró el instalador de paquetes de Android.');
+        } else {
+          throw Exception('No se pudo ejecutar el instalador (${result.message}).');
+        }
+      }
     } catch (e) {
       debugPrint('[AppUpdateService] Error durante la descarga/instalación: $e');
       rethrow;

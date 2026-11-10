@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:open_filex/open_filex.dart';
 import '../services/app_update_service.dart';
 import '../theme/app_theme.dart';
 
@@ -33,6 +34,19 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
   String? _errorMessage;
 
   Future<void> _startUpdate() async {
+    // Si el archivo ya se descargó previamente en esta sesión, intentar abrir directamente
+    if (AppUpdateService.instance.hasDownloadedApk) {
+      try {
+        final res = await AppUpdateService.instance.openDownloadedApk();
+        if (res.type == ResultType.done) {
+          if (mounted && !widget.updateInfo.isMandatory) {
+            Navigator.of(context).pop();
+          }
+          return;
+        }
+      } catch (_) {}
+    }
+
     setState(() {
       _isDownloading = true;
       _errorMessage = null;
@@ -53,8 +67,18 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
         },
       );
 
-      if (mounted && !widget.updateInfo.isMandatory) {
-        Navigator.of(context).pop();
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+          _statusText = 'Descarga completada. Ejecutando instalador...';
+        });
+        if (!widget.updateInfo.isMandatory) {
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) {
+              Navigator.of(context).maybePop();
+            }
+          });
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -309,9 +333,11 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
                   label: Text(
                     _isDownloading
                         ? 'Descargando...'
-                        : _errorMessage != null
-                            ? 'Reintentar Actualización'
-                            : 'Actualizar Ahora (APK)',
+                        : AppUpdateService.instance.hasDownloadedApk
+                            ? 'Instalar Paquete APK'
+                            : _errorMessage != null
+                                ? 'Reintentar Actualización'
+                                : 'Actualizar Ahora (APK)',
                     style: GoogleFonts.plusJakartaSans(
                       fontWeight: FontWeight.w800,
                       fontSize: 13.5,
