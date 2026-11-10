@@ -65,17 +65,40 @@ class AppUpdateService {
   bool get isAndroidPlatform =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
-  bool get hasDownloadedApk =>
-      _lastDownloadedApkPath != null && File(_lastDownloadedApkPath!).existsSync();
+  Future<String> getUpdateApkPath() async {
+    if (_lastDownloadedApkPath != null && _lastDownloadedApkPath!.isNotEmpty) {
+      return _lastDownloadedApkPath!;
+    }
+    Directory? baseDir;
+    try {
+      // getExternalStorageDirectory() mapea a context.getExternalFilesDir(null)
+      // que no requiere MANAGE_EXTERNAL_STORAGE en Android 11+ (API 30+)
+      baseDir = await getExternalStorageDirectory();
+    } catch (_) {}
+    try {
+      baseDir ??= await getApplicationSupportDirectory();
+    } catch (_) {}
+    baseDir ??= await getTemporaryDirectory();
+    _lastDownloadedApkPath = '${baseDir.path}/umbral_latest_update.apk';
+    return _lastDownloadedApkPath!;
+  }
+
+  bool get hasDownloadedApk {
+    if (_lastDownloadedApkPath == null) return false;
+    final file = File(_lastDownloadedApkPath!);
+    return file.existsSync() && file.lengthSync() > 1024 * 1024;
+  }
 
   Future<OpenResult> openDownloadedApk() async {
-    if (hasDownloadedApk) {
+    final path = await getUpdateApkPath();
+    final file = File(path);
+    if (file.existsSync() && file.lengthSync() > 1024 * 1024) {
       return await OpenFilex.open(
-        _lastDownloadedApkPath!,
+        path,
         type: 'application/vnd.android.package-archive',
       );
     }
-    return OpenResult(type: ResultType.fileNotFound, message: 'Archivo APK no encontrado');
+    return OpenResult(type: ResultType.fileNotFound, message: 'Archivo APK no encontrado o incompleto');
   }
 
   /// Extrae los dígitos semánticos principales (major, minor, patch) ignorando prefijos
@@ -207,20 +230,7 @@ class AppUpdateService {
 
     try {
       onProgress(0.05, 'Preparando almacenamiento...');
-      Directory? baseDir;
-      try {
-        final extCache = await getExternalCacheDirectories();
-        if (extCache != null && extCache.isNotEmpty) {
-          baseDir = extCache.first;
-        }
-      } catch (_) {}
-      try {
-        baseDir ??= await getExternalStorageDirectory();
-      } catch (_) {}
-      baseDir ??= await getTemporaryDirectory();
-
-      final filePath = '${baseDir.path}/umbral_latest_update.apk';
-      _lastDownloadedApkPath = filePath;
+      final filePath = await getUpdateApkPath();
 
       // Limpiar archivo previo si existía y asegurar directorio
       final targetFile = File(filePath);

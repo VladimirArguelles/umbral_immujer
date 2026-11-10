@@ -42,7 +42,7 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
   String? _errorMessage;
 
   Future<void> _startUpdate() async {
-    // Si el archivo ya se descargó previamente en esta sesión, intentar abrir directamente
+    // Si el archivo ya se descargó previamente y es válido, intentar abrir directamente
     if (AppUpdateService.instance.hasDownloadedApk) {
       try {
         final res = await AppUpdateService.instance.openDownloadedApk();
@@ -50,6 +50,11 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
           if (mounted && !widget.updateInfo.isMandatory) {
             Navigator.of(context).pop();
           }
+          return;
+        } else if (res.type == ResultType.permissionDenied) {
+          setState(() {
+            _errorMessage = 'Android requiere autorizar a UMBRAL en Ajustes > Instalar aplicaciones desconocidas.';
+          });
           return;
         }
       } catch (_) {}
@@ -86,15 +91,17 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
       }
     } catch (e) {
       if (mounted) {
-        String msg = 'No se pudo completar la descarga automática.';
+        String msg = 'No se pudo completar la instalación.';
         if (e is DioException) {
           if (e.response?.statusCode == 404) {
             msg = 'El archivo de actualización no se encuentra disponible temporalmente en el servidor.';
           } else if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
             msg = 'Tiempo de conexión agotado. Revisa tu conexión a internet.';
           } else {
-            msg = 'Error de red al descargar el paquete (${e.response?.statusCode ?? 'sin conexión'}).';
+            msg = 'Error de conexión al descargar el paquete (${e.response?.statusCode ?? 'sin red'}).';
           }
+        } else {
+          msg = e.toString().replaceAll('Exception: ', '').trim();
         }
         setState(() {
           _isDownloading = false;
