@@ -917,10 +917,11 @@ onReorder: (oldIndex, newIndex) {
                   children: [
                     // Filtro por Estado
                     Expanded(
-                      flex: 2,
+                      flex: 3,
                       child: DropdownButtonFormField<String?>(
                         initialValue: _selectedStatus,
                         dropdownColor: AppTheme.surfaceContainer,
+                        isExpanded: true,
                         style: const TextStyle(color: AppTheme.onSurface),
                         decoration: const InputDecoration(
                           labelText: 'Filtrar por Estado',
@@ -930,15 +931,15 @@ onReorder: (oldIndex, newIndex) {
                         items: const [
                           DropdownMenuItem<String?>(
                             value: null,
-                            child: Text('Todos los Estados'),
+                            child: Text('Todos los Estados', overflow: TextOverflow.ellipsis),
                           ),
                           DropdownMenuItem<String?>(
                             value: 'activo',
-                            child: Text('Cursos Activos'),
+                            child: Text('Cursos Activos', overflow: TextOverflow.ellipsis),
                           ),
                           DropdownMenuItem<String?>(
                             value: 'finalizado',
-                            child: Text('Cursos Finalizados'),
+                            child: Text('Cursos Finalizados', overflow: TextOverflow.ellipsis),
                           ),
                         ],
                         onChanged: (val) {
@@ -947,18 +948,24 @@ onReorder: (oldIndex, newIndex) {
                         },
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    // Botón Añadir Curso
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
-                        foregroundColor: AppTheme.onPrimary,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    const SizedBox(width: 10),
+                    // Botón Añadir Curso adaptado
+                    Flexible(
+                      flex: 2,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primary,
+                          foregroundColor: AppTheme.onPrimary,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: _showAddCursoDialog,
+                        icon: const Icon(Symbols.add_circle, size: 18),
+                        label: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text('Añadir Curso', maxLines: 1),
+                        ),
                       ),
-                      onPressed: _showAddCursoDialog,
-                      icon: const Icon(Symbols.add_circle, size: 20),
-                      label: const Text('Añadir Curso'),
                     ),
                   ],
                 ),
@@ -1032,7 +1039,7 @@ onReorder: (oldIndex, newIndex) {
                             ),
                           )
                         : ListView.separated(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 88),
                             itemCount: _filteredCursos.length,
                             separatorBuilder: (_, _) => const SizedBox(height: 10),
                             itemBuilder: (context, index) {

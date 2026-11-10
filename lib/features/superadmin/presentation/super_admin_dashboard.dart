@@ -460,9 +460,12 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
             ),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
             ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -650,7 +653,9 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                 context.go('/admin/error-console');
               },
             ),
-          ],
+              ],
+            ),
+          ),
         ),
         actions: [
           TextButton(

@@ -460,6 +460,7 @@ class _GestionAlumnosPageState extends State<GestionAlumnosPage> {
                       child: DropdownButtonFormField<String?>(
                         initialValue: _selectedCurso,
                         dropdownColor: AppTheme.surfaceContainer,
+                        isExpanded: true,
                         style: const TextStyle(color: AppTheme.onSurface),
                         decoration: const InputDecoration(
                           labelText: 'Filtrar por Curso',
@@ -469,11 +470,14 @@ class _GestionAlumnosPageState extends State<GestionAlumnosPage> {
                         items: [
                           const DropdownMenuItem<String?>(
                             value: null,
-                            child: Text('Todos los Cursos'),
+                            child: Text('Todos los Cursos', overflow: TextOverflow.ellipsis),
                           ),
                           ..._cursos.map((c) {
                             final n = c['nombre'] as String;
-                            return DropdownMenuItem<String?>(value: n, child: Text(n));
+                            return DropdownMenuItem<String?>(
+                              value: n,
+                              child: Text(n, overflow: TextOverflow.ellipsis),
+                            );
                           }),
                         ],
                         onChanged: (val) {
@@ -482,18 +486,24 @@ class _GestionAlumnosPageState extends State<GestionAlumnosPage> {
                         },
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    // Botón Añadir Alumno
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
-                        foregroundColor: AppTheme.onPrimary,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    const SizedBox(width: 10),
+                    // Botón Añadir Alumno adaptado
+                    Flexible(
+                      flex: 2,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primary,
+                          foregroundColor: AppTheme.onPrimary,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: _showAddAlumnoDialog,
+                        icon: const Icon(Symbols.person_add, size: 18),
+                        label: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text('Añadir Alumno', maxLines: 1),
+                        ),
                       ),
-                      onPressed: _showAddAlumnoDialog,
-                      icon: const Icon(Symbols.person_add, size: 20),
-                      label: const Text('Añadir Alumno'),
                     ),
                   ],
                 ),
@@ -567,7 +577,7 @@ class _GestionAlumnosPageState extends State<GestionAlumnosPage> {
                             ),
                           )
                         : ListView.separated(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 88),
                             itemCount: _filteredAlumnos.length,
                             separatorBuilder: (_, _) => const SizedBox(height: 10),
                             itemBuilder: (context, index) {
@@ -637,7 +647,15 @@ class _GestionAlumnosPageState extends State<GestionAlumnosPage> {
                                                   children: [
                                                     const Icon(Symbols.mail, size: 14, color: AppTheme.onSurfaceVariant),
                                                     const SizedBox(width: 4),
-                                                    Text(correo, style: const TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant)),
+                                                    ConstrainedBox(
+                                                      constraints: const BoxConstraints(maxWidth: 160),
+                                                      child: Text(
+                                                        correo,
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                        style: const TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant),
+                                                      ),
+                                                    ),
                                                   ],
                                                 ),
                                               ],

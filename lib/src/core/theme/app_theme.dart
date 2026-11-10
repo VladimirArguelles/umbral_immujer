@@ -219,54 +219,64 @@ abstract final class AppTheme {
     );
     final textTheme = baseTextTheme.copyWith(
       headlineLarge: baseTextTheme.headlineLarge?.copyWith(
-        fontSize: 32,
+        fontSize: 28,
         fontWeight: FontWeight.w700,
-        height: 40 / 32,
+        height: 34 / 28,
       ),
       headlineMedium: baseTextTheme.headlineMedium?.copyWith(
-        fontSize: 22,
+        fontSize: 20,
         fontWeight: FontWeight.w700,
-        height: 28 / 22,
+        height: 26 / 20,
       ),
       headlineSmall: baseTextTheme.headlineSmall?.copyWith(
-        fontSize: 18,
+        fontSize: 17,
         fontWeight: FontWeight.w600,
+        height: 22 / 17,
+      ),
+      titleLarge: baseTextTheme.titleLarge?.copyWith(
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
         height: 24 / 18,
       ),
       titleMedium: baseTextTheme.titleMedium?.copyWith(
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: FontWeight.w600,
-        height: 22 / 16,
+        height: 20 / 15,
+      ),
+      titleSmall: baseTextTheme.titleSmall?.copyWith(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        height: 18 / 13,
       ),
       bodyLarge: baseTextTheme.bodyLarge?.copyWith(
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: FontWeight.w400,
-        height: 24 / 16,
+        height: 22 / 15,
       ),
       bodyMedium: baseTextTheme.bodyMedium?.copyWith(
-        fontSize: 14,
+        fontSize: 13.5,
         fontWeight: FontWeight.w400,
-        height: 20 / 14,
+        height: 19 / 13.5,
       ),
       bodySmall: baseTextTheme.bodySmall?.copyWith(
-        fontSize: 12,
+        fontSize: 11.5,
         fontWeight: FontWeight.w400,
-        height: 16 / 12,
+        height: 15 / 11.5,
       ),
       labelLarge: baseTextTheme.labelLarge?.copyWith(
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: FontWeight.w700,
-        height: 18 / 14,
+        height: 16 / 13,
       ),
       labelMedium: baseTextTheme.labelMedium?.copyWith(
-        fontSize: 12,
+        fontSize: 11.5,
         fontWeight: FontWeight.w600,
-        height: 16 / 12,
+        height: 15 / 11.5,
       ),
       labelSmall: baseTextTheme.labelSmall?.copyWith(
-        fontSize: 11,
+        fontSize: 10.5,
         fontWeight: FontWeight.w700,
-        height: 14 / 11,
+        height: 13 / 10.5,
       ),
     );
 
@@ -358,6 +368,14 @@ abstract final class AppTheme {
         backgroundColor: surfaceContainer,
         surfaceTintColor: Colors.transparent,
       ),
+      chipTheme: ChipThemeData(
+        labelStyle: textTheme.labelSmall?.copyWith(fontSize: 11, fontWeight: FontWeight.w600),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: const BorderSide(color: outlineVariant),
+        ),
+      ),
       dividerTheme: const DividerThemeData(color: outlineVariant),
     );
   }
@@ -378,54 +396,64 @@ abstract final class AppTheme {
     );
     final textTheme = baseTextTheme.copyWith(
       headlineLarge: baseTextTheme.headlineLarge?.copyWith(
-        fontSize: 32,
+        fontSize: 28,
         fontWeight: FontWeight.w700,
-        height: 40 / 32,
+        height: 34 / 28,
       ),
       headlineMedium: baseTextTheme.headlineMedium?.copyWith(
-        fontSize: 22,
+        fontSize: 20,
         fontWeight: FontWeight.w700,
-        height: 28 / 22,
+        height: 26 / 20,
       ),
       headlineSmall: baseTextTheme.headlineSmall?.copyWith(
-        fontSize: 18,
+        fontSize: 17,
         fontWeight: FontWeight.w600,
+        height: 22 / 17,
+      ),
+      titleLarge: baseTextTheme.titleLarge?.copyWith(
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
         height: 24 / 18,
       ),
       titleMedium: baseTextTheme.titleMedium?.copyWith(
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: FontWeight.w600,
-        height: 22 / 16,
+        height: 20 / 15,
+      ),
+      titleSmall: baseTextTheme.titleSmall?.copyWith(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        height: 18 / 13,
       ),
       bodyLarge: baseTextTheme.bodyLarge?.copyWith(
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: FontWeight.w400,
-        height: 24 / 16,
+        height: 22 / 15,
       ),
       bodyMedium: baseTextTheme.bodyMedium?.copyWith(
-        fontSize: 14,
+        fontSize: 13.5,
         fontWeight: FontWeight.w400,
-        height: 20 / 14,
+        height: 19 / 13.5,
       ),
       bodySmall: baseTextTheme.bodySmall?.copyWith(
-        fontSize: 12,
+        fontSize: 11.5,
         fontWeight: FontWeight.w400,
-        height: 16 / 12,
+        height: 15 / 11.5,
       ),
       labelLarge: baseTextTheme.labelLarge?.copyWith(
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: FontWeight.w700,
-        height: 18 / 14,
+        height: 16 / 13,
       ),
       labelMedium: baseTextTheme.labelMedium?.copyWith(
-        fontSize: 12,
+        fontSize: 11.5,
         fontWeight: FontWeight.w600,
-        height: 16 / 12,
+        height: 15 / 11.5,
       ),
       labelSmall: baseTextTheme.labelSmall?.copyWith(
-        fontSize: 11,
+        fontSize: 10.5,
         fontWeight: FontWeight.w700,
-        height: 14 / 11,
+        height: 13 / 10.5,
       ),
     );
 
@@ -535,6 +563,14 @@ abstract final class AppTheme {
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: lightSurface,
         surfaceTintColor: Colors.transparent,
+      ),
+      chipTheme: ChipThemeData(
+        labelStyle: textTheme.labelSmall?.copyWith(fontSize: 11, fontWeight: FontWeight.w600),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: const BorderSide(color: lightOutline),
+        ),
       ),
       dividerTheme: const DividerThemeData(color: lightOutline),
     );

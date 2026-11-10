@@ -1,6 +1,8 @@
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:umbral_immujer/src/core/services/app_update_service.dart';
+import 'package:umbral_immujer/src/core/widgets/app_update_dialog.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/core/utils/formatters.dart';
@@ -39,6 +41,18 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
     _currentProfile = widget.profile;
     _currentIndex = widget.initialIndex.clamp(0, 4);
     _teacherRepository = TeacherRepository(SupabaseConfig.client);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAppUpdateSilently();
+    });
+  }
+
+  Future<void> _checkAppUpdateSilently() async {
+    try {
+      final info = await AppUpdateService.instance.checkForUpdate();
+      if (info.hasUpdate && mounted) {
+        AppUpdateDialog.show(context, info);
+      }
+    } catch (_) {}
   }
 
   Widget _buildDropdownNav(bool isSuperAdmin) {
@@ -841,21 +855,31 @@ class _PaseListaTabState extends State<_PaseListaTab> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Presentes: $presentesCount | Ausentes: $ausentesCount',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                  Expanded(
+                    child: Text(
+                      'Presentes: $presentesCount | Ausentes: $ausentesCount',
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12.5,
+                      ),
                     ),
                   ),
-                  OutlinedButton.icon(
-                    onPressed: _alumnos.isEmpty
-                        ? null
-                        : _marcarTodosComoPresentes,
-                    icon: const Icon(Icons.done_all, size: 16),
-                    label: const Text(
-                      'Todos Presentes',
-                      style: TextStyle(fontSize: 12),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: OutlinedButton.icon(
+                      onPressed: _alumnos.isEmpty
+                          ? null
+                          : _marcarTodosComoPresentes,
+                      icon: const Icon(Icons.done_all, size: 16),
+                      label: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'Todos Presentes',
+                          maxLines: 1,
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -910,7 +934,7 @@ class _PaseListaTabState extends State<_PaseListaTab> {
                   child: Text('No hay alumnos inscritos en este curso.'),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 88),
                   itemCount: _alumnos.length,
                   itemBuilder: (context, idx) {
                     final a = _alumnos[idx];
@@ -964,7 +988,7 @@ class _PaseListaTabState extends State<_PaseListaTab> {
 
         // Botón Inferior para Guardar Lista
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.only(left: 16, right: 16, top: 14, bottom: 84),
           color: AppTheme.dynamicCard,
           child: SizedBox(
             width: double.infinity,
@@ -2347,7 +2371,7 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 88),
       itemCount: _activeSurveys.length,
       itemBuilder: (context, index) {
         final survey = _activeSurveys[index];
@@ -2586,7 +2610,7 @@ class _EncuestasDocenteTabState extends State<_EncuestasDocenteTab> {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 88),
       itemCount: _historySurveys.length,
       itemBuilder: (context, index) {
         final survey = _historySurveys[index];
@@ -2851,7 +2875,7 @@ class _AuditoriaRecaudacionTabState extends State<_AuditoriaRecaudacionTab> {
                   ),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 88),
                   itemCount: _recaudacion.length,
                   itemBuilder: (context, idx) {
                     final item = _recaudacion[idx];
@@ -3711,7 +3735,14 @@ class _GestionAlumnosTabState extends State<_GestionAlumnosTab> {
                       ),
                       onPressed: _showAddAlumnoModal,
                       icon: const Icon(Icons.add, size: 18),
-                      label: const Text('Añadir Alumno', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
+                      label: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'Añadir Alumno',
+                          maxLines: 1,
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -3725,7 +3756,14 @@ class _GestionAlumnosTabState extends State<_GestionAlumnosTab> {
                       ),
                       onPressed: _showGestionTemasModal,
                       icon: const Icon(Icons.topic_outlined, size: 18),
-                      label: const Text('Gestión Temas', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
+                      label: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'Gestión Temas',
+                          maxLines: 1,
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -3763,7 +3801,7 @@ class _GestionAlumnosTabState extends State<_GestionAlumnosTab> {
               : _historialAlumnos.isEmpty
                   ? const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('No hay alumnos inscritos en este curso.')))
                   : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 88),
                       itemCount: _historialAlumnos.length,
                       itemBuilder: (context, idx) {
                         final al = _historialAlumnos[idx];

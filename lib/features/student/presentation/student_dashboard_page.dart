@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:umbral_immujer/src/core/services/app_update_service.dart';
+import 'package:umbral_immujer/src/core/widgets/app_update_dialog.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/core/utils/formatters.dart';
@@ -40,6 +42,18 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     _currentProfile = widget.profile;
     _currentIndex = widget.initialIndex.clamp(0, 3);
     _studentRepository = StudentRepository(SupabaseConfig.client);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAppUpdateSilently();
+    });
+  }
+
+  Future<void> _checkAppUpdateSilently() async {
+    try {
+      final info = await AppUpdateService.instance.checkForUpdate();
+      if (info.hasUpdate && mounted) {
+        AppUpdateDialog.show(context, info);
+      }
+    } catch (_) {}
   }
 
   Widget _buildDropdownNav(bool isSuperAdmin) {
@@ -549,7 +563,7 @@ class _MisCursosTabState extends State<_MisCursosTab>
         return RefreshIndicator(
           onRefresh: () async => _loadCursos(),
           child: ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 88),
             itemCount: cursos.length,
             itemBuilder: (context, idx) {
               final c = cursos[idx];
@@ -838,7 +852,7 @@ class _MisAsistenciasTabState extends State<_MisAsistenciasTab> {
         if (_selectedCurso != null) _loadAsistenciasCurso(_selectedCurso!.id);
       },
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 16.0, bottom: 88.0),
         physics: const AlwaysScrollableScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2370,7 +2384,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
         return RefreshIndicator(
           onRefresh: () async => _loadAll(),
           child: ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 88),
             itemCount: encuestas.length,
             itemBuilder: (context, idx) {
               final enc = encuestas[idx];
@@ -3081,7 +3095,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
         return RefreshIndicator(
           onRefresh: () async => _loadAll(),
           child: ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 88),
             itemCount: encuestas.length,
             itemBuilder: (context, idx) {
               final enc = encuestas[idx];
@@ -3358,7 +3372,7 @@ class _EncuestasAportesTabState extends State<_EncuestasAportesTab> {
         return RefreshIndicator(
           onRefresh: () async => _loadAll(),
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 88),
             children: [
               // Tarjeta Resumen Superior de Pagos
               Container(

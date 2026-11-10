@@ -1,4 +1,6 @@
 import 'package:umbral_immujer/core/utils/schedule_parser.dart';
+import 'package:umbral_immujer/src/core/services/app_update_service.dart';
+import 'package:umbral_immujer/src/core/widgets/app_update_dialog.dart';
 import 'package:umbral_immujer/src/core/widgets/formation_image_carousel.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -40,6 +42,18 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
     super.initState();
     _currentProfile = widget.profile;
     _coordinatorRepository = CoordinatorRepository(SupabaseConfig.client);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAppUpdateSilently();
+    });
+  }
+
+  Future<void> _checkAppUpdateSilently() async {
+    try {
+      final info = await AppUpdateService.instance.checkForUpdate();
+      if (info.hasUpdate && mounted) {
+        AppUpdateDialog.show(context, info);
+      }
+    } catch (_) {}
   }
 
   Widget _buildDropdownNav(bool isSuperAdmin) {
@@ -1232,7 +1246,7 @@ class _DashboardCursosTabState extends State<_DashboardCursosTab> {
         return RefreshIndicator(
           onRefresh: () async => _loadAll(),
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 88),
             children: [
               // Carrusel Formativo de Alumnos
               const FormationImageCarousel(),
@@ -2292,7 +2306,7 @@ class _MonitorRealtimeAusenciasTabState
                   ),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 88),
                   itemCount: _ausencias.length,
                   itemBuilder: (context, idx) {
                     final aus = _ausencias[idx];
@@ -2399,7 +2413,7 @@ class _AsignacionProfesoresTabState extends State<_AsignacionProfesoresTab> {
         return RefreshIndicator(
           onRefresh: () async => _loadProfesores(),
           child: ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 88),
             itemCount: profs.length,
             itemBuilder: (context, idx) {
               final p = profs[idx];
@@ -2600,7 +2614,7 @@ class _AuditoriaInsumosTab extends StatelessWidget {
                 );
               }
               return ListView.builder(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 88),
                 itemCount: encuestas.length,
                 itemBuilder: (context, idx) => _buildAuditCard(encuestas[idx]),
               );

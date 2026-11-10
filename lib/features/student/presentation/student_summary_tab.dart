@@ -26,7 +26,7 @@ class StudentSummaryTab extends StatelessWidget {
               horizontalPadding,
               18,
               horizontalPadding,
-              28,
+              88,
             ),
             children: [
               Text(

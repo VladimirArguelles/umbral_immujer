@@ -4,8 +4,8 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../services/app_update_service.dart';
 import '../theme/app_theme.dart';
 
-/// Diálogo modal interactivo para notificar y descargar actualizaciones In-App.
-class AppUpdateDialog extends StatelessWidget {
+/// Diálogo modal interactivo para notificar, descargar e instalar actualizaciones In-App.
+class AppUpdateDialog extends StatefulWidget {
   final UpdateInfo updateInfo;
 
   const AppUpdateDialog({
@@ -22,6 +22,50 @@ class AppUpdateDialog extends StatelessWidget {
   }
 
   @override
+  State<AppUpdateDialog> createState() => _AppUpdateDialogState();
+}
+
+class _AppUpdateDialogState extends State<AppUpdateDialog> {
+  bool _isDownloading = false;
+  double _progress = 0.0;
+  String _statusText = '';
+  String? _errorMessage;
+
+  Future<void> _startUpdate() async {
+    setState(() {
+      _isDownloading = true;
+      _errorMessage = null;
+      _progress = 0.0;
+      _statusText = 'Iniciando descarga...';
+    });
+
+    try {
+      await AppUpdateService.instance.downloadAndInstallApk(
+        apkUrl: widget.updateInfo.apkUrl,
+        onProgress: (progress, status) {
+          if (mounted) {
+            setState(() {
+              _progress = progress;
+              _statusText = status;
+            });
+          }
+        },
+      );
+
+      if (mounted && !widget.updateInfo.isMandatory) {
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+          _errorMessage = 'No se pudo completar la descarga automática: $e';
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E2235) : Colors.white;
@@ -29,157 +73,237 @@ class AppUpdateDialog extends StatelessWidget {
     final subtitleColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
     return PopScope(
-      canPop: !updateInfo.isMandatory,
+      canPop: !widget.updateInfo.isMandatory && !_isDownloading,
       child: Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         backgroundColor: cardBg,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Encabezado con Icono
-              Row(
-                children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryContainer.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: AppTheme.primaryContainer.withValues(alpha: 0.4),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: Padding(
+            padding: const EdgeInsets.all(22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Encabezado con Icono
+                Row(
+                  children: [
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppTheme.primary.withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: const Icon(
+                        Symbols.system_update_alt,
+                        color: AppTheme.primary,
+                        size: 26,
                       ),
                     ),
-                    child: const Icon(
-                      Symbols.system_update_alt,
-                      color: AppTheme.primaryContainer,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Nueva Versión Disponible',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: titleColor,
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Actualización Disponible',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: titleColor,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 3),
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppTheme.primaryContainer.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                'v${updateInfo.latestVersion}',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppTheme.primaryContainer,
+                          const SizedBox(height: 4),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 4,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primary.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  'v${widget.updateInfo.latestVersion}',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.primary,
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Actual: v${updateInfo.currentVersion}',
+                              Text(
+                                'Actual: v${widget.updateInfo.currentVersion}',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 11,
+                                  color: subtitleColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Contenido: Novedades
+                Text(
+                  'Novedades de la versión:',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: titleColor,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 130),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF131722) : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark ? const Color(0xFF2E384D) : const Color(0xFFE2E8F0),
+                    ),
+                  ),
+                  child: SingleChildScrollView(
+                    child: Text(
+                      widget.updateInfo.releaseNotes,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        height: 1.4,
+                        color: subtitleColor,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Barra de Progreso durante Descarga
+                if (_isDownloading) ...[
+                  const SizedBox(height: 18),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _statusText,
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 11,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
                                 color: subtitleColor,
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ],
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${(_progress * 100).toInt()}%',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: LinearProgressIndicator(
+                          value: _progress > 0 ? _progress : null,
+                          backgroundColor: isDark ? const Color(0xFF2B2D38) : const Color(0xFFE2E8F0),
+                          valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primary),
+                          minHeight: 8,
                         ),
-                      ],
+                      ),
+                    ],
+                  ),
+                ],
+
+                // Mensaje de Error si la descarga falla
+                if (_errorMessage != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.errorRed.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppTheme.errorRed.withValues(alpha: 0.3)),
+                    ),
+                    child: Text(
+                      _errorMessage!,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11.5,
+                        color: AppTheme.errorRed,
+                      ),
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 18),
 
-              // Contenido: Novedades
-              Text(
-                'Novedades de la actualización:',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  color: titleColor,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Container(
-                constraints: const BoxConstraints(maxHeight: 140),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF131722) : const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isDark ? const Color(0xFF2E384D) : const Color(0xFFE2E8F0),
+                const SizedBox(height: 20),
+
+                // Botón Principal de Actualización
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 1,
                   ),
-                ),
-                child: SingleChildScrollView(
-                  child: Text(
-                    updateInfo.releaseNotes,
+                  onPressed: _isDownloading ? null : _startUpdate,
+                  icon: _isDownloading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Icon(Symbols.download, size: 20),
+                  label: Text(
+                    _isDownloading
+                        ? 'Descargando...'
+                        : _errorMessage != null
+                            ? 'Reintentar Actualización'
+                            : 'Actualizar Ahora (APK)',
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      height: 1.45,
-                      color: subtitleColor,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13.5,
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 22),
 
-              // Botón Principal de Descarga
-              FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppTheme.primaryContainer,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  elevation: 2,
-                ),
-                onPressed: () {
-                  AppUpdateService.instance.launchDownload(updateInfo.apkUrl);
-                  if (!updateInfo.isMandatory) {
-                    Navigator.of(context).pop();
-                  }
-                },
-                icon: const Icon(Symbols.download, size: 20),
-                label: Text(
-                  'Descargar e Instalar (APK)',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13.5,
-                  ),
-                ),
-              ),
-
-              if (!updateInfo.isMandatory) ...[
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(
-                    'Recordarme más tarde',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: subtitleColor,
+                // Botón Opcional para posponer si no es obligatoria
+                if (!widget.updateInfo.isMandatory && !_isDownloading) ...[
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(
+                      'Recordarme más tarde',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: subtitleColor,
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

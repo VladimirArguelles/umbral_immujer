@@ -312,20 +312,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           side: const BorderSide(
                             color: AuthFormStyles.softAccent,
                           ),
-                          textStyle: const TextStyle(fontSize: 12),
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                          textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
                         ),
                         segments: const [
                           ButtonSegment(
                             value: UserRole.alumno,
-                            label: Text('Alumno'),
+                            label: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text('Alumno', maxLines: 1, softWrap: false),
+                            ),
                           ),
                           ButtonSegment(
                             value: UserRole.profesor,
-                            label: Text('Profesor'),
+                            label: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text('Profesor', maxLines: 1, softWrap: false),
+                            ),
                           ),
                           ButtonSegment(
                             value: UserRole.coordinador,
-                            label: Text('Coordinador'),
+                            label: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text('Coordinador', maxLines: 1, softWrap: false),
+                            ),
                           ),
                         ],
                         selected: {_selectedRole},
