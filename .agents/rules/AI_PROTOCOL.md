@@ -185,11 +185,18 @@ git push origin main
 
 Si hay cambios ajenos no relacionados, no se deben mezclar ni sobrescribir; se trabajará solo sobre los archivos de la tarea actual.
 
-### 6.4. Compilación, Actualización del Enlace de Descarga y Notificación de Versión (Obligatorio)
-Siempre que se realice una modificación en la aplicación o su interfaz:
-1. Compilar y publicar la salida web en `docs/`.
-2. Garantizar que la compilación de APK esté disponible y que el enlace de descarga en Supabase (`configuracion_general` -> `app_apk_url`) apunte al asset de descarga pública más reciente (`https://github.com/VladimirArguelles/umbral_immujer/releases/latest/download/app-release.apk`).
-3. Actualizar en Supabase (`configuracion_general` -> `app_version_latest` y `app_update_notes`) la versión correspondiente a `pubspec.yaml` para que los dispositivos cliente activos detecten y notifiquen de inmediato que existe una nueva actualización disponible.
+### 6.4. Actualización Obligatoria de Archivo de Aplicación, Versión y Notificación OTA
+Siempre que se realice cualquier modificación en la aplicación o su interfaz:
+1. **Incremento de Versión en `pubspec.yaml`:** Incrementar obligatoriamente la versión canónica y número de compilación (`version: major.minor.patch+build_number`, ej: de `0.1.4+5` a `0.1.5+6`).
+2. **Actualización del Archivo de la Aplicación y Assets:**
+   - Compilar y actualizar la salida web en `docs/` (`flutter build web --release --base-href "/umbral_immujer/" --output docs --dart-define-from-file=.env`).
+   - Garantizar la generación y publicación del nuevo archivo binario de la aplicación (`app-release.apk`) mediante el flujo automatizado de GitHub Actions (`.github/workflows/build_apk.yml`) al hacer push a `main`.
+3. **Sincronización en Base de Datos Supabase (`configuracion_general`):**
+   - `app_version_latest`: Fijar a la nueva versión canónica (ej: `'0.1.5'`).
+   - `app_build_number`: Fijar al nuevo entero de compilación (ej: `6`).
+   - `app_apk_url`: Asegurar que apunte a `https://github.com/VladimirArguelles/umbral_immujer/releases/latest/download/app-release.apk`.
+   - `app_update_notes`: Redactar las notas resumidas de los cambios de la versión.
+4. **Activación de Notificación en Clientes:** La combinación de versión superior y nuevo `build_number` en Supabase garantiza que todos los dispositivos móviles activos detecten la actualización inmediatamente al abrir la app o dashboard y presenten el modal de descarga e instalación.
 
 ### 6.5. Control de versión y staging
 - Hacer `git add` solo de las rutas modificadas y relevantes para la tarea.
