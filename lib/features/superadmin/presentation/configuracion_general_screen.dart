@@ -317,13 +317,6 @@ class _ConfiguracionGeneralScreenState
       newFormatController: _nuevoFormatoController,
       onValueChanged: _updateValue,
     );
-    final automation = GeneralSettingsAutomationSection(
-      modifiedKeys: modifiedKeys,
-      controllers: _controllers,
-      onValueChanged: _updateValue,
-      onShowSuccessToast: (msg) =>
-          showGeneralSettingsToast(context, msg, isSuccess: true),
-    );
     final environment = GeneralSettingsEnvironmentSection(
       values: _currentValues,
       modifiedKeys: modifiedKeys,
@@ -375,8 +368,6 @@ class _ConfiguracionGeneralScreenState
                           children: [
                             const InscripcionesAdminPanelWidget(),
                             const SizedBox(height: 20),
-                            automation,
-                            const SizedBox(height: 20),
                             environment,
                             const SizedBox(height: 20),
                             security,
@@ -402,8 +393,6 @@ class _ConfiguracionGeneralScreenState
                 const InscripcionesAdminPanelWidget(),
                 const SizedBox(height: 20),
                 academic,
-                const SizedBox(height: 20),
-                automation,
                 const SizedBox(height: 20),
                 storage,
                 const SizedBox(height: 20),

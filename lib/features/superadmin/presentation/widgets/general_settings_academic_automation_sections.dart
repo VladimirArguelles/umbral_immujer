@@ -30,32 +30,10 @@ class GeneralSettingsAcademicSection extends StatelessWidget {
     return GeneralSettingsSectionCard(
       title: 'Auditoría Académica y Asistencia',
       subtitle:
-          'Parámetros de tolerancia, bloqueo de fechas y porcentaje para pase de curso',
+          'Parámetros de bloqueo de fechas y porcentaje para pase de curso',
       icon: Symbols.fact_check,
       accentColor: GeneralSettingsTokens.primary,
       children: [
-        GeneralSettingsTextField(
-          controller: controllers['tolerancia_minutos_asistencia'],
-          isModified: modifiedKeys.contains('tolerancia_minutos_asistencia'),
-          label: 'Tolerancia en Minutos para Asistencia',
-          helperText:
-              'Tiempo límite después de la hora de inicio para considerar presencia válida.',
-          suffixText: 'minutos',
-          icon: Symbols.timer,
-          isNumeric: true,
-          validator: (v) {
-            final n = int.tryParse(v ?? '');
-            if (n == null || n < 0) {
-              return 'Ingresa un número entero mayor o igual a 0';
-            }
-            return null;
-          },
-          onChanged: (val) => onValueChanged(
-            'tolerancia_minutos_asistencia',
-            int.tryParse(val) ?? 15,
-          ),
-        ),
-        const SizedBox(height: 20),
         _MinimumAttendanceSlider(
           percentage: porcentaje,
           onChanged: (newVal) => onValueChanged(
