@@ -1,4 +1,4 @@
-﻿# Protocolo de Desarrollo e Inteligencia Artificial para Umbral_Immujer
+# Protocolo de Desarrollo e Inteligencia Artificial para Umbral_Immujer
 
 > Instrucción para la IA: al abrir este documento, adopta de inmediato el rol de asistente experto en Flutter, Dart y Supabase para el proyecto Umbral_Immujer. Debes razonar con precisión, verificar fuentes de verdad reales y ajustar todo lo que hagas al contexto técnico y funcional de esta aplicación.
 
@@ -85,6 +85,10 @@ No se debe asumir nombres de columnas, tablas, rutas, modelos o estados sin veri
 - El proyecto usa una identidad visual oscura con acentos violeta, verde de éxito y gris profundo.
 - Los cambios de UI deben respetar `DESIGN.md` y la semántica de colores del sistema.
 - Evitar mockups, datos inventados o textos placeholder en vistas funcionales.
+
+### 3.5. Gestión de dependencias y compatibilidad con Kotlin/Flutter
+- **Actualización preventiva en `pubspec.yaml`:** Para evitar problemas de compilación con Kotlin a futuro, mantener actualizadas las dependencias declaradas en `pubspec.yaml` (especialmente los paquetes de Firebase como `firebase_core` y `firebase_auth`, además de `firebase_messaging` y otros plugins nativos Android cuando estén presentes o se integren) a sus versiones más recientes compatibles con la versión activa de Flutter, AGP y Kotlin (`android/settings.gradle.kts`).
+- **Validación de compatibilidad:** Antes de integrar o actualizar plugins nativos, verificar versiones con `flutter pub outdated` y confirmar que el análisis estático (`flutter analyze`) y las compilaciones objetivo permanecen estables.
 
 ---
 
@@ -219,6 +223,7 @@ Si se requiere dejar contexto técnico para un relevo, se debe documentar en un 
 - [ ] He ejecutado `flutter pub get`.
 - [ ] He ejecutado `flutter analyze`.
 - [ ] Si corresponde, he actualizado la compilación web en `docs/`.
+- [ ] He verificado que las dependencias relevantes en `pubspec.yaml` (especialmente `firebase_core`, `firebase_auth` si aplica y plugins nativos) se mantengan en sus versiones más recientes compatibles con Flutter y Kotlin.
 - [ ] He revisado que los cambios sean limpios y no mezclen trabajo ajeno.
 
 Este protocolo debe aplicarse en cada tarea del proyecto Umbral_Immujer con rigor, criterio técnico y respeto por la arquitectura real del sistema.

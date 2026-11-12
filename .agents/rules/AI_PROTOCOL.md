@@ -101,6 +101,10 @@ No se debe asumir nombres de columnas, tablas, rutas, modelos o estados sin veri
   - La invocación del instalador nativo debe ejecutarse mediante `open_filex` indicando el MIME type `application/vnd.android.package-archive`.
   - Ante cualquier eventualidad o rechazo del sistema operativo (falta de permisos para instalar apps desconocidas, paquete corrupto o caída de red), se debe capturar y exponer la causa real del error (código de estado HTTP, detalle de permisos del sistema o excepción exacta) en lugar de emitir mensajes genéricos o ambiguos.
 
+### 3.6. Gestión de dependencias y compatibilidad con Kotlin/Flutter
+- **Actualización preventiva en `pubspec.yaml`:** Para evitar problemas de compilación con Kotlin a futuro, mantener actualizadas las dependencias declaradas en `pubspec.yaml` (especialmente los paquetes de Firebase como `firebase_core` y `firebase_auth`, además de `firebase_messaging` y otros plugins nativos Android cuando estén presentes o se integren) a sus versiones más recientes compatibles con la versión activa de Flutter, AGP y Kotlin (`android/settings.gradle.kts`).
+- **Validación de compatibilidad:** Antes de integrar o actualizar plugins nativos, verificar versiones con `flutter pub outdated` y confirmar que el análisis estático (`flutter analyze`) y las compilaciones objetivo permanecen estables.
+
 ---
 
 ## 4. Anti-alucinación y validación de contexto
@@ -241,6 +245,7 @@ Si se requiere dejar contexto técnico para un relevo, se debe documentar en un 
 - [ ] He ejecutado `flutter analyze`.
 - [ ] Si corresponde, he actualizado la compilación web en `docs/`.
 - [ ] He verificado/actualizado el enlace de descarga del APK y la versión en Supabase (`configuracion_general`) para notificar la actualización.
+- [ ] He verificado que las dependencias relevantes en `pubspec.yaml` (especialmente `firebase_core`, `firebase_auth` si aplica y plugins nativos) se mantengan en sus versiones más recientes compatibles con Flutter y Kotlin.
 - [ ] He revisado que los cambios sean limpios y no mezclen trabajo ajeno.
 
 Este protocolo debe aplicarse en cada tarea del proyecto Umbral_Immujer con rigor, criterio técnico y respeto por la arquitectura real del sistema.
