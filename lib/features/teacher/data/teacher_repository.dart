@@ -585,4 +585,20 @@ class TeacherRepository {
     final temasList = res['temas'] as List? ?? [];
     return temasList.map((e) => e.toString()).toList();
   }
+
+  /// Listado resumido de encuestas disponibles para la pestaña de Auditoría de Recaudación.
+  Future<List<Map<String, dynamic>>> getAuditSurveysList() async {
+    final data = await _supabase
+        .from('encuestas_participacion')
+        .select(
+          'id, fecha_clase, costo_total_insumos, monto_individual_calculado, total_confirmados, cursos(nombre)',
+        )
+        .order('fecha_clase', ascending: false);
+    return List<Map<String, dynamic>>.from(data as List);
+  }
+
+  /// Sincroniza asistencias encoladas offline usando el cliente activo de Supabase.
+  Future<bool> syncPendingOfflineAttendance() {
+    return AttendanceOfflineService.instance.syncPendingQueue(_supabase);
+  }
 }

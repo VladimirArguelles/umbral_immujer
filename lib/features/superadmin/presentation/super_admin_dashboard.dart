@@ -2,20 +2,21 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:material_symbols_icons/symbols.dart';
-import 'package:umbral_immujer/features/superadmin/presentation/widgets/super_admin_notifications_modal.dart';
-import 'package:umbral_immujer/src/core/config/supabase_config.dart';
+import 'package:umbral_immujer/features/superadmin/data/supabase_super_admin_repository.dart';
+import 'package:umbral_immujer/features/superadmin/domain/super_admin_metrics.dart';
+import 'package:umbral_immujer/features/superadmin/domain/super_admin_repository.dart';
+import 'package:umbral_immujer/features/superadmin/presentation/gestion_usuarios_page.dart';
+import 'package:umbral_immujer/features/superadmin/presentation/widgets/super_admin_headers.dart';
+import 'package:umbral_immujer/features/superadmin/presentation/widgets/super_admin_metrics_grid.dart';
+import 'package:umbral_immujer/features/superadmin/presentation/widgets/super_admin_modules_grid.dart';
+import 'package:umbral_immujer/features/superadmin/presentation/widgets/super_admin_quick_add_dialog.dart';
+import 'package:umbral_immujer/features/superadmin/presentation/widgets/super_admin_settings_sheet.dart';
+import 'package:umbral_immujer/features/superadmin/presentation/widgets/super_admin_side_nav.dart';
+import 'package:umbral_immujer/features/superadmin/presentation/widgets/super_admin_theme_tokens.dart';
 import 'package:umbral_immujer/src/core/services/app_update_service.dart';
-import 'package:umbral_immujer/src/core/services/online_user_presence_service.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/core/widgets/super_admin_nav_bar.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
-
-import 'gestion_alumnos_page.dart';
-import 'gestion_cursos_page.dart';
-import 'gestion_profesores_page.dart';
-import 'gestion_usuarios_page.dart';
 
 // ─── Responsive breakpoints ───────────────────────────────────────────────────
 // < 600 px  → mobile  : bottom-nav + single column
@@ -23,61 +24,47 @@ import 'gestion_usuarios_page.dart';
 // ≥ 1024 px → desktop : side-nav + two-column grid
 
 class SuperAdminDashboardPage extends StatelessWidget {
-  const SuperAdminDashboardPage({super.key, this.profile});
+  const SuperAdminDashboardPage({super.key, this.profile, this.repository});
 
   final UserProfile? profile;
+  final SuperAdminRepository? repository;
 
   @override
   Widget build(BuildContext context) {
-    return SuperAdminDashboard(profile: profile);
+    return SuperAdminDashboard(profile: profile, repository: repository);
   }
 }
 
 class SuperAdminDashboard extends StatefulWidget {
-  const SuperAdminDashboard({super.key, this.profile});
+  const SuperAdminDashboard({super.key, this.profile, this.repository});
 
   final UserProfile? profile;
+  final SuperAdminRepository? repository;
 
   @override
   State<SuperAdminDashboard> createState() => _SuperAdminDashboardState();
 }
 
 class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
-  int _currentIndex = 0;
+  late final SuperAdminRepository _repository;
 
-  // Telemetría en vivo
-  int? _totalAlumnos;
-  int? _totalCursos;
-  int? _totalProfesores;
-  int? _totalCoordinadores;
-  int? _totalUsuarios;
-  int? _totalAsistencias;
-  int? _totalPresentes;
+  int _currentIndex = 0;
+  SuperAdminMetrics _metrics = const SuperAdminMetrics();
   bool _isLoadingMetrics = true;
   Object? _metricsError;
 
-  // Ajustes de configuración
-  String _platformName = 'UMBRAL IMMUJER';
-  String _activeCycle = '2024-B';
-  bool _rlsEnabled = true;
-  bool _notificationsEnabled = true;
-  bool _maintenanceMode = false;
-
-  // Constantes de diseño según especificación Tailwind
-  static const Color cBg = AppTheme.background;
-  static const Color cCard = AppTheme.surfaceContainerLow;
-  static const Color cCardInner = AppTheme.surfaceContainerLowest;
-  static const Color cBorder = AppTheme.outlineVariant;
-  static const Color cAccent = AppTheme.primaryContainer;
-  static const Color cAccentGlow = AppTheme.primaryGlow;
-  static const Color cMintBright = AppTheme.tertiary;
-  static const Color cTextMain = AppTheme.onSurface;
-  static const Color cTextMuted = AppTheme.onSurfaceVariant;
-  static const Color cTextDim = AppTheme.outline;
+  SuperAdminQuickSettings _quickSettings = const SuperAdminQuickSettings(
+    platformName: 'UMBRAL IMMUJER',
+    activeCycle: '2024-B',
+    rlsEnabled: true,
+    notificationsEnabled: true,
+    maintenanceMode: false,
+  );
 
   @override
   void initState() {
     super.initState();
+    _repository = widget.repository ?? SupabaseSuperAdminRepository();
     _loadMetrics();
     if (!AppUpdateService.instance.hasCheckedUpdate &&
         !AppUpdateService.instance.isUpdateDialogDismissed) {
@@ -92,618 +79,39 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     await AppUpdateService.instance.checkAndShowUpdateModal(context);
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
   Future<void> _loadMetrics() async {
     try {
-      final client = SupabaseConfig.client;
-
-      Object? authenticatedUsersError;
-      final authenticatedUsersFuture = client
-          .rpc<int>('count_authenticated_users')
-          .then<int?>((count) => count)
-          .catchError((Object error) {
-            authenticatedUsersError = error;
-            return null;
-          });
-      final futures = await Future.wait([
-        client.from('alumnos').select('id').count(),
-        client.from('cursos').select('id').eq('estado', 'activo').count(),
-        client.from('perfiles').select('id').eq('rol', 'profesor').count(),
-        client.from('perfiles').select('id').eq('rol', 'coordinador').count(),
-        client.from('asistencia').select('id').count(),
-        client.from('asistencia').select('id').eq('estado', 'Presente').count(),
-      ]);
-      final authenticatedUsers = await authenticatedUsersFuture;
-
-      if (mounted) {
-        setState(() {
-          _totalAlumnos = futures[0].count;
-          _totalCursos = futures[1].count;
-          _totalProfesores = futures[2].count;
-          _totalUsuarios = authenticatedUsers;
-          _totalCoordinadores = futures[3].count;
-          _totalAsistencias = futures[4].count;
-          _totalPresentes = futures[5].count;
-          _isLoadingMetrics = false;
-          _metricsError = authenticatedUsersError;
-        });
-      }
+      final result = await _repository.fetchMetrics();
+      if (!mounted) return;
+      setState(() {
+        _metrics = result.metrics;
+        _isLoadingMetrics = false;
+        _metricsError = result.partialError;
+      });
     } catch (error) {
-      if (mounted) {
-        setState(() {
-          _isLoadingMetrics = false;
-          _metricsError = error;
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _isLoadingMetrics = false;
+        _metricsError = error;
+      });
     }
-  }
-
-  double? get _attendanceRate {
-    final total = _totalAsistencias;
-    final present = _totalPresentes;
-    if (total == null || present == null || total == 0) return null;
-    return present / total;
   }
 
   Future<void> _handleSignOut() async {
     AppUpdateService.resetSessionCheck();
-    await SupabaseConfig.client.auth.signOut();
+    await _repository.signOut();
     if (mounted) {
       context.go('/login');
     }
   }
 
-  void _showSettingsModal() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: cCard,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModalState) => SafeArea(
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-              top: 24,
-              bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Ajustes del Sistema',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: cTextMain,
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        icon: const Icon(Icons.close, color: cTextMuted),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    initialValue: _platformName,
-                    style: const TextStyle(color: cTextMain),
-                    decoration: InputDecoration(
-                      labelText: 'Nombre de la Plataforma',
-                      labelStyle: const TextStyle(color: cTextMuted),
-                      filled: true,
-                      fillColor: cCardInner,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: cBorder),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: cBorder),
-                      ),
-                    ),
-                    onChanged: (val) => _platformName = val,
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    initialValue: _activeCycle,
-                    dropdownColor: cCardInner,
-                    style: const TextStyle(color: cTextMain),
-                    decoration: InputDecoration(
-                      labelText: 'Ciclo Académico Activo',
-                      labelStyle: const TextStyle(color: cTextMuted),
-                      filled: true,
-                      fillColor: cCardInner,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: cBorder),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: cBorder),
-                      ),
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: '2024-B',
-                        child: Text('Ciclo 2024-B (Agosto - Diciembre)'),
-                      ),
-                      DropdownMenuItem(
-                        value: '2025-A',
-                        child: Text('Ciclo 2025-A (Enero - Junio)'),
-                      ),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) {
-                        setModalState(() => _activeCycle = val);
-                        setState(() => _activeCycle = val);
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  SwitchListTile(
-                    title: const Text(
-                      'Políticas Institucionales y RLS',
-                      style: TextStyle(
-                        color: cTextMain,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    subtitle: const Text(
-                      'Reglas de acceso por sede institucional y cifrado en reposo activo.',
-                      style: TextStyle(color: cTextMuted, fontSize: 12),
-                    ),
-                    value: _rlsEnabled,
-                    activeThumbColor: cAccent,
-                    onChanged: (val) {
-                      setModalState(() => _rlsEnabled = val);
-                      setState(() => _rlsEnabled = val);
-                    },
-                  ),
-                  SwitchListTile(
-                    title: const Text(
-                      'Notificaciones Push y Alertas',
-                      style: TextStyle(
-                        color: cTextMain,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    subtitle: const Text(
-                      'Avisos automáticos a facilitadores y alumnos por WhatsApp/Push.',
-                      style: TextStyle(color: cTextMuted, fontSize: 12),
-                    ),
-                    value: _notificationsEnabled,
-                    activeThumbColor: cAccent,
-                    onChanged: (val) {
-                      setModalState(() => _notificationsEnabled = val);
-                      setState(() => _notificationsEnabled = val);
-                    },
-                  ),
-                  SwitchListTile(
-                    title: const Text(
-                      'Modo Mantenimiento',
-                      style: TextStyle(
-                        color: cTextMain,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    subtitle: const Text(
-                      'Suspender temporalmente ingresos al portal de alumnos.',
-                      style: TextStyle(color: cTextMuted, fontSize: 12),
-                    ),
-                    value: _maintenanceMode,
-                    activeThumbColor: cAccent,
-                    onChanged: (val) {
-                      setModalState(() => _maintenanceMode = val);
-                      setState(() => _maintenanceMode = val);
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: cCardInner,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: cBorder),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppTheme.secondary.withAlpha(30),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Icon(
-                            Symbols.currency_exchange,
-                            color: AppTheme.secondary,
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Tasa Oficial BCV en Tiempo Real',
-                                style: TextStyle(
-                                  color: cTextMain,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 13,
-                                ),
-                              ),
-                              Text(
-                                'Sincronización vía API y auditoría en Bs.',
-                                style: TextStyle(
-                                  color: cTextMuted,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            context.go('/superadmin/configuracion');
-                          },
-                          child: const Text('Ir a Tasa BCV'),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: cAccent,
-                        foregroundColor: AppTheme.onPrimaryContainer,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        context.go('/superadmin/configuracion');
-                      },
-                      icon: const Icon(Symbols.tune),
-                      label: const Text(
-                        'Abrir Configuración General Completa',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF38BDF8),
-                        side: const BorderSide(color: Color(0xFF38BDF8)),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        context.go('/admin/error-console');
-                      },
-                      icon: const Icon(Symbols.terminal),
-                      label: const Text(
-                        'Consola de Diagnóstico (Terminal)',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: cAccent,
-                        side: const BorderSide(color: cAccent),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        _handleSignOut();
-                      },
-                      icon: const Icon(Symbols.logout),
-                      label: const Text('Cerrar Sesión'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+  void _openUsersManagement() {
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute<void>(builder: (_) => const GestionUsuariosPage()),
+        )
+        .then((_) => _loadMetrics());
   }
-
-  void _showQuickAddDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: cCard,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            const Icon(Symbols.bolt, color: cAccent, size: 24),
-            const SizedBox(width: 8),
-            Text(
-              'Acciones Rápidas',
-              style: GoogleFonts.plusJakartaSans(
-                color: cTextMain,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withAlpha(40),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Symbols.manage_accounts, color: AppTheme.primary, size: 22),
-              ),
-              title: Text(
-                'Gestión de Usuarios',
-                style: GoogleFonts.plusJakartaSans(
-                  color: cTextMain,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                ),
-              ),
-              subtitle: const Text(
-                'Consultar, asignar roles y administrar usuarios registrados',
-                style: TextStyle(color: cTextMuted, fontSize: 12),
-              ),
-              trailing: const Icon(Symbols.chevron_right, color: cTextDim, size: 20),
-              onTap: () {
-                Navigator.pop(ctx);
-                Navigator.of(context)
-                    .push(MaterialPageRoute(builder: (_) => const GestionUsuariosPage()))
-                    .then((_) => _loadMetrics());
-              },
-            ),
-            const SizedBox(height: 6),
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: cAccent.withAlpha(40),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Symbols.school, color: cAccent, size: 22),
-              ),
-              title: Text(
-                'Gestión de Alumnos',
-                style: GoogleFonts.plusJakartaSans(
-                  color: cTextMain,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                ),
-              ),
-              subtitle: const Text(
-                'Filtrar por curso, editar, añadir y eliminar alumnos',
-                style: TextStyle(color: cTextMuted, fontSize: 12),
-              ),
-              trailing: const Icon(Symbols.chevron_right, color: cTextDim, size: 20),
-              onTap: () {
-                Navigator.pop(ctx);
-                Navigator.of(context)
-                    .push(MaterialPageRoute(builder: (_) => const GestionAlumnosPage()))
-                    .then((_) => _loadMetrics());
-              },
-            ),
-            const SizedBox(height: 6),
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: cMintBright.withAlpha(40),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Symbols.badge, color: cMintBright, size: 22),
-              ),
-              title: Text(
-                'Gestión Profesores',
-                style: GoogleFonts.plusJakartaSans(
-                  color: cTextMain,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                ),
-              ),
-              subtitle: const Text(
-                'Filtrar por curso, asignar, editar y registrar docentes',
-                style: TextStyle(color: cTextMuted, fontSize: 12),
-              ),
-              trailing: const Icon(Symbols.chevron_right, color: cTextDim, size: 20),
-              onTap: () {
-                Navigator.pop(ctx);
-                Navigator.of(context)
-                    .push(MaterialPageRoute(builder: (_) => const GestionProfesoresPage()))
-                    .then((_) => _loadMetrics());
-              },
-            ),
-            const SizedBox(height: 6),
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withAlpha(40),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Symbols.picture_as_pdf, color: AppTheme.primary, size: 22),
-              ),
-              title: Text(
-                'Centro de Reportes y PDF',
-                style: GoogleFonts.plusJakartaSans(
-                  color: cTextMain,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                ),
-              ),
-              subtitle: const Text(
-                'Generación, impresión y descarga de matrículas, asistencias y planes',
-                style: TextStyle(color: cTextMuted, fontSize: 12),
-              ),
-              trailing: const Icon(Symbols.chevron_right, color: cTextDim, size: 20),
-              onTap: () {
-                Navigator.pop(ctx);
-                context.go('/reports');
-              },
-            ),
-            const SizedBox(height: 6),
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryContainer.withAlpha(40),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Symbols.menu_book, color: AppTheme.primary, size: 22),
-              ),
-              title: Text(
-                'Gestión Curso',
-                style: GoogleFonts.plusJakartaSans(
-                  color: cTextMain,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                ),
-              ),
-              subtitle: const Text(
-                'Seleccionar curso, editar, añadir, eliminar y ver temas',
-                style: TextStyle(color: cTextMuted, fontSize: 12),
-              ),
-              trailing: const Icon(Symbols.chevron_right, color: cTextDim, size: 20),
-              onTap: () {
-                Navigator.pop(ctx);
-                Navigator.of(context)
-                    .push(MaterialPageRoute(builder: (_) => const GestionCursosPage()))
-                    .then((_) => _loadMetrics());
-              },
-            ),
-            const SizedBox(height: 6),
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.successGreen.withAlpha(40),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Symbols.how_to_reg, color: AppTheme.successGreen, size: 22),
-              ),
-              title: Text(
-                'Módulo Inscripciones',
-                style: GoogleFonts.plusJakartaSans(
-                  color: cTextMain,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                ),
-              ),
-              subtitle: const Text(
-                'Registrar aspirantes, cupos en vivo y accesos temporales',
-                style: TextStyle(color: cTextMuted, fontSize: 12),
-              ),
-              trailing: const Icon(Symbols.chevron_right, color: cTextDim, size: 20),
-              onTap: () {
-                Navigator.pop(ctx);
-                context.go('/inscripciones');
-              },
-            ),
-            const SizedBox(height: 6),
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF38BDF8).withAlpha(40),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Symbols.terminal, color: Color(0xFF38BDF8), size: 22),
-              ),
-              title: Text(
-                'Consola de Diagnóstico',
-                style: GoogleFonts.plusJakartaSans(
-                  color: cTextMain,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                ),
-              ),
-              subtitle: const Text(
-                'Monitoreo y depuración en vivo de excepciones y errores',
-                style: TextStyle(color: cTextMuted, fontSize: 12),
-              ),
-              trailing: const Icon(Symbols.chevron_right, color: cTextDim, size: 20),
-              onTap: () {
-                Navigator.pop(ctx);
-                context.go('/admin/error-console');
-              },
-            ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cerrar', style: TextStyle(color: cTextMuted)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ─── Nav items data ─────────────────────────────────────────────────────────
-  static const _navItems = [
-    (icon: Symbols.dashboard, label: 'General'),
-    (icon: Symbols.school, label: 'Alumnos'),
-    (icon: Symbols.badge, label: 'Profesores'),
-    (icon: Symbols.military_tech, label: 'Coord.'),
-    (icon: Symbols.settings, label: 'Ajustes'),
-  ];
 
   void _onNavTap(int index) {
     setState(() => _currentIndex = index);
@@ -718,13 +126,14 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     }
   }
 
-  // ─── Root build ─────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Theme(
-      data: AppTheme.lightTheme.copyWith(scaffoldBackgroundColor: cBg),
+      data: AppTheme.lightTheme.copyWith(
+        scaffoldBackgroundColor: SuperAdminTokens.bg,
+      ),
       child: Scaffold(
-        backgroundColor: cBg,
+        backgroundColor: SuperAdminTokens.bg,
         body: LayoutBuilder(
           builder: (context, constraints) {
             final isDesktop = constraints.maxWidth >= 1024;
@@ -732,45 +141,60 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                 constraints.maxWidth >= 600 && constraints.maxWidth < 1024;
 
             if (isDesktop) {
-              // SizedBox.expand fuerza al layout a llenar TODA la pantalla
-              return SizedBox.expand(
-                child: _buildDesktopLayout(constraints),
-              );
-            } else {
-              return _buildMobileLayout(isTablet: isTablet);
+              return SizedBox.expand(child: _buildDesktopLayout(constraints));
             }
+            return _buildMobileLayout(isTablet: isTablet);
           },
         ),
       ),
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  //  DESKTOP LAYOUT  ≥ 1024 px
-  //  Side navigation + full-width scrollable content
-  // ═══════════════════════════════════════════════════════════════════════════
   Widget _buildDesktopLayout(BoxConstraints constraints) {
     return Row(
-      // stretch: el sidebar y el área de contenido se extienden
-      // hasta llenar toda la altura disponible de la pantalla
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // ── Sidebar ────────────────────────────────────────────────────────
-        _buildSideNav(constraints.maxHeight),
-        // ── Main content ──────────────────────────────────────────────────
+        SuperAdminSideNav(
+          screenHeight: constraints.maxHeight,
+          currentIndex: _currentIndex,
+          onSelectIndex: _onNavTap,
+          onSignOut: _handleSignOut,
+        ),
         Expanded(
           child: Container(
-            color: cBg,
+            color: SuperAdminTokens.bg,
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildDesktopHeader(),
+                  SuperAdminDesktopHeader(
+                    isLoadingMetrics: _isLoadingMetrics,
+                    hasMetricsError: _metricsError != null,
+                    onRefreshMetrics: _loadMetrics,
+                    onOpenQuickAdd: () => showSuperAdminQuickAddDialog(
+                      context,
+                      onRefreshMetrics: _loadMetrics,
+                    ),
+                    onOpenSettings: () => showSuperAdminSettingsSheet(
+                      context,
+                      settings: _quickSettings,
+                      onSettingsChanged: (updated) =>
+                          setState(() => _quickSettings = updated),
+                      onSignOut: _handleSignOut,
+                    ),
+                  ),
                   const SizedBox(height: 16),
-                  _buildDesktopMetricsGrid(),
+                  SuperAdminMetricsGrid(
+                    metrics: _metrics,
+                    onOpenUsers: _openUsersManagement,
+                    spacing: 16,
+                  ),
                   const SizedBox(height: 28),
-                  _buildDesktopModulesGrid(),
+                  SuperAdminModulesSection(
+                    metrics: _metrics,
+                    isDesktop: true,
+                  ),
                   const SizedBox(height: 32),
                 ],
               ),
@@ -781,501 +205,12 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     );
   }
 
-  // ── Sidebar de escritorio ─────────────────────────────────────────────────
-  Widget _buildSideNav(double screenHeight) {
-    return Container(
-      width: 220,
-      height: screenHeight,
-      decoration: const BoxDecoration(
-        color: cCard,
-        border: Border(right: BorderSide(color: cBorder)),
-      ),
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Logo / marca
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [cAccent, AppTheme.primary],
-                        begin: Alignment.bottomLeft,
-                        end: Alignment.topRight,
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: const [
-                        BoxShadow(color: cAccentGlow, blurRadius: 12),
-                      ],
-                    ),
-                    child: const Icon(
-                      Symbols.shield_person,
-                      color: AppTheme.onPrimaryContainer,
-                      size: 22,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Image.asset(
-                    'assets/images/logo-umbral.png',
-                    height: 38,
-                    fit: BoxFit.contain,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Super Admin',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: cTextMuted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(color: cBorder, height: 1),
-            const SizedBox(height: 12),
-            // Nav items
-            for (int i = 0; i < _navItems.length; i++)
-              _buildSideNavItem(
-                index: i,
-                icon: _navItems[i].icon,
-                label: _navItems[i].label,
-              ),
-            const Spacer(),
-            // Logout
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: InkWell(
-                onTap: _handleSignOut,
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: cCardInner,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: cBorder),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Symbols.logout, size: 18, color: cTextMuted),
-                      const SizedBox(width: 10),
-                      Text(
-                        'Cerrar sesión',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: cTextMuted,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSideNavItem({
-    required int index,
-    required IconData icon,
-    required String label,
-  }) {
-    final isSelected = _currentIndex == index;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-      child: InkWell(
-        onTap: () => _onNavTap(index),
-        borderRadius: BorderRadius.circular(12),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? cAccent.withValues(alpha: 0.12)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            border: isSelected
-                ? Border.all(color: cAccent.withValues(alpha: 0.25))
-                : Border.all(color: Colors.transparent),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                size: 18,
-                color: isSelected ? cAccent : cTextMuted,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                label,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight:
-                      isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? cAccent : cTextMuted,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── Header escritorio ─────────────────────────────────────────────────────
-  Widget _buildDesktopHeader() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: _isLoadingMetrics
-                          ? AppTheme.secondary
-                          : _metricsError == null
-                              ? cMintBright
-                              : AppTheme.errorRed,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: (_isLoadingMetrics
-                                  ? AppTheme.secondary
-                                  : _metricsError == null
-                                      ? cMintBright
-                                      : AppTheme.errorRed)
-                              .withValues(alpha: 0.5),
-                          blurRadius: 8,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _isLoadingMetrics
-                        ? 'CARGANDO MÉTRICAS'
-                        : _metricsError == null
-                            ? 'SISTEMA OPERATIVO Y SINCRONIZADO'
-                            : 'MÉTRICAS NO DISPONIBLES',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      color: _isLoadingMetrics
-                          ? AppTheme.secondary
-                          : _metricsError == null
-                              ? cMintBright
-                              : AppTheme.errorRed,
-                      letterSpacing: 1.0,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Centro de Control Super Admin',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w900,
-                  color: cTextMain,
-                  height: 1.15,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Wrap(
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 8,
-                children: [
-                  RichText(
-                    text: TextSpan(
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: cTextMuted,
-                      ),
-                      children: const [
-                        TextSpan(text: 'Sede Central '),
-                        TextSpan(text: '• ', style: TextStyle(color: cTextDim)),
-                        TextSpan(text: 'Telemetría global en vivo'),
-                      ],
-                    ),
-                  ),
-                  const Text('•', style: TextStyle(color: cTextDim)),
-                  _buildOnlineUsersStreamText(fontSize: 12),
-                ],
-              ),
-            ],
-          ),
-        ),
-        // Botón de acción rápida
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: _showQuickAddDialog,
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [cAccent, AppTheme.primary],
-                  begin: Alignment.bottomLeft,
-                  end: Alignment.topRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: const [
-                  BoxShadow(color: cAccentGlow, blurRadius: 16, offset: Offset(0, 4)),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.add_circle_outline,
-                    color: AppTheme.onPrimaryContainer,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Añadir registro',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.onPrimaryContainer,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        // Refresh
-        IconButton(
-          onPressed: _loadMetrics,
-          tooltip: 'Actualizar métricas',
-          icon: _isLoadingMetrics
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: cMintBright),
-                )
-              : const Icon(Symbols.refresh, color: cTextMuted),
-        ),
-        const SizedBox(width: 4),
-        const SuperAdminNotificationBellButton(),
-        const SizedBox(width: 4),
-        IconButton(
-          onPressed: _showSettingsModal,
-          tooltip: 'Ajustes rápidos',
-          icon: const Icon(Symbols.tune, color: cTextMuted),
-        ),
-
-      ],
-    );
-  }
-
-  // ── Grid de métricas escritorio ────────────────────────────────────────────
-  Widget _buildDesktopMetricsGrid() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _buildSectionLabel('MÉTRICAS GENERALES'),
-            _buildOnlineUsersStreamText(),
-          ],
-        ),
-        const SizedBox(height: 14),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final columns = constraints.maxWidth >= 1050 ? 4 : 2;
-            final spacing = 16.0;
-            final cardWidth =
-                (constraints.maxWidth - spacing * (columns - 1)) / columns;
-            return Wrap(
-              spacing: spacing,
-              runSpacing: spacing,
-              children: [
-                SizedBox(width: cardWidth, child: _buildMetricCardUsers()),
-                SizedBox(width: cardWidth, child: _buildMetricCardCourses()),
-                SizedBox(width: cardWidth, child: _buildMetricCardAttendance()),
-                SizedBox(width: cardWidth, child: _buildMetricCardRevenue()),
-              ],
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  // ── Grid de módulos escritorio (3 columnas) ───────────────────────────────
-  Widget _buildDesktopModulesGrid() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionLabel('MÓDULOS DE GESTIÓN'),
-        const SizedBox(height: 14),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _buildModuleCard(
-                icon: Symbols.school,
-                iconColor: AppTheme.primary,
-                title: 'Módulo Alumnos',
-                badgeText: '${_formatMetric(_totalAlumnos)} alumnos',
-                badgeBg: AppTheme.secondaryContainer,
-                badgeTextColor: AppTheme.onSecondaryContainer,
-                subtitle: 'Matrícula y seguimiento de asistencias.',
-                bottomLeftWidget: _buildStudentCount(),
-                isPrimaryAction: true,
-                onEnter: () => context.go('/student'),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildModuleCard(
-                icon: Symbols.badge,
-                iconColor: AppTheme.secondary,
-                title: 'Módulo Profesores',
-                badgeText: '${_formatMetric(_totalProfesores)} docentes',
-                badgeBg: AppTheme.secondaryContainer,
-                badgeTextColor: AppTheme.onSecondaryContainer,
-                subtitle: 'Plantel docente y programación de sesiones.',
-                bottomLeftWidget: Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: cMintBright,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: cMintBright.withValues(alpha: 0.45),
-                            blurRadius: 6,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        '${_formatMetric(_totalProfesores)} docentes registrados',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
-                          color: cTextMuted,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                isPrimaryAction: false,
-                onEnter: () => context.go('/teacher'),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildModuleCard(
-                icon: Symbols.military_tech,
-                iconColor: AppTheme.tertiary,
-                title: 'Módulo Coordinadores',
-                badgeText: '${_formatMetric(_totalCoordinadores)} coordinadores',
-                badgeBg: AppTheme.tertiaryContainer,
-                badgeTextColor: AppTheme.onTertiaryContainer,
-                subtitle: 'Supervisión institucional y reportes.',
-                bottomLeftWidget: Row(
-                  children: [
-                    const Icon(Symbols.verified_user, size: 14, color: cMintBright),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Gestión institucional',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
-                        color: cTextMuted,
-                      ),
-                    ),
-                  ],
-                ),
-                isPrimaryAction: false,
-                onEnter: () => context.go('/coordinator'),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _buildModuleCard(
-                icon: Symbols.how_to_reg,
-                iconColor: AppTheme.successGreen,
-                title: 'Módulo Inscripciones',
-                badgeText: 'Cupos en vivo',
-                badgeBg: AppTheme.successGreen.withValues(alpha: 0.16),
-                badgeTextColor: AppTheme.successGreen,
-                subtitle: 'Registro de aspirantes, validación de cédula y cuotas.',
-                bottomLeftWidget: Row(
-                  children: [
-                    const Icon(Symbols.analytics, size: 14, color: AppTheme.successGreen),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        'Formulario y control de cupos',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
-                          color: cTextMuted,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                isPrimaryAction: true,
-                onEnter: () => context.go('/inscripciones'),
-              ),
-            ),
-            const SizedBox(width: 16),
-            const Spacer(),
-          ],
-        ),
-      ],
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  //  MOBILE / TABLET LAYOUT  < 1024 px
-  //  Bottom nav + single column (max-width 600 on mobile, full on tablet)
-  // ═══════════════════════════════════════════════════════════════════════════
   Widget _buildMobileLayout({required bool isTablet}) {
     return Center(
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: isTablet ? 720 : 430),
         child: Container(
-          color: cBg,
+          color: SuperAdminTokens.bg,
           child: SafeArea(
             bottom: false,
             child: Stack(
@@ -1291,952 +226,43 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildHeaderSection(),
+                        SuperAdminMobileHeader(
+                          isLoadingMetrics: _isLoadingMetrics,
+                          hasMetricsError: _metricsError != null,
+                          onOpenQuickAdd: () => showSuperAdminQuickAddDialog(
+                            context,
+                            onRefreshMetrics: _loadMetrics,
+                          ),
+                        ),
                         const SizedBox(height: 14),
-                        _buildKeyMetricsSection(isTablet: isTablet),
+                        SuperAdminMetricsGrid(
+                          metrics: _metrics,
+                          onOpenUsers: _openUsersManagement,
+                          spacing: 12,
+                          onlineUsersFontSize: 11,
+                          forceColumns: isTablet ? 4 : 2,
+                        ),
                         const SizedBox(height: 20),
-                        _buildManagementModulesSection(),
+                        SuperAdminModulesSection(
+                          metrics: _metrics,
+                          isDesktop: false,
+                        ),
                         const SizedBox(height: 20),
                       ],
                     ),
                   ),
                 ),
-                Positioned(
+                const Positioned(
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  child: const SuperAdminBottomNavBar(currentIndex: 0),
+                  child: SuperAdminBottomNavBar(currentIndex: 0),
                 ),
               ],
             ),
           ),
         ),
       ),
-    );
-  }
-
-  // --- BEGIN: HeaderSection (mobile) ---
-  Widget _buildHeaderSection() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: cCard.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: cBorder.withValues(alpha: 0.7),
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x73000000),
-            blurRadius: 20,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Indicador de estado operativo
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: _isLoadingMetrics
-                            ? AppTheme.secondary
-                            : _metricsError == null
-                            ? cMintBright
-                            : AppTheme.errorRed,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color:
-                                (_isLoadingMetrics
-                                        ? AppTheme.secondary
-                                        : _metricsError == null
-                                        ? cMintBright
-                                        : AppTheme.errorRed)
-                                    .withValues(alpha: 0.45),
-                            blurRadius: 8,
-                            spreadRadius: 1,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        _isLoadingMetrics
-                            ? 'CARGANDO MÉTRICAS'
-                            : _metricsError == null
-                            ? 'RESUMEN DISPONIBLE'
-                            : 'MÉTRICAS NO DISPONIBLES',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: _isLoadingMetrics
-                              ? AppTheme.secondary
-                              : _metricsError == null
-                              ? cMintBright
-                              : AppTheme.errorRed,
-                          letterSpacing: 0.8,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                // Título
-                Text(
-                  'Centro de Control Super Admin',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: cTextMain,
-                    height: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                // Subtítulo con separador dim
-                RichText(
-                  text: TextSpan(
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w500,
-                      color: cTextMuted,
-                    ),
-                    children: const [
-                      TextSpan(text: 'Administración institucional '),
-                      TextSpan(
-                        text: '• ',
-                        style: TextStyle(color: cTextDim),
-                      ),
-                      TextSpan(text: 'Resumen general'),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SuperAdminNotificationBellButton(),
-              const SizedBox(width: 8),
-              // Botón de acción rápida '+'
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: _showQuickAddDialog,
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [cAccent, AppTheme.primary],
-                        begin: Alignment.bottomLeft,
-                        end: Alignment.topRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: cAccentGlow,
-                          blurRadius: 16,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.add_circle_outline,
-                      color: AppTheme.onPrimaryContainer,
-                      size: 22,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --- BEGIN: KeyMetricsSection (mobile) ---
-  Widget _buildKeyMetricsSection({bool isTablet = false}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Barra de encabezado de sección
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _buildSectionLabel('MÉTRICAS GENERALES'),
-            _buildOnlineUsersStreamText(fontSize: 11),
-          ],
-        ),
-        const SizedBox(height: 12),
-
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final columns = isTablet ? 4 : 2;
-            final spacing = 12.0;
-            final cardWidth =
-                (constraints.maxWidth - spacing * (columns - 1)) / columns;
-            return Wrap(
-              spacing: spacing,
-              runSpacing: spacing,
-              children: [
-                SizedBox(width: cardWidth, child: _buildMetricCardUsers()),
-                SizedBox(width: cardWidth, child: _buildMetricCardCourses()),
-                SizedBox(width: cardWidth, child: _buildMetricCardAttendance()),
-                SizedBox(width: cardWidth, child: _buildMetricCardRevenue()),
-              ],
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  // --- BEGIN: ManagementModulesSection (mobile) ---
-  Widget _buildManagementModulesSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionLabel('MÓDULOS DE GESTIÓN'),
-        const SizedBox(height: 12),
-        // Módulo 1: Alumnos
-        _buildModuleCard(
-          icon: Symbols.school,
-          iconColor: AppTheme.primary,
-          title: 'Módulo Alumnos',
-          badgeText: '${_formatMetric(_totalAlumnos)} alumnos',
-          badgeBg: AppTheme.secondaryContainer,
-          badgeTextColor: AppTheme.onSecondaryContainer,
-          subtitle: 'Matrícula y seguimiento de asistencias.',
-          bottomLeftWidget: _buildStudentCount(),
-          isPrimaryAction: true,
-          onEnter: () => context.go('/student'),
-        ),
-        const SizedBox(height: 14),
-
-        // Módulo 2: Profesores
-        _buildModuleCard(
-          icon: Symbols.badge,
-          iconColor: AppTheme.secondary,
-          title: 'Módulo Profesores',
-          badgeText: '${_formatMetric(_totalProfesores)} docentes',
-          badgeBg: AppTheme.secondaryContainer,
-          badgeTextColor: AppTheme.onSecondaryContainer,
-          subtitle: 'Plantel docente y programación de sesiones.',
-          bottomLeftWidget: Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: cMintBright,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: cMintBright.withValues(alpha: 0.45),
-                      blurRadius: 6,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  '${_formatMetric(_totalProfesores)} docentes registrados',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    color: cTextMuted,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          isPrimaryAction: false,
-          onEnter: () => context.go('/teacher'),
-        ),
-        const SizedBox(height: 14),
-
-        // Módulo 3: Coordinadores
-        _buildModuleCard(
-          icon: Symbols.military_tech,
-          iconColor: AppTheme.tertiary,
-          title: 'Módulo Coordinadores',
-          badgeText: '${_formatMetric(_totalCoordinadores)} coordinadores',
-          badgeBg: AppTheme.tertiaryContainer,
-          badgeTextColor: AppTheme.onTertiaryContainer,
-          subtitle: 'Supervisión institucional y reportes.',
-          bottomLeftWidget: Row(
-            children: [
-              const Icon(Symbols.verified_user, size: 14, color: cMintBright),
-              const SizedBox(width: 6),
-              Text(
-                'Gestión institucional',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  color: cTextMuted,
-                ),
-              ),
-            ],
-          ),
-          isPrimaryAction: false,
-          onEnter: () => context.go('/coordinator'),
-        ),
-        const SizedBox(height: 14),
-
-        // Módulo 4: Inscripciones
-        _buildModuleCard(
-          icon: Symbols.how_to_reg,
-          iconColor: AppTheme.successGreen,
-          title: 'Módulo Inscripciones',
-          badgeText: 'Cupos en vivo',
-          badgeBg: AppTheme.successGreen.withValues(alpha: 0.16),
-          badgeTextColor: AppTheme.successGreen,
-          subtitle: 'Registro de aspirantes, validación de cédula y cuotas.',
-          bottomLeftWidget: Row(
-            children: [
-              const Icon(Symbols.analytics, size: 14, color: AppTheme.successGreen),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  'Formulario y control de cupos',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    color: cTextMuted,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          isPrimaryAction: true,
-          onEnter: () => context.go('/inscripciones'),
-        ),
-      ],
-    );
-  }
-
-  // ─── Shared widgets ──────────────────────────────────────────────────────
-
-  /// Etiqueta de sección estilo ALL-CAPS
-  Widget _buildSectionLabel(String text) {
-    return Text(
-      text,
-      style: GoogleFonts.plusJakartaSans(
-        fontSize: 11,
-        fontWeight: FontWeight.w800,
-        color: AppTheme.primaryFixed,
-        letterSpacing: 0.8,
-      ),
-    );
-  }
-
-  // Card 1: Usuarios Activos
-  Widget _buildMetricCardUsers() {
-    return Container(
-      height: 132,
-      decoration: BoxDecoration(
-        color: cCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cBorder.withValues(alpha: 0.7)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x59000000),
-            blurRadius: 14,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            Navigator.of(context)
-                .push(MaterialPageRoute(builder: (_) => const GestionUsuariosPage()))
-                .then((_) => _loadMetrics());
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Usuarios Registrados',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: cTextMuted,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    InkWell(
-                      onTap: () {
-                        Navigator.of(context)
-                            .push(MaterialPageRoute(builder: (_) => const GestionUsuariosPage()))
-                            .then((_) => _loadMetrics());
-                      },
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                          color: cAccent.withValues(alpha: 0.28),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: cAccent.withValues(alpha: 0.65)),
-                        ),
-                        child: const Icon(
-                          Symbols.edit,
-                          size: 15,
-                          color: Color(0xFFC084FC),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _formatMetric(_totalUsuarios),
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    color: cTextMain,
-                  ),
-                ),
-                const Spacer(),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        'Usuarios autenticados en Supabase',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w600,
-                          color: cTextMuted,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const Icon(Symbols.verified_user, size: 15, color: cMintBright),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Stream en vivo: Usuarios en línea en texto amarillo
-  Widget _buildOnlineUsersStreamText({double fontSize = 12}) {
-    return StreamBuilder<int?>(
-      stream: OnlineUserPresenceService.instance.onlineUserCountStream,
-      initialData: OnlineUserPresenceService.instance.onlineUserCount,
-      builder: (context, snapshot) {
-        final count = snapshot.data;
-        final text = count == null
-            ? 'Usuarios en línea: —'
-            : count == 1
-                ? '1 usuario en línea'
-                : '$count usuarios en línea';
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 7,
-              height: 7,
-              decoration: const BoxDecoration(
-                color: Color(0xFFFACC15),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x66FACC15),
-                    blurRadius: 6,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              text,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: fontSize,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFFFACC15),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // Card 2: Cursos Activos
-  Widget _buildMetricCardCourses() {
-    return Container(
-      height: 132,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: cCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cBorder.withValues(alpha: 0.7)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x59000000),
-            blurRadius: 14,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Flexible(
-                child: Text(
-                  'Cursos Activos',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    color: cTextMuted,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const Icon(Symbols.menu_book, size: 16, color: AppTheme.primary),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                _formatMetric(_totalCursos),
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: cTextMain,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'talleres',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: cTextMuted,
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          Row(
-            children: [
-              Container(
-                width: 7,
-                height: 7,
-                decoration: const BoxDecoration(
-                  color: cAccent,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  'Talleres en operación',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w600,
-                    color: cTextMuted,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Card 3: Tasa Asistencia
-  Widget _buildMetricCardAttendance() {
-    return Container(
-      height: 132,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: cCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cBorder.withValues(alpha: 0.7)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x59000000),
-            blurRadius: 14,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  'Asistencia registrada',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: cTextMuted,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const Icon(Symbols.check_circle, size: 16, color: cMintBright),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            _attendanceRate == null
-                ? '—'
-                : '${(_attendanceRate! * 100).toStringAsFixed(1)}%',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              color: cMintBright,
-            ),
-          ),
-          const Spacer(),
-          Container(
-            height: 6,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: cBorder.withValues(alpha: 0.25),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: _attendanceRate?.clamp(0, 1) ?? 0,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: cMintBright,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: cMintBright.withValues(alpha: 0.45),
-                      blurRadius: 6,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Card 4: Recaudación
-  Widget _buildMetricCardRevenue() {
-    return Container(
-      height: 132,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: cCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cBorder.withValues(alpha: 0.7)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x59000000),
-            blurRadius: 14,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Flexible(
-                child: Text(
-                  'Recaudación',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    color: cTextMuted,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const Icon(Symbols.wallet, size: 16, color: AppTheme.primary),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'No disponible',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: cTextMuted,
-            ),
-          ),
-          const Spacer(),
-          Text(
-            'Sin agregado contable',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w600,
-              color: cTextMuted,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Module card (shared between mobile and desktop) ───────────────────────
-  Widget _buildModuleCard({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String badgeText,
-    required Color badgeBg,
-    required Color badgeTextColor,
-    required String subtitle,
-    required Widget bottomLeftWidget,
-    required bool isPrimaryAction,
-    required VoidCallback onEnter,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onEnter,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: cCard,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: cBorder.withValues(alpha: 0.8)),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x59000000),
-                blurRadius: 18,
-                offset: Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Icon Frame
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: cCardInner,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: cBorder),
-                    ),
-                    child: Icon(icon, color: iconColor, size: 24),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Wrap(
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: 8,
-                          runSpacing: 4,
-                          children: [
-                            Text(
-                              title,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                                color: cTextMain,
-                                letterSpacing: -0.2,
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: badgeBg,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: AppTheme.secondary.withValues(alpha: 0.3),
-                                ),
-                              ),
-                              child: Text(
-                                badgeText,
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.bold,
-                                  color: badgeTextColor,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          subtitle,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w500,
-                            color: cTextMuted,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Flexible(
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: bottomLeftWidget,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Botón Entrar / Seleccionar Módulo
-                  InkWell(
-                    onTap: onEnter,
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: isPrimaryAction
-                            ? const LinearGradient(
-                                colors: [cAccent, AppTheme.primary],
-                              )
-                            : null,
-                        color: isPrimaryAction ? null : cCardInner,
-                        borderRadius: BorderRadius.circular(12),
-                        border: isPrimaryAction ? null : Border.all(color: cBorder),
-                        boxShadow: isPrimaryAction
-                            ? const [
-                                BoxShadow(
-                                  color: cAccentGlow,
-                                  blurRadius: 12,
-                                  offset: Offset(0, 3),
-                                ),
-                              ]
-                            : null,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            isPrimaryAction ? 'ENTRAR' : 'SELECCIONAR',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              color: isPrimaryAction
-                                  ? AppTheme.onPrimaryContainer
-                                  : cTextMain,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Icon(
-                            Icons.arrow_forward,
-                            size: 13,
-                            color: isPrimaryAction
-                                ? AppTheme.onPrimaryContainer
-                                : cTextMuted,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStudentCount() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Icon(Symbols.groups, size: 16, color: cTextMuted),
-        const SizedBox(width: 6),
-        Flexible(
-          child: Text(
-            '${_formatMetric(_totalAlumnos)} alumnos',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: cTextMuted,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ─── Helpers ──────────────────────────────────────────────────────────────
-  String _formatMetric(int? number) {
-    if (number == null) return '—';
-    return _formatNumber(number);
-  }
-
-  String _formatNumber(int number) {
-    return number.toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
     );
   }
 }
