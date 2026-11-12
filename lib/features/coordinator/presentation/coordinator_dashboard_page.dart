@@ -209,6 +209,16 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
             ),
           ),
           PopupMenuItem<dynamic>(
+            value: '/inscripciones',
+            child: Row(
+              children: [
+                const Icon(Icons.how_to_reg_rounded, size: 18, color: AppTheme.successGreen),
+                const SizedBox(width: 10),
+                Text('Módulo Inscripciones', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+              ],
+            ),
+          ),
+          PopupMenuItem<dynamic>(
             value: 'profile',
             child: Row(
               children: [
@@ -360,6 +370,11 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
             ],
           ),
           actions: [
+            IconButton(
+              tooltip: 'Módulo Inscripciones',
+              icon: const Icon(Icons.how_to_reg_rounded, color: AppTheme.successGreen),
+              onPressed: () => context.go('/inscripciones'),
+            ),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
               child: ElevatedButton.icon(

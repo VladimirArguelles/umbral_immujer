@@ -495,6 +495,14 @@ class AuthRepository {
         throw Exception('Perfil de usuario no encontrado en la base de datos.');
       }
 
+      if (profile.role == UserRole.operadorInscripcion) {
+        final accessIssue = await getOperadorAccessRestrictionReason(profile);
+        if (accessIssue != null) {
+          await _supabase.auth.signOut();
+          throw Exception(accessIssue);
+        }
+      }
+
       AppLogger.info('Inicio de sesión exitoso: ${profile.email} (${profile.rol.displayName})', tag: 'AUTH_SIGNIN');
       return profile;
     } on AuthException catch (e) {
@@ -502,11 +510,60 @@ class AuthRepository {
       if (e.message.toLowerCase().contains('invalid login credentials')) {
         throw Exception('Correo o contraseña incorrectos. Verifica tus datos.');
       }
+      if (e.message.toLowerCase().contains('user is banned')) {
+        throw Exception(
+          'Tu acceso temporal ha sido revocado o suspendido por el Super Admin.',
+        );
+      }
       throw Exception(e.message);
     } catch (e, stackTrace) {
       AppLogger.error('Excepción no controlada durante signIn', tag: 'AUTH_SIGNIN', error: e, stackTrace: stackTrace);
       rethrow;
     }
+  }
+
+  /// Consulta el estado global del periodo de inscripciones en configuracion_general
+  Future<bool> isInscripcionesActivas() async {
+    try {
+      final row = await _supabase
+          .from('configuracion_general')
+          .select('valor')
+          .eq('clave', 'inscripciones_activas')
+          .maybeSingle();
+      if (row != null) {
+        final raw = row['valor'];
+        if (raw is bool) return raw;
+        if (raw is String) {
+          return raw.toLowerCase().trim() == 'true' || raw.trim() == '1';
+        }
+        if (raw is num) return raw != 0;
+      }
+    } catch (e) {
+      AppLogger.warning(
+        'Aviso al consultar inscripciones_activas en configuracion_general: $e',
+        tag: 'AUTH_CONFIG',
+      );
+    }
+
+    try {
+      final res = await _supabase.rpc<bool>('is_inscripciones_activas');
+      return res;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Verifica si un Operador de Inscripción tiene permiso vigente; retorna motivo si está bloqueado.
+  Future<String?> getOperadorAccessRestrictionReason(UserProfile profile) async {
+    if (profile.role != UserRole.operadorInscripcion) return null;
+    if (!profile.accesoActivo) {
+      return 'Tu acceso temporal como Operador de Inscripción ha sido revocado por el Super Admin.';
+    }
+    final activeWindow = await isInscripcionesActivas();
+    if (!activeWindow) {
+      return 'El periodo de inscripciones se encuentra cerrado actualmente. Los accesos temporales están deshabilitados.';
+    }
+    return null;
   }
 
   /// Obtener perfil actual desde la base de datos

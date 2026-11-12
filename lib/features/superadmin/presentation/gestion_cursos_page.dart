@@ -53,7 +53,7 @@ class _GestionCursosPageState extends State<GestionCursosPage> {
           .inFilter('rol', ['profesor', 'teacher'])
           .order('nombre_completo');
 
-      // 2. Obtener lista de cursos con profesor y temas
+      // 2. Obtener lista de cursos con profesor, cupos y temas
       final cursosResponse = await _supabase
           .from('cursos')
           .select('''
@@ -62,6 +62,8 @@ class _GestionCursosPageState extends State<GestionCursosPage> {
             descripcion,
             horario,
             estado,
+            cupo_maximo,
+            admision_abierta,
             profesor_id,
             temas,
             created_at,
@@ -120,8 +122,10 @@ class _GestionCursosPageState extends State<GestionCursosPage> {
     final nombreCtrl = TextEditingController();
     final descCtrl = TextEditingController();
     final horarioCtrl = TextEditingController();
+    final cupoCtrl = TextEditingController(text: '30');
     String? selectedProfesorId;
     String selectedEstado = 'activo';
+    bool admisionAbierta = true;
 
     final formKey = GlobalKey<FormState>();
 
@@ -236,6 +240,35 @@ class _GestionCursosPageState extends State<GestionCursosPage> {
                       }
                     },
                   ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: cupoCtrl,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: AppTheme.onSurface),
+                    decoration: const InputDecoration(
+                      labelText: 'Cupo Máximo *',
+                      hintText: 'Ej. 30',
+                      prefixIcon: Icon(Symbols.group),
+                    ),
+                    validator: (val) {
+                      final n = int.tryParse((val ?? '').trim());
+                      if (n == null || n < 1 || n > 1000) {
+                        return 'Ingresa un número válido entre 1 y 1000';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    activeTrackColor: AppTheme.successGreen,
+                    title: const Text(
+                      'Admisión de inscripciones abierta',
+                      style: TextStyle(fontSize: 13, color: AppTheme.onSurface),
+                    ),
+                    value: admisionAbierta,
+                    onChanged: (val) => setDialogState(() => admisionAbierta = val),
+                  ),
                 ],
               ),
             ),
@@ -256,6 +289,8 @@ class _GestionCursosPageState extends State<GestionCursosPage> {
                     'horario': horarioCtrl.text.trim().isNotEmpty ? horarioCtrl.text.trim() : null,
                     'profesor_id': selectedProfesorId,
                     'estado': selectedEstado,
+                    'cupo_maximo': int.tryParse(cupoCtrl.text.trim()) ?? 30,
+                    'admision_abierta': admisionAbierta,
                   });
 
                   if (ctx.mounted) Navigator.pop(ctx);
@@ -286,8 +321,12 @@ class _GestionCursosPageState extends State<GestionCursosPage> {
     final nombreCtrl = TextEditingController(text: curso['nombre'] ?? '');
     final descCtrl = TextEditingController(text: curso['descripcion'] ?? '');
     final horarioCtrl = TextEditingController(text: curso['horario'] ?? '');
+    final cupoCtrl = TextEditingController(
+      text: ((curso['cupo_maximo'] as num?)?.toInt() ?? 30).toString(),
+    );
     String? selectedProfesorId = curso['profesor_id'] as String?;
     String selectedEstado = (curso['estado'] as String?) ?? 'activo';
+    bool admisionAbierta = (curso['admision_abierta'] as bool?) ?? true;
 
     final formKey = GlobalKey<FormState>();
 
@@ -402,6 +441,35 @@ class _GestionCursosPageState extends State<GestionCursosPage> {
                       }
                     },
                   ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: cupoCtrl,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: AppTheme.onSurface),
+                    decoration: const InputDecoration(
+                      labelText: 'Cupo Máximo *',
+                      hintText: 'Ej. 30',
+                      prefixIcon: Icon(Symbols.group),
+                    ),
+                    validator: (val) {
+                      final n = int.tryParse((val ?? '').trim());
+                      if (n == null || n < 1 || n > 1000) {
+                        return 'Ingresa un número válido entre 1 y 1000';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    activeTrackColor: AppTheme.successGreen,
+                    title: const Text(
+                      'Admisión de inscripciones abierta',
+                      style: TextStyle(fontSize: 13, color: AppTheme.onSurface),
+                    ),
+                    value: admisionAbierta,
+                    onChanged: (val) => setDialogState(() => admisionAbierta = val),
+                  ),
                 ],
               ),
             ),
@@ -422,6 +490,8 @@ class _GestionCursosPageState extends State<GestionCursosPage> {
                     'horario': horarioCtrl.text.trim().isNotEmpty ? horarioCtrl.text.trim() : null,
                     'profesor_id': selectedProfesorId,
                     'estado': selectedEstado,
+                    'cupo_maximo': int.tryParse(cupoCtrl.text.trim()) ?? 30,
+                    'admision_abierta': admisionAbierta,
                     'updated_at': DateTime.now().toIso8601String(),
                   }).eq('id', curso['id']);
 
@@ -1183,7 +1253,7 @@ onReorder: (oldIndex, newIndex) {
                                               ),
                                             ],
                                           ),
-                                          if (temasCount > 0)
+                                           if (temasCount > 0)
                                             Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
@@ -1192,6 +1262,30 @@ onReorder: (oldIndex, newIndex) {
                                                 Text('$temasCount temas', style: const TextStyle(fontSize: 12, color: AppTheme.tertiary)),
                                               ],
                                             ),
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Symbols.group,
+                                                size: 14,
+                                                color: (c['admision_abierta'] as bool? ?? true)
+                                                    ? AppTheme.successGreen
+                                                    : AppTheme.warningOrange,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                'Cupo máx: ${(c['cupo_maximo'] as num?)?.toInt() ?? 30}'
+                                                '${(c['admision_abierta'] as bool? ?? true) ? '' : ' (Adm. cerrada)'}',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: (c['admision_abierta'] as bool? ?? true)
+                                                      ? AppTheme.successGreen
+                                                      : AppTheme.warningOrange,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ],
                                       ),
                                       const SizedBox(height: 6),

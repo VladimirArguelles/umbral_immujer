@@ -13,6 +13,7 @@ import 'package:umbral_immujer/features/superadmin/presentation/configuracion_ge
 import 'package:umbral_immujer/features/superadmin/presentation/gestion_alumnos_page.dart';
 import 'package:umbral_immujer/features/superadmin/presentation/gestion_cursos_page.dart';
 import 'package:umbral_immujer/features/superadmin/presentation/gestion_profesores_page.dart';
+import 'package:umbral_immujer/features/inscripciones/presentation/pages/inscripciones_page.dart';
 import 'package:umbral_immujer/features/superadmin/presentation/gestion_usuarios_page.dart';
 import 'package:umbral_immujer/features/superadmin/presentation/super_admin_dashboard.dart';
 import 'package:umbral_immujer/features/teacher/presentation/teacher_dashboard_page.dart';
@@ -44,6 +45,7 @@ final GoRouter appRouter = GoRouter(
         _matchesPrefix(path, '/assistant') ||
         _matchesPrefix(path, '/asistente') ||
         _matchesPrefix(path, '/mia') ||
+        _matchesPrefix(path, '/inscripciones') ||
         _matchesPrefix(path, '/superadmin');
 
     if (!isAuthenticated && isProtected) {
@@ -256,6 +258,20 @@ final GoRouter appRouter = GoRouter(
         );
       },
     ),
+    GoRoute(
+      path: '/inscripciones',
+      builder: (context, state) {
+        return _AuthenticatedDashboardPage(
+          allowedRoles: const [
+            UserRole.superAdmin,
+            UserRole.coordinador,
+            UserRole.profesor,
+            UserRole.operadorInscripcion,
+          ],
+          builder: (profile) => InscripcionesPage(profile: profile),
+        );
+      },
+    ),
     GoRoute(path: '/reportes', redirect: (context, state) => '/reports'),
     GoRoute(path: '/coordinador', redirect: (context, state) => '/coordinator'),
     GoRoute(
@@ -298,6 +314,7 @@ String _routeForRole(UserRole role) {
     UserRole.coordinador => '/coordinator',
     UserRole.profesor => '/teacher',
     UserRole.alumno => '/student',
+    UserRole.operadorInscripcion => '/inscripciones',
   };
 }
 
@@ -333,20 +350,48 @@ class _AuthenticatedDashboardPage extends StatefulWidget {
       _AuthenticatedDashboardPageState();
 }
 
+class _ResolvedAuthResult {
+  final UserProfile? profile;
+  final String? temporalRestrictionReason;
+
+  const _ResolvedAuthResult({
+    this.profile,
+    this.temporalRestrictionReason,
+  });
+}
+
 class _AuthenticatedDashboardPageState
     extends State<_AuthenticatedDashboardPage> {
-  late final Future<UserProfile?> _profileFuture;
+  late final Future<_ResolvedAuthResult> _authFuture;
 
   @override
   void initState() {
     super.initState();
-    _profileFuture = AuthRepository(SupabaseConfig.client).getCurrentProfile();
+    _authFuture = _resolveAuth();
+  }
+
+  Future<_ResolvedAuthResult> _resolveAuth() async {
+    final repo = AuthRepository(SupabaseConfig.client);
+    final profile = await repo.getCurrentProfile();
+    if (profile == null) {
+      return const _ResolvedAuthResult();
+    }
+    if (profile.rol == UserRole.operadorInscripcion) {
+      final restriction = await repo.getOperadorAccessRestrictionReason(profile);
+      if (restriction != null) {
+        return _ResolvedAuthResult(
+          profile: profile,
+          temporalRestrictionReason: restriction,
+        );
+      }
+    }
+    return _ResolvedAuthResult(profile: profile);
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<UserProfile?>(
-      future: _profileFuture,
+    return FutureBuilder<_ResolvedAuthResult>(
+      future: _authFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Scaffold(
@@ -354,7 +399,8 @@ class _AuthenticatedDashboardPageState
           );
         }
 
-        if (snapshot.hasError || snapshot.data == null) {
+        final resolved = snapshot.data;
+        if (snapshot.hasError || resolved?.profile == null) {
           final errorMsg = snapshot.hasError
               ? 'No se pudo cargar el perfil: ${snapshot.error}'
               : 'No se encontró el perfil de usuario.';
@@ -390,7 +436,68 @@ class _AuthenticatedDashboardPageState
           );
         }
 
-        final profile = snapshot.data!;
+        if (resolved!.temporalRestrictionReason != null) {
+          return Scaffold(
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 460),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: AppTheme.warningOrange.withAlpha(28),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.lock_clock_rounded,
+                          size: 52,
+                          color: AppTheme.warningOrange,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'Acceso Temporal Deshabilitado',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        resolved.temporalRestrictionReason!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppTheme.mutedGray,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primary,
+                          foregroundColor: AppTheme.onPrimary,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: const Icon(Icons.logout_rounded),
+                        label: const Text('Cerrar sesión'),
+                        onPressed: () async {
+                          await SupabaseConfig.client.auth.signOut();
+                          if (context.mounted) context.go('/login');
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        final profile = resolved.profile!;
 
         // Verificación estricta de roles autorizados
         if (widget.allowedRoles != null && !widget.allowedRoles!.contains(profile.rol)) {

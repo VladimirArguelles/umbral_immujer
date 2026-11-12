@@ -39,6 +39,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.initState();
     _authRepo = AuthRepository(SupabaseConfig.client);
     _selectedRole = widget.initialRole ?? UserRole.alumno;
+    if (_selectedRole == UserRole.operadorInscripcion ||
+        _selectedRole == UserRole.superAdmin) {
+      _selectedRole = UserRole.alumno;
+    }
     if (_selectedRole == UserRole.coordinador) {
       _cedulaValidated = true;
       _validationMessage = 'Registro de rol administrativo/coordinador.';
@@ -190,6 +194,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           UserRole.alumno => '/student',
           UserRole.profesor => '/teacher',
           UserRole.coordinador => '/coordinator',
+          UserRole.operadorInscripcion => '/inscripciones',
         };
         context.go(path);
       }
@@ -224,6 +229,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       UserRole.profesor => 'Registro de Profesores',
       UserRole.coordinador => 'Registro de Coordinadores',
       UserRole.superAdmin => 'Registro Administrativo',
+      UserRole.operadorInscripcion => 'Acceso de Operador',
     };
 
     return Scaffold(

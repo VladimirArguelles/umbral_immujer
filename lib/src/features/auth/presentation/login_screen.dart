@@ -34,6 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
       UserRole.superAdmin => '/superadmin',
       UserRole.coordinador => '/coordinator',
       UserRole.profesor => '/teacher',
+      UserRole.operadorInscripcion => '/inscripciones',
       UserRole.alumno => '/student',
     };
     context.go(path);

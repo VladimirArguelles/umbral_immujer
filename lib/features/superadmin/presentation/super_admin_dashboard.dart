@@ -625,6 +625,36 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
               leading: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
+                  color: AppTheme.successGreen.withAlpha(40),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Symbols.how_to_reg, color: AppTheme.successGreen, size: 22),
+              ),
+              title: Text(
+                'Módulo Inscripciones',
+                style: GoogleFonts.plusJakartaSans(
+                  color: cTextMain,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+              subtitle: const Text(
+                'Registrar aspirantes, cupos en vivo y accesos temporales',
+                style: TextStyle(color: cTextMuted, fontSize: 12),
+              ),
+              trailing: const Icon(Symbols.chevron_right, color: cTextDim, size: 20),
+              onTap: () {
+                Navigator.pop(ctx);
+                context.go('/inscripciones');
+              },
+            ),
+            const SizedBox(height: 6),
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
                   color: const Color(0xFF38BDF8).withAlpha(40),
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -1191,6 +1221,43 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
             ),
           ],
         ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _buildModuleCard(
+                icon: Symbols.how_to_reg,
+                iconColor: AppTheme.successGreen,
+                title: 'Módulo Inscripciones',
+                badgeText: 'Cupos en vivo',
+                badgeBg: AppTheme.successGreen.withValues(alpha: 0.16),
+                badgeTextColor: AppTheme.successGreen,
+                subtitle: 'Registro de aspirantes, validación de cédula y cuotas.',
+                bottomLeftWidget: Row(
+                  children: [
+                    const Icon(Symbols.analytics, size: 14, color: AppTheme.successGreen),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        'Formulario y control de cupos',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: cTextMuted,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                isPrimaryAction: true,
+                onEnter: () => context.go('/inscripciones'),
+              ),
+            ),
+            const SizedBox(width: 16),
+            const Spacer(),
+          ],
+        ),
       ],
     );
   }
@@ -1527,6 +1594,37 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           ),
           isPrimaryAction: false,
           onEnter: () => context.go('/coordinator'),
+        ),
+        const SizedBox(height: 14),
+
+        // Módulo 4: Inscripciones
+        _buildModuleCard(
+          icon: Symbols.how_to_reg,
+          iconColor: AppTheme.successGreen,
+          title: 'Módulo Inscripciones',
+          badgeText: 'Cupos en vivo',
+          badgeBg: AppTheme.successGreen.withValues(alpha: 0.16),
+          badgeTextColor: AppTheme.successGreen,
+          subtitle: 'Registro de aspirantes, validación de cédula y cuotas.',
+          bottomLeftWidget: Row(
+            children: [
+              const Icon(Symbols.analytics, size: 14, color: AppTheme.successGreen),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  'Formulario y control de cupos',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: cTextMuted,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          isPrimaryAction: true,
+          onEnter: () => context.go('/inscripciones'),
         ),
       ],
     );

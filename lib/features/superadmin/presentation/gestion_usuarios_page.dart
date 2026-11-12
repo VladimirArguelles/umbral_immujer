@@ -146,6 +146,8 @@ class _GestionUsuariosPageState extends State<GestionUsuariosPage> {
       case 'profesor':
       case 'teacher':
         return AppTheme.tertiary; // Mint green
+      case 'operador_inscripcion':
+        return AppTheme.warningOrange;
       case 'alumno':
       case 'student':
       default:
@@ -166,6 +168,8 @@ class _GestionUsuariosPageState extends State<GestionUsuariosPage> {
       case 'profesor':
       case 'teacher':
         return 'Profesor';
+      case 'operador_inscripcion':
+        return 'Operador Inscripción';
       case 'alumno':
       case 'student':
       default:
@@ -486,6 +490,7 @@ class _GestionUsuariosPageState extends State<GestionUsuariosPage> {
     final totalSuperAdmin = _usuarios.where((u) => (u['rol'] ?? '').toString().toLowerCase() == 'super_admin').length;
     final totalCoord = _usuarios.where((u) => ['coordinador', 'coordinator', 'admin'].contains((u['rol'] ?? '').toString().toLowerCase())).length;
     final totalProf = _usuarios.where((u) => ['profesor', 'teacher'].contains((u['rol'] ?? '').toString().toLowerCase())).length;
+    final totalOperadores = _usuarios.where((u) => (u['rol'] ?? '').toString().toLowerCase() == 'operador_inscripcion').length;
     final totalAlumnos = _usuarios.where((u) => ['alumno', 'student'].contains((u['rol'] ?? '').toString().toLowerCase())).length;
 
     return Scaffold(
@@ -553,6 +558,8 @@ class _GestionUsuariosPageState extends State<GestionUsuariosPage> {
                   const SizedBox(width: 8),
                   _buildStatBadge('Profesores', totalProf.toString(), AppTheme.tertiary, Symbols.badge),
                   const SizedBox(width: 8),
+                  _buildStatBadge('Operadores', totalOperadores.toString(), AppTheme.warningOrange, Symbols.how_to_reg),
+                  const SizedBox(width: 8),
                   _buildStatBadge('Alumnos', totalAlumnos.toString(), const Color(0xFFFACC15), Symbols.school),
                 ],
               ),
@@ -598,6 +605,10 @@ class _GestionUsuariosPageState extends State<GestionUsuariosPage> {
                           DropdownMenuItem<String?>(
                             value: 'profesor',
                             child: Text('Profesores'),
+                          ),
+                          DropdownMenuItem<String?>(
+                            value: 'operador_inscripcion',
+                            child: Text('Operadores de Inscripción'),
                           ),
                           DropdownMenuItem<String?>(
                             value: 'alumno',

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:umbral_immujer/features/inscripciones/presentation/widgets/inscripciones_admin_panel_widget.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/services/push_notification_service.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
@@ -510,10 +511,12 @@ class _ConfiguracionGeneralScreenState
                                       ),
                                     ),
                                     const SizedBox(width: 20),
-                                    // Columna Derecha: Automatización, Sistema y Seguridad
+                                    // Columna Derecha: Inscripciones, Automatización, Sistema y Seguridad
                                     Expanded(
                                       child: Column(
                                         children: [
+                                          const InscripcionesAdminPanelWidget(),
+                                          const SizedBox(height: 20),
                                           _buildAutomationSection(),
                                           const SizedBox(height: 20),
                                           _buildEnvironmentSection(),
@@ -532,6 +535,8 @@ class _ConfiguracionGeneralScreenState
                             padding: EdgeInsets.fromLTRB(padding.left, 20, padding.right, 100),
                             children: [
                               if (modifiedCount > 0) _buildPendingChangesBanner(modifiedCount),
+                              const InscripcionesAdminPanelWidget(),
+                              const SizedBox(height: 20),
                               _buildAcademicSection(),
                               const SizedBox(height: 20),
                               _buildAutomationSection(),

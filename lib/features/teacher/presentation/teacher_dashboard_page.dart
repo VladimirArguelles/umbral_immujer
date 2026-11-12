@@ -190,6 +190,16 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
             ),
           const PopupMenuDivider(),
           PopupMenuItem<dynamic>(
+            value: '/inscripciones',
+            child: Row(
+              children: [
+                const Icon(Icons.how_to_reg_rounded, size: 18, color: AppTheme.successGreen),
+                const SizedBox(width: 10),
+                Text('Módulo Inscripciones', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+              ],
+            ),
+          ),
+          PopupMenuItem<dynamic>(
             value: 'assistant',
             child: Row(
               children: [
@@ -519,6 +529,15 @@ class _TeacherSummaryTab extends StatelessWidget {
             accent: AppTheme.successGreen,
             actionLabel: 'IR A GESTIÓN DE ALUMNOS',
             onTap: () => onNavigate(4),
+          ),
+          const SizedBox(height: 12),
+          _TeacherActionCard(
+            title: 'MÓDULO INSCRIPCIONES',
+            description: 'Registrar aspirantes y consultar cupos disponibles en tiempo real.',
+            icon: Icons.how_to_reg_rounded,
+            accent: AppTheme.primary,
+            actionLabel: 'ABRIR INSCRIPCIONES',
+            onTap: () => context.go('/inscripciones'),
           ),
         ],
       ),

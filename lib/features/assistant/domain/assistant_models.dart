@@ -195,6 +195,19 @@ class AssistantModuleContext {
           return fromKey('coordinacion');
         case UserRole.superAdmin:
           return fromKey('superadmin');
+        case UserRole.operadorInscripcion:
+          return const AssistantModuleContext(
+            id: 'inscripciones',
+            title: 'Módulo de Inscripciones',
+            subtitle: 'Registro de aspirantes y control de cupos',
+            icon: Symbols.how_to_reg,
+            description:
+                'Te ayudo con el registro de nuevos aspirantes, verificación de cédulas duplicadas y seguimiento de cupos disponibles por curso.',
+            quickPrompts: [
+              '¿Cómo verificar si una cédula ya está inscrita en un curso?',
+              '¿Qué significa la insignia Cupos Agotados?',
+            ],
+          );
       }
     }
 

@@ -2,7 +2,8 @@ enum UserRole {
   alumno,
   profesor,
   coordinador,
-  superAdmin;
+  superAdmin,
+  operadorInscripcion;
 
   static UserRole fromString(String? role) {
     switch (role?.toLowerCase()) {
@@ -17,6 +18,9 @@ enum UserRole {
       case 'administrador':
       case 'admin':
         return UserRole.coordinador;
+      case 'operador_inscripcion':
+      case 'operadorinscripcion':
+        return UserRole.operadorInscripcion;
       case 'alumno':
       case 'student':
         return UserRole.alumno;
@@ -33,6 +37,8 @@ enum UserRole {
         return 'profesor';
       case UserRole.coordinador:
         return 'coordinador';
+      case UserRole.operadorInscripcion:
+        return 'operador_inscripcion';
       case UserRole.alumno:
         return 'alumno';
     }
@@ -46,6 +52,8 @@ enum UserRole {
         return 'Profesor';
       case UserRole.coordinador:
         return 'Coordinador';
+      case UserRole.operadorInscripcion:
+        return 'Operador de Inscripción';
       case UserRole.alumno:
         return 'Alumno';
     }
@@ -60,6 +68,7 @@ class UserProfile {
   final String? telefono;
   final UserRole role;
   final String? avatarUrl;
+  final bool accesoActivo;
 
   /// Alias de conveniencia para compatibilidad con esquemas de base de datos
   UserRole get rol => role;
@@ -68,6 +77,9 @@ class UserProfile {
   bool get isSuperAdmin => role == UserRole.superAdmin;
   bool get isCoordinador => role == UserRole.coordinador || isSuperAdmin;
   bool get isProfesor => role == UserRole.profesor || isCoordinador;
+  bool get isOperadorInscripcion => role == UserRole.operadorInscripcion;
+  bool get canAccessInscripciones =>
+      isSuperAdmin || isCoordinador || isProfesor || isOperadorInscripcion;
 
   UserProfile({
     required this.id,
@@ -77,6 +89,7 @@ class UserProfile {
     this.telefono,
     required this.role,
     this.avatarUrl,
+    this.accesoActivo = true,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -88,6 +101,7 @@ class UserProfile {
       telefono: json['telefono'] as String?,
       role: UserRole.fromString(json['rol'] as String?),
       avatarUrl: json['avatar_url'] as String?,
+      accesoActivo: (json['acceso_activo'] as bool?) ?? true,
     );
   }
 
@@ -100,6 +114,7 @@ class UserProfile {
       'telefono': telefono,
       'rol': role.toDbString(),
       'avatar_url': avatarUrl,
+      'acceso_activo': accesoActivo,
     };
   }
 
@@ -110,6 +125,7 @@ class UserProfile {
     String? telefono,
     UserRole? role,
     String? avatarUrl,
+    bool? accesoActivo,
   }) {
     return UserProfile(
       id: id,
@@ -119,6 +135,7 @@ class UserProfile {
       telefono: telefono ?? this.telefono,
       role: role ?? this.role,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      accesoActivo: accesoActivo ?? this.accesoActivo,
     );
   }
 }
