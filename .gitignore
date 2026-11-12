@@ -58,3 +58,19 @@ supabase/.temp/
 # Node.js
 node_modules/
 scripts/node_modules/
+
+# Firma digital Android
+android/key.properties
+android/app/*.jks
+
+# Copias temporales o de respaldo de la firma Android
+android/key.properties~
+android/key.properties.bak
+android/key.properties.backup
+android/key.properties.old
+android/key.properties.orig
+android/key.properties.tmp
+android/app/*.jks.*
+android/app/*.jks~
+android/app/*.keystore.*
+android/app/*.keystore~
