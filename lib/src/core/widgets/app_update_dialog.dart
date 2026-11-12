@@ -15,10 +15,15 @@ class AppUpdateDialog extends StatefulWidget {
   static bool _isShowing = false;
 
   static Future<void> show(BuildContext context, UpdateInfo updateInfo) async {
-    if (_isShowing) return;
+    if (_isShowing || !context.mounted) return;
+    if (!updateInfo.isMandatory &&
+        AppUpdateService.instance.isUpdateDialogDismissed) {
+      return;
+    }
     _isShowing = true;
     try {
-      await showDialog(
+      if (!context.mounted) return;
+      await showDialog<void>(
         context: context,
         barrierDismissible: !updateInfo.isMandatory,
         builder: (_) => AppUpdateDialog(updateInfo: updateInfo),
@@ -107,6 +112,11 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
 
     return PopScope(
       canPop: !widget.updateInfo.isMandatory && !_isDownloading,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop && !widget.updateInfo.isMandatory) {
+          AppUpdateService.instance.markUpdateDialogDismissed();
+        }
+      },
       child: Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         backgroundColor: cardBg,
@@ -169,7 +179,7 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
-                                  'v${widget.updateInfo.latestVersion}',
+                                  'v${widget.updateInfo.latestDisplayVersion}',
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
@@ -178,7 +188,7 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
                                 ),
                               ),
                               Text(
-                                'Actual: v${widget.updateInfo.currentVersion}',
+                                'Actual: v${widget.updateInfo.currentDisplayVersion}',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 11,
                                   color: subtitleColor,
@@ -368,7 +378,10 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
                 if (!widget.updateInfo.isMandatory && !_isDownloading) ...[
                   const SizedBox(height: 8),
                   TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () {
+                      AppUpdateService.instance.markUpdateDialogDismissed();
+                      Navigator.of(context).pop();
+                    },
                     child: Text(
                       'Recordarme más tarde',
                       style: GoogleFonts.plusJakartaSans(

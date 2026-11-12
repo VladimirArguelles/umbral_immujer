@@ -41,13 +41,21 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
     super.initState();
     _currentProfile = widget.profile;
     _coordinatorRepository = CoordinatorRepository(SupabaseConfig.client);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkAppUpdateSilently();
-    });
+    if (_currentProfile.rol == UserRole.coordinador &&
+        !AppUpdateService.instance.hasCheckedUpdate &&
+        !AppUpdateService.instance.isUpdateDialogDismissed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkAppUpdateSilently();
+      });
+    }
   }
 
   Future<void> _checkAppUpdateSilently() async {
-    if (!mounted || _currentIndex != 0) return;
+    if (!mounted ||
+        _currentIndex != 0 ||
+        _currentProfile.rol != UserRole.coordinador) {
+      return;
+    }
     await AppUpdateService.instance.checkAndShowUpdateModal(context);
   }
 

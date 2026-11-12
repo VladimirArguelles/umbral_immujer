@@ -79,9 +79,12 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
   void initState() {
     super.initState();
     _loadMetrics();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkAppUpdateSilently();
-    });
+    if (!AppUpdateService.instance.hasCheckedUpdate &&
+        !AppUpdateService.instance.isUpdateDialogDismissed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkAppUpdateSilently();
+      });
+    }
   }
 
   Future<void> _checkAppUpdateSilently() async {
@@ -147,6 +150,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
   }
 
   Future<void> _handleSignOut() async {
+    AppUpdateService.resetSessionCheck();
     await SupabaseConfig.client.auth.signOut();
     if (mounted) {
       context.go('/login');

@@ -41,13 +41,21 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     _currentProfile = widget.profile;
     _currentIndex = widget.initialIndex.clamp(0, 3);
     _studentRepository = StudentRepository(SupabaseConfig.client);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkAppUpdateSilently();
-    });
+    if (_currentProfile.rol == UserRole.alumno &&
+        !AppUpdateService.instance.hasCheckedUpdate &&
+        !AppUpdateService.instance.isUpdateDialogDismissed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkAppUpdateSilently();
+      });
+    }
   }
 
   Future<void> _checkAppUpdateSilently() async {
-    if (!mounted || _currentIndex != 0) return;
+    if (!mounted ||
+        _currentIndex != 0 ||
+        _currentProfile.rol != UserRole.alumno) {
+      return;
+    }
     await AppUpdateService.instance.checkAndShowUpdateModal(context);
   }
 

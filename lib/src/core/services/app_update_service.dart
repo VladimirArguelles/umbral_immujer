@@ -17,6 +17,8 @@ class UpdateInfo {
   final bool hasUpdate;
   final String currentVersion;
   final String latestVersion;
+  final int? currentBuildNumber;
+  final int? latestBuildNumber;
   final String apkUrl;
   final String releaseNotes;
   final bool isMandatory;
@@ -25,10 +27,20 @@ class UpdateInfo {
     required this.hasUpdate,
     required this.currentVersion,
     required this.latestVersion,
+    this.currentBuildNumber,
+    this.latestBuildNumber,
     required this.apkUrl,
     required this.releaseNotes,
     this.isMandatory = false,
   });
+
+  String get currentDisplayVersion => currentBuildNumber != null
+      ? '$currentVersion+$currentBuildNumber'
+      : currentVersion;
+
+  String get latestDisplayVersion => latestBuildNumber != null
+      ? '$latestVersion+$latestBuildNumber'
+      : latestVersion;
 }
 
 /// Servicio que gestiona la detección de nuevas versiones y actualización In-App del APK.
@@ -39,38 +51,58 @@ class AppUpdateService {
   static const String defaultReleaseUrl =
       'https://github.com/VladimirArguelles/umbral_immujer/releases/latest';
 
-  static bool _hasPromptedThisSession = false;
+  static bool _hasCheckedUpdate = false;
+  static bool _isUpdateDialogDismissed = false;
   static bool _isCheckingThisSession = false;
 
-  /// Restablece la bandera de verificación de actualización para nueva sesión (ej. tras logout).
+  bool get hasCheckedUpdate => _hasCheckedUpdate;
+  bool get isUpdateDialogDismissed => _isUpdateDialogDismissed;
+
+  /// Marca que el usuario pospuso o cerró el diálogo de actualización en esta sesión.
+  void markUpdateDialogDismissed() {
+    _isUpdateDialogDismissed = true;
+  }
+
+  /// Restablece las banderas de verificación de actualización para nueva sesión (ej. tras logout).
   static void resetSessionCheck() {
-    _hasPromptedThisSession = false;
+    _hasCheckedUpdate = false;
+    _isUpdateDialogDismissed = false;
     _isCheckingThisSession = false;
   }
 
   /// Verifica si hay una actualización disponible y muestra el diálogo modal únicamente
-  /// si el usuario se encuentra en la pantalla principal de inicio (Dashboard inicial tras el login),
-  /// evitando que aparezca al navegar entre otros módulos inferiores o secundarios, salvo que
-  /// se fuerce explícitamente (`force: true`).
+  /// una vez por sesión en la pantalla raíz principal (Dashboard inicial del rol),
+  /// evitando que reaparezca al navegar entre módulos o tras pulsar "Recordarme más tarde",
+  /// salvo que se fuerce explícitamente (`force: true`).
   Future<void> checkAndShowUpdateModal(
     BuildContext context, {
     bool force = false,
   }) async {
-    if ((!force && _hasPromptedThisSession) || _isCheckingThisSession) {
+    if (!force && (_hasCheckedUpdate || _isUpdateDialogDismissed)) {
+      return;
+    }
+    if (_isCheckingThisSession) {
       return;
     }
 
     if (!context.mounted) return;
     if (!force && !_isActiveRootDashboard(context)) return;
 
+    // Fija la bandera antes de la llamada asíncrona para evitar verificaciones
+    // duplicadas si el usuario cambia de módulo antes de recibir respuesta.
+    if (!force) {
+      _hasCheckedUpdate = true;
+    }
     _isCheckingThisSession = true;
+
     try {
       final info = await checkForUpdate();
       if (!context.mounted) return;
       if (!force && !_isActiveRootDashboard(context)) return;
+      if (!force && _isUpdateDialogDismissed) return;
 
-      _hasPromptedThisSession = true;
       if (info.hasUpdate) {
+        if (!context.mounted) return;
         await AppUpdateDialog.show(context, info);
       }
     } catch (e) {
@@ -178,18 +210,63 @@ class AppUpdateService {
     return '${parts[0]}.${parts[1]}.${parts[2]}';
   }
 
+  /// Extrae el número de compilación entero (`buildNumber` / `versionCode`).
+  /// Prioriza [explicitBuildNumber] (ej. `PackageInfo.buildNumber` o la clave
+  /// `app_build_number` de Supabase) y, si no está disponible, busca el sufijo
+  /// `+<numero>` en [rawVersion] (ej. `'0.1.3+4'` -> `4`, `'0.1+3'` -> `3`).
+  static int? parseBuildNumber(
+    String rawVersion, {
+    dynamic explicitBuildNumber,
+  }) {
+    if (explicitBuildNumber != null) {
+      if (explicitBuildNumber is int) {
+        return explicitBuildNumber > 0 ? explicitBuildNumber : null;
+      }
+      if (explicitBuildNumber is num) {
+        final intVal = explicitBuildNumber.toInt();
+        return intVal > 0 ? intVal : null;
+      }
+      final cleanedExplicit = explicitBuildNumber
+          .toString()
+          .replaceAll('"', '')
+          .replaceAll("'", '')
+          .trim();
+      final parsedExplicit = int.tryParse(cleanedExplicit);
+      if (parsedExplicit != null && parsedExplicit > 0) {
+        return parsedExplicit;
+      }
+    }
+
+    final cleanVersion =
+        rawVersion.trim().replaceAll('"', '').replaceAll("'", '');
+    if (!cleanVersion.contains('+')) return null;
+
+    final buildSegment = cleanVersion.split('+').last.trim();
+    final digits = RegExp(r'\d+').firstMatch(buildSegment)?.group(0);
+    if (digits == null) return null;
+    final parsed = int.tryParse(digits);
+    return (parsed != null && parsed > 0) ? parsed : null;
+  }
+
   /// Verifica si existe una versión superior a la actualmente instalada.
   Future<UpdateInfo> checkForUpdate({SupabaseClient? client}) async {
-    String currentVer = '0.1.0';
+    String currentVerRaw = '0.1.0';
+    String currentBuildRaw = '';
     try {
       final info = await PackageInfo.fromPlatform();
-      currentVer = info.version;
+      currentVerRaw = info.version;
+      currentBuildRaw = info.buildNumber;
     } catch (e) {
       debugPrint('[AppUpdateService] No se pudo obtener PackageInfo: $e');
     }
 
-    final localSemverClean = formatSemver(currentVer);
-    String latestVer = localSemverClean;
+    final localSemverClean = formatSemver(currentVerRaw);
+    final localBuildNumber = parseBuildNumber(
+      currentVerRaw,
+      explicitBuildNumber: currentBuildRaw,
+    );
+    String latestVerRaw = localSemverClean;
+    int? remoteBuildNumber;
     String apkUrl = defaultReleaseUrl;
     String notes =
         'Mejoras de rendimiento, corrección de interfaz y nuevas funcionalidades.';
@@ -202,6 +279,7 @@ class AppUpdateService {
           .select('clave, valor')
           .inFilter('clave', [
             'app_version_latest',
+            'app_build_number',
             'app_apk_url',
             'app_update_notes',
             'app_update_mandatory',
@@ -211,7 +289,12 @@ class AppUpdateService {
         final clave = item['clave']?.toString();
         final valor = item['valor'];
         if (clave == 'app_version_latest' && valor != null) {
-          latestVer = valor.toString().replaceAll('"', '').trim();
+          latestVerRaw = valor.toString().replaceAll('"', '').trim();
+        } else if (clave == 'app_build_number' && valor != null) {
+          remoteBuildNumber = parseBuildNumber(
+            '',
+            explicitBuildNumber: valor,
+          );
         } else if (clave == 'app_apk_url' && valor != null) {
           apkUrl = valor.toString().replaceAll('"', '').trim();
         } else if (clave == 'app_update_notes' && valor != null) {
@@ -223,8 +306,9 @@ class AppUpdateService {
                   'true';
         }
       }
+      remoteBuildNumber ??= parseBuildNumber(latestVerRaw);
       debugPrint(
-        '[AppUpdateService] Versión local semver: $localSemverClean | Versión remota: $latestVer | APK: $apkUrl',
+        '[AppUpdateService] Local: $localSemverClean (build: $localBuildNumber) | Remota: $latestVerRaw (build: $remoteBuildNumber) | APK: $apkUrl',
       );
     } catch (e) {
       debugPrint(
@@ -232,17 +316,51 @@ class AppUpdateService {
       );
     }
 
-    final remoteSemverClean = formatSemver(latestVer);
-    final hasUpdate = isVersionGreater(remoteSemverClean, localSemverClean);
+    final remoteSemverClean = formatSemver(latestVerRaw);
+    final hasUpdate = isUpdateAvailable(
+      remoteVersion: latestVerRaw,
+      currentVersion: currentVerRaw,
+      remoteBuildNumber: remoteBuildNumber,
+      currentBuildNumber: localBuildNumber,
+    );
 
     return UpdateInfo(
       hasUpdate: hasUpdate,
       currentVersion: localSemverClean,
       latestVersion: remoteSemverClean,
+      currentBuildNumber: localBuildNumber,
+      latestBuildNumber: remoteBuildNumber,
       apkUrl: apkUrl.isNotEmpty ? apkUrl : defaultReleaseUrl,
       releaseNotes: notes,
       isMandatory: isMandatory,
     );
+  }
+
+  /// Evalúa si existe una actualización disponible evitando falsos positivos.
+  ///
+  /// 1. Si se dispone tanto del `build_number` remoto como del local (> 0),
+  ///    compara numéricamente sus enteros (`remoteBuildNumber > currentBuildNumber`).
+  /// 2. Si el servidor no especifica `build_number`, normaliza ambos strings
+  ///    eliminando prefijos `'v'` y sufijos `'+'`/`'-'`, y compara Semver (`major.minor.patch`).
+  static bool isUpdateAvailable({
+    required String remoteVersion,
+    required String currentVersion,
+    int? remoteBuildNumber,
+    int? currentBuildNumber,
+  }) {
+    final resolvedRemoteBuild =
+        remoteBuildNumber ?? parseBuildNumber(remoteVersion);
+    final resolvedCurrentBuild =
+        currentBuildNumber ?? parseBuildNumber(currentVersion);
+
+    if (resolvedRemoteBuild != null &&
+        resolvedCurrentBuild != null &&
+        resolvedRemoteBuild > 0 &&
+        resolvedCurrentBuild > 0) {
+      return resolvedRemoteBuild > resolvedCurrentBuild;
+    }
+
+    return isVersionGreater(remoteVersion, currentVersion);
   }
 
   /// Compara dos strings semánticos de versión (ej. '0.2.0' vs '0.1.0' o '0.1.3' vs '0.1.2+3').

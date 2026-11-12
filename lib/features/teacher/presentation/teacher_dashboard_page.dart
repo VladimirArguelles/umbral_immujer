@@ -40,13 +40,21 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
     _currentProfile = widget.profile;
     _currentIndex = widget.initialIndex.clamp(0, 4);
     _teacherRepository = TeacherRepository(SupabaseConfig.client);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkAppUpdateSilently();
-    });
+    if (_currentProfile.rol == UserRole.profesor &&
+        !AppUpdateService.instance.hasCheckedUpdate &&
+        !AppUpdateService.instance.isUpdateDialogDismissed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkAppUpdateSilently();
+      });
+    }
   }
 
   Future<void> _checkAppUpdateSilently() async {
-    if (!mounted || _currentIndex != 0) return;
+    if (!mounted ||
+        _currentIndex != 0 ||
+        _currentProfile.rol != UserRole.profesor) {
+      return;
+    }
     await AppUpdateService.instance.checkAndShowUpdateModal(context);
   }
 
