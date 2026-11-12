@@ -190,11 +190,12 @@ Siempre que se realice cualquier modificación en la aplicación o su interfaz:
 1. **Incremento de Versión en `pubspec.yaml`:** Incrementar obligatoriamente la versión canónica y número de compilación (`version: major.minor.patch+build_number`, ej: de `0.1.4+5` a `0.1.5+6`).
 2. **Actualización del Archivo de la Aplicación y Assets:**
    - Compilar y actualizar la salida web en `docs/` (`flutter build web --release --base-href "/umbral_immujer/" --output docs --dart-define-from-file=.env`).
-   - Garantizar la generación y publicación del nuevo archivo binario de la aplicación (`app-release.apk`) mediante el flujo automatizado de GitHub Actions (`.github/workflows/build_apk.yml`) al hacer push a `main`.
+   - Ruta local del paquete binario compilado: `build/app/outputs/flutter-apk/app-release.apk`.
+   - Garantizar la generación y publicación del nuevo archivo binario de la aplicación firmado con el keystore oficial de release (`release-keystore.jks`, alias `umbral_key`) mediante el flujo automatizado de GitHub Actions (`.github/workflows/build_apk.yml`) al hacer push a `main`, evitando discrepancias de certificados que causen el error *"No se instaló la aplicación"*.
 3. **Sincronización en Base de Datos Supabase (`configuracion_general`):**
    - `app_version_latest`: Fijar a la nueva versión canónica (ej: `'0.1.5'`).
    - `app_build_number`: Fijar al nuevo entero de compilación (ej: `6`).
-   - `app_apk_url`: Asegurar que apunte a `https://github.com/VladimirArguelles/umbral_immujer/releases/latest/download/app-release.apk`.
+   - `app_apk_url`: Asegurar que apunte a la ruta canónica de descarga directa del asset en GitHub Releases: `https://github.com/VladimirArguelles/umbral_immujer/releases/download/latest/app-release.apk`.
    - `app_update_notes`: Redactar las notas resumidas de los cambios de la versión.
 4. **Activación de Notificación en Clientes:** La combinación de versión superior y nuevo `build_number` en Supabase garantiza que todos los dispositivos móviles activos detecten la actualización inmediatamente al abrir la app o dashboard y presenten el modal de descarga e instalación.
 
