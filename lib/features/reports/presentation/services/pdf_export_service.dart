@@ -567,4 +567,104 @@ class PdfExportService {
       ],
     );
   }
+
+  // ===========================================================================
+  // 5. REPORTE OFICIAL DE INSCRIPCIONES
+  // ===========================================================================
+  static Future<Uint8List> generarReporteInscripciones({
+    required List<ReporteInscripcion> inscripciones,
+    required String cursoSeleccionadoNombre,
+  }) async {
+    final pdf = pw.Document();
+    final fechaActual = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
+    final activosCount = inscripciones
+        .where((i) => i.estadoInscripcion.toLowerCase() == 'activo')
+        .length;
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4.landscape,
+        margin: const pw.EdgeInsets.all(28),
+        header: (context) => _buildHeader(
+          titulo: 'REPORTE OFICIAL DE INSCRIPCIONES',
+          subtitulo: 'Registro Cronológico de Aspirantes y Cupos por Curso',
+          fechaActual: fechaActual,
+        ),
+        footer: (context) => _buildFooter(context),
+        build: (context) => [
+          _buildInfoBanner(
+            curso: cursoSeleccionadoNombre,
+            profesor: inscripciones.isNotEmpty
+                ? inscripciones.first.profesorNombre
+                : 'Sin asignar',
+            horario: inscripciones.isNotEmpty
+                ? inscripciones.first.horario
+                : 'Por definir',
+            totalRegistros: inscripciones.length,
+            extraEtiqueta: 'INSCRIPCIONES ACTIVAS',
+            extraValor: '$activosCount / ${inscripciones.length}',
+          ),
+          pw.SizedBox(height: 14),
+          pw.TableHelper.fromTextArray(
+            border: pw.TableBorder.all(color: borderLight, width: 0.5),
+            headerStyle: pw.TextStyle(
+              fontSize: 8.5,
+              fontWeight: pw.FontWeight.bold,
+              color: primaryColor,
+            ),
+            headerDecoration: const pw.BoxDecoration(color: tableHeaderBg),
+            cellStyle: const pw.TextStyle(fontSize: 7.8, color: textDark),
+            cellAlignment: pw.Alignment.centerLeft,
+            cellHeight: 22,
+            headerHeight: 26,
+            rowDecoration: const pw.BoxDecoration(color: PdfColors.white),
+            oddRowDecoration: const pw.BoxDecoration(color: alternateRowBg),
+            headers: [
+              '#',
+              'FECHA',
+              'CÉDULA',
+              'NOMBRE COMPLETO',
+              'CURSO',
+              'TELÉFONO',
+              'CORREO',
+              'ORIGEN',
+              'ESTADO',
+            ],
+            columnWidths: {
+              0: const pw.FixedColumnWidth(22),
+              1: const pw.FixedColumnWidth(68),
+              2: const pw.FixedColumnWidth(58),
+              3: const pw.FlexColumnWidth(2.1),
+              4: const pw.FlexColumnWidth(1.8),
+              5: const pw.FixedColumnWidth(68),
+              6: const pw.FlexColumnWidth(1.8),
+              7: const pw.FixedColumnWidth(52),
+              8: const pw.FixedColumnWidth(48),
+            },
+            data: List.generate(inscripciones.length, (index) {
+              final item = inscripciones[index];
+              final fechaStr = item.fechaInscripcion != null
+                  ? DateFormat('dd/MM/yyyy HH:mm').format(item.fechaInscripcion!)
+                  : 'N/A';
+              return [
+                (index + 1).toString(),
+                fechaStr,
+                item.cedula,
+                item.nombreCompleto.toUpperCase(),
+                item.cursoNombre,
+                item.telefono.isNotEmpty ? item.telefono : 'N/A',
+                item.correo.isNotEmpty ? item.correo : 'N/A',
+                item.origen.toUpperCase(),
+                item.estadoInscripcion.toUpperCase(),
+              ];
+            }),
+          ),
+          pw.SizedBox(height: 28),
+          _buildSignatureSection(),
+        ],
+      ),
+    );
+
+    return pdf.save();
+  }
 }

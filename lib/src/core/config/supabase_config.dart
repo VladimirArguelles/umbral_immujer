@@ -6,25 +6,37 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class SupabaseConfig {
   static SupabaseClient get client => Supabase.instance.client;
 
-  static const String _envUrl = String.fromEnvironment('SUPABASE_URL');
+  static const String defaultProjectUrl =
+      'https://kkgacvhbcxgoxjpnkxmw.supabase.co';
+
+  static const String _envUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: defaultProjectUrl,
+  );
   static const String _envKey = String.fromEnvironment(
     'SUPABASE_PUBLISHABLE_KEY',
     defaultValue: String.fromEnvironment('SUPABASE_ANON_KEY'),
   );
 
-  static String get url => _envUrl;
-  static String get key => _envKey;
+  static String get url {
+    final trimmed = _envUrl.trim();
+    if (trimmed.isEmpty || trimmed.contains('your-project.supabase.co')) {
+      return defaultProjectUrl;
+    }
+    return trimmed;
+  }
+
+  static String get key => _envKey.trim();
 
   static Future<void> initialize() async {
-    final resolvedUrl = url.trim();
-    final resolvedKey = key.trim();
+    final resolvedUrl = url;
+    final resolvedKey = key;
 
-    if (resolvedUrl.isEmpty || resolvedKey.isEmpty) {
+    if (resolvedKey.isEmpty || resolvedKey == 'your-anon-key-here') {
       throw StateError(
-        'Seguridad UMBRAL: SUPABASE_URL y SUPABASE_ANON_KEY / SUPABASE_PUBLISHABLE_KEY '
-        'deben ser suministrados exclusivamente mediante el archivo .env usando '
-        '--dart-define-from-file=.env o mediante --dart-define. '
-        'No se permiten credenciales hardcodeadas en el código fuente.',
+        'Seguridad UMBRAL: SUPABASE_ANON_KEY / SUPABASE_PUBLISHABLE_KEY '
+        'debe ser suministrado mediante .env (--dart-define-from-file=.env) '
+        'o --dart-define. No se permiten claves API hardcodeadas ni de ejemplo.',
       );
     }
 

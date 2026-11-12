@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:umbral_immujer/features/profile/data/profile_repository.dart';
+import 'package:umbral_immujer/features/profile/presentation/profile_modal.dart';
 import 'package:umbral_immujer/features/superadmin/domain/super_admin_metrics.dart';
 import 'package:umbral_immujer/features/superadmin/presentation/widgets/super_admin_theme_tokens.dart';
+import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 
 /// Opens the quick system settings modal bottom sheet for Super Admin.
@@ -126,6 +129,35 @@ Future<void> showSuperAdminSettingsSheet(
                     },
                   ),
                   const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: SuperAdminTokens.textMain,
+                        side: const BorderSide(color: SuperAdminTokens.border),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: () async {
+                        final parentNavigator = Navigator.of(context);
+                        parentNavigator.pop();
+                        final current = await ProfileRepository(
+                          SupabaseConfig.client,
+                        ).getCurrentProfile();
+                        if (current != null && context.mounted) {
+                          await ProfileModal.show(context, profile: current);
+                        }
+                      },
+                      icon: const Icon(Symbols.person),
+                      label: const Text(
+                        'Mi Perfil y Contraseña',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(

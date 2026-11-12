@@ -1,5 +1,6 @@
 enum TipoReporte {
   alumnos('Matrícula de Alumnos', 'Listado oficial de inscripciones y datos de contacto'),
+  inscripciones('Inscripciones', 'Registro oficial de aspirantes inscritos por fecha, curso y origen'),
   asistencia('Sábana de Asistencia', 'Histórico detallado y porcentaje de asistencia por fecha'),
   temario('Plan Curricular / Temas', 'Módulos, temas y cronograma de formación'),
   profesores('Carga Docente', 'Asignación de profesores y matrícula por curso');
@@ -185,6 +186,64 @@ class ReporteAsistenciaDetallada {
       nombreCompleto: map['nombre_completo'] as String? ?? '',
       fecha: DateTime.tryParse(map['fecha']?.toString() ?? '') ?? DateTime.now(),
       estado: map['estado'] as String? ?? 'Presente',
+    );
+  }
+}
+
+class ReporteInscripcion {
+  final String inscripcionId;
+  final String cursoId;
+  final String cursoNombre;
+  final String horario;
+  final int cupoMaximo;
+  final String profesorNombre;
+  final String alumnoId;
+  final String cedula;
+  final String nombreCompleto;
+  final String correo;
+  final String telefono;
+  final String estadoInscripcion;
+  final String origen;
+  final String? observaciones;
+  final DateTime? fechaInscripcion;
+
+  const ReporteInscripcion({
+    required this.inscripcionId,
+    required this.cursoId,
+    required this.cursoNombre,
+    required this.horario,
+    required this.cupoMaximo,
+    required this.profesorNombre,
+    required this.alumnoId,
+    required this.cedula,
+    required this.nombreCompleto,
+    required this.correo,
+    required this.telefono,
+    required this.estadoInscripcion,
+    required this.origen,
+    this.observaciones,
+    this.fechaInscripcion,
+  });
+
+  factory ReporteInscripcion.fromMap(Map<String, dynamic> map) {
+    return ReporteInscripcion(
+      inscripcionId: map['inscripcion_id']?.toString() ?? '',
+      cursoId: map['curso_id']?.toString() ?? '',
+      cursoNombre: map['curso_nombre']?.toString() ?? '',
+      horario: map['horario']?.toString() ?? 'Por definir',
+      cupoMaximo: (map['cupo_maximo'] as num?)?.toInt() ?? 30,
+      profesorNombre: map['profesor_nombre']?.toString() ?? 'Sin asignar',
+      alumnoId: map['alumno_id']?.toString() ?? '',
+      cedula: map['cedula']?.toString() ?? '',
+      nombreCompleto: map['nombre_completo']?.toString() ?? '',
+      correo: map['correo']?.toString() ?? '',
+      telefono: map['telefono']?.toString() ?? '',
+      estadoInscripcion: map['estado_inscripcion']?.toString() ?? 'activo',
+      origen: map['origen']?.toString() ?? 'formulario',
+      observaciones: map['observaciones'] as String?,
+      fechaInscripcion: map['fecha_inscripcion'] != null
+          ? DateTime.tryParse(map['fecha_inscripcion'].toString())?.toLocal()
+          : null,
     );
   }
 }

@@ -188,3 +188,36 @@ class OperadorTemporal {
     );
   }
 }
+
+class InscripcionesPeriodoConfig {
+  final bool activasFlag;
+  final bool activasEfectivo;
+  final bool enRangoFechas;
+  final DateTime? fechaInicio;
+  final DateTime? fechaFin;
+
+  const InscripcionesPeriodoConfig({
+    required this.activasFlag,
+    required this.activasEfectivo,
+    required this.enRangoFechas,
+    this.fechaInicio,
+    this.fechaFin,
+  });
+
+  factory InscripcionesPeriodoConfig.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDateOnly(dynamic raw) {
+      if (raw == null) return null;
+      final str = raw.toString().replaceAll('"', '').trim();
+      if (str.isEmpty || str == 'null') return null;
+      return DateTime.tryParse(str);
+    }
+
+    return InscripcionesPeriodoConfig(
+      activasFlag: (json['activas_flag'] as bool?) ?? false,
+      activasEfectivo: (json['activas_efectivo'] as bool?) ?? false,
+      enRangoFechas: (json['en_rango_fechas'] as bool?) ?? true,
+      fechaInicio: parseDateOnly(json['fecha_inicio']),
+      fechaFin: parseDateOnly(json['fecha_fin']),
+    );
+  }
+}

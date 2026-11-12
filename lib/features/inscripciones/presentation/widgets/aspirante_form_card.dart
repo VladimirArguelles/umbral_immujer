@@ -143,10 +143,28 @@ class AspiranteFormCard extends StatelessWidget {
               isExpanded: true,
               dropdownColor: AppTheme.dynamicSurfaceContainer,
               style: TextStyle(color: AppTheme.dynamicText, fontSize: 13.5),
+              hint: Align(
+                alignment: Alignment.centerLeft,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Selecciona un curso con cupos disponibles',
+                    maxLines: 1,
+                    softWrap: false,
+                    style: TextStyle(
+                      color: AppTheme.dynamicTextMuted,
+                      fontSize: 13.5,
+                    ),
+                  ),
+                ),
+              ),
               decoration: const InputDecoration(
-                hintText: 'Selecciona un curso con cupos disponibles',
                 prefixIcon: Icon(Symbols.school, size: 20),
-                isDense: true,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 14,
+                ),
               ),
               items: cursos.map((curso) {
                 final disabled = !curso.puedeInscribir;

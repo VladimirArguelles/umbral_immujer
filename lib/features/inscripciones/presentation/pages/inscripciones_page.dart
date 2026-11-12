@@ -10,6 +10,7 @@ import 'package:umbral_immujer/features/inscripciones/domain/inscripcion_models.
 import 'package:umbral_immujer/features/inscripciones/presentation/widgets/aspirante_form_card.dart';
 import 'package:umbral_immujer/features/inscripciones/presentation/widgets/curso_cupo_card.dart';
 import 'package:umbral_immujer/features/inscripciones/presentation/widgets/inscripciones_admin_panel_widget.dart';
+import 'package:umbral_immujer/features/profile/presentation/profile_header_actions.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/features/auth/data/auth_repository.dart';
@@ -619,6 +620,8 @@ class _InscripcionesPageState extends State<InscripcionesPage> {
         children: [
           Row(
             children: [
+              UserProfileAvatarButton(profile: widget.profile),
+              const SizedBox(width: 6),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

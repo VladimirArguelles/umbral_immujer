@@ -38,13 +38,17 @@ jobs:
       - name: 5. Prepare Environment Configuration (.env)
         env:
           ENV_FILE_CONTENT: ${{ secrets.ENV_FILE }}
+          SECRET_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SECRET_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           if [ -n "$ENV_FILE_CONTENT" ]; then
-            echo "$ENV_FILE_CONTENT" > .env
-          elif [ -f .env.example ]; then
-            cp .env.example .env
+            printf '%s\n' "$ENV_FILE_CONTENT" > .env
+          elif [ -n "$SECRET_SUPABASE_ANON_KEY" ]; then
+            FINAL_URL="${SECRET_SUPABASE_URL:-https://kkgacvhbcxgoxjpnkxmw.supabase.co}"
+            printf 'SUPABASE_URL=%s\nSUPABASE_ANON_KEY=%s\n' "$FINAL_URL" "$SECRET_SUPABASE_ANON_KEY" > .env
           else
-            touch .env
+            echo "::error::No se encontraron secretos SUPABASE_ANON_KEY ni ENV_FILE en GitHub Actions. Evitando usar .env.example."
+            exit 1
           fi
 
       - name: 6. Accept Android Licenses
@@ -54,7 +58,24 @@ jobs:
         run: flutter pub get
 
       - name: 8. Build Release APK
-        run: flutter build apk --release --dart-define-from-file=.env
+        env:
+          SECRET_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SECRET_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -f .env ]; then
+            set -a
+            . ./.env
+            set +a
+          fi
+          FINAL_URL="${SECRET_SUPABASE_URL:-${SUPABASE_URL:-https://kkgacvhbcxgoxjpnkxmw.supabase.co}}"
+          FINAL_KEY="${SECRET_SUPABASE_ANON_KEY:-${SUPABASE_ANON_KEY:-${SUPABASE_PUBLISHABLE_KEY:-}}}"
+          if [ -z "$FINAL_KEY" ] || [ "$FINAL_KEY" = "your-anon-key-here" ]; then
+            echo "::error::SUPABASE_ANON_KEY inválido o ausente en los secretos de GitHub."
+            exit 1
+          fi
+          flutter build apk --release \
+            --dart-define=SUPABASE_URL="$FINAL_URL" \
+            --dart-define=SUPABASE_ANON_KEY="$FINAL_KEY"
 
       - name: 9. Upload Release APK Artifact
         uses: actions/upload-artifact@v4

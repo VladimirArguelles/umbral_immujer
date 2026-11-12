@@ -41,6 +41,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   // Data lists
   List<ReporteAlumnoInscrito> _alumnos = [];
+  List<ReporteInscripcion> _inscripciones = [];
   List<ReporteProfesorCurso> _profesores = [];
   List<ReporteTemaCurso> _temas = [];
   List<ReporteAsistenciaDetallada> _asistencias = [];
@@ -92,6 +93,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
       switch (_tipoReporte) {
         case TipoReporte.alumnos:
           _alumnos = await _repo.getAlumnosPorCurso(cursoId: cursoId);
+          break;
+        case TipoReporte.inscripciones:
+          _inscripciones = await _repo.getInscripcionesReporte(
+            cursoId: cursoId,
+          );
           break;
         case TipoReporte.asistencia:
           _asistencias = await _repo.getAsistenciaDetallada(cursoId: cursoId);
@@ -145,6 +151,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
         }
         return await PdfExportService.generarReporteAlumnos(
           alumnos: _filteredAlumnos,
+          cursoSeleccionadoNombre: cursoNombre,
+        );
+
+      case TipoReporte.inscripciones:
+        if (_inscripciones.isEmpty) {
+          _showSnack('No hay registros de inscripciones para exportar.');
+          return null;
+        }
+        return await PdfExportService.generarReporteInscripciones(
+          inscripciones: _filteredInscripciones,
           cursoSeleccionadoNombre: cursoNombre,
         );
 
@@ -207,6 +223,52 @@ class _ReportsScreenState extends State<ReportsScreen> {
           }),
           totalsRow: {
             'N°': 'Total: ${_filteredAlumnos.length}',
+          },
+        );
+
+      case TipoReporte.inscripciones:
+        if (_filteredInscripciones.isEmpty) return null;
+        return ReportDataPayload(
+          reportTitle: 'Reporte Oficial de Inscripciones - $cursoNombre',
+          institutionName: 'IMMUJER - Sistema UMBRAL',
+          institutionalId: 'G-20012345-6',
+          kpis: [
+            ReportKpi(
+              label: 'Total Inscripciones',
+              value: '${_filteredInscripciones.length} Registros',
+            ),
+            ReportKpi(label: 'Curso', value: cursoNombre),
+          ],
+          headers: const [
+            'N°',
+            'FECHA',
+            'CÉDULA',
+            'NOMBRE COMPLETO',
+            'CURSO',
+            'TELÉFONO',
+            'CORREO',
+            'ORIGEN',
+            'ESTADO',
+          ],
+          rows: List.generate(_filteredInscripciones.length, (index) {
+            final r = _filteredInscripciones[index];
+            final fechaStr = r.fechaInscripcion != null
+                ? DateFormat('dd/MM/yyyy HH:mm').format(r.fechaInscripcion!)
+                : 'N/A';
+            return [
+              index + 1,
+              fechaStr,
+              r.cedula,
+              r.nombreCompleto.toUpperCase(),
+              r.cursoNombre,
+              r.telefono.isNotEmpty ? r.telefono : 'N/A',
+              r.correo.isNotEmpty ? r.correo : 'N/A',
+              r.origen.toUpperCase(),
+              r.estadoInscripcion.toUpperCase(),
+            ];
+          }),
+          totalsRow: {
+            'N°': 'Total: ${_filteredInscripciones.length}',
           },
         );
 
@@ -370,6 +432,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   // LISTADOS DE DATOS
   // ===========================================================================
   List<ReporteAlumnoInscrito> get _filteredAlumnos => _alumnos;
+  List<ReporteInscripcion> get _filteredInscripciones => _inscripciones;
   List<ReporteProfesorCurso> get _filteredProfesores => _profesores;
   List<ReporteTemaCurso> get _filteredTemas => _temas;
   List<ReporteAsistenciaDetallada> get _filteredAsistencias => _asistencias;
@@ -743,6 +806,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Widget _buildReportContent() {
     final itemCount = switch (_tipoReporte) {
       TipoReporte.alumnos => _filteredAlumnos.length,
+      TipoReporte.inscripciones => _filteredInscripciones.length,
       TipoReporte.asistencia => _filteredAsistencias.length,
       TipoReporte.temario => _filteredTemas.length,
       TipoReporte.profesores => _filteredProfesores.length,
@@ -791,6 +855,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               ? _buildEmptyView()
               : switch (_tipoReporte) {
                   TipoReporte.alumnos => _buildAlumnosTable(),
+                  TipoReporte.inscripciones => _buildInscripcionesTable(),
                   TipoReporte.asistencia => _buildAsistenciaTable(),
                   TipoReporte.temario => _buildTemasTable(),
                   TipoReporte.profesores => _buildProfesoresTable(),
@@ -996,6 +1061,180 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11.5,
                             color: AppTheme.dynamicTextMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildInscripcionesTable() {
+    final list = _filteredInscripciones;
+    final df = DateFormat('dd/MM/yyyy HH:mm');
+    return ListView.separated(
+      padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 88),
+      itemCount: list.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 10),
+      itemBuilder: (context, index) {
+        final r = list[index];
+        final isActivo = r.estadoInscripcion.toLowerCase() == 'activo';
+        final fechaStr = r.fechaInscripcion != null
+            ? df.format(r.fechaInscripcion!)
+            : 'Sin fecha';
+        return Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppTheme.dynamicCard,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppTheme.dynamicBorder),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  CircleAvatar(
+                    radius: 14,
+                    backgroundColor: AppTheme.primary.withValues(alpha: 0.12),
+                    child: Text(
+                      '${index + 1}',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      r.nombreCompleto,
+                      softWrap: true,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.dynamicText,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      r.origen.toUpperCase(),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: isActivo
+                          ? AppTheme.successGreen.withValues(alpha: 0.15)
+                          : AppTheme.warningOrange.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      r.estadoInscripcion.toUpperCase(),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: isActivo
+                            ? AppTheme.successGreen
+                            : AppTheme.warningOrange,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Symbols.school, size: 14, color: AppTheme.primary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'C.I.: ${r.cedula} • ${r.cursoNombre}',
+                      softWrap: true,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.dynamicText,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 12,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Symbols.calendar_today, size: 13, color: AppTheme.dynamicTextMuted),
+                      const SizedBox(width: 4),
+                      Text(
+                        fechaStr,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11.5,
+                          color: AppTheme.dynamicTextMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (r.telefono.isNotEmpty)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Symbols.call, size: 13, color: AppTheme.dynamicTextMuted),
+                        const SizedBox(width: 4),
+                        Text(
+                          r.telefono,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11.5,
+                            color: AppTheme.dynamicTextMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  if (r.correo.isNotEmpty)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Symbols.mail, size: 13, color: AppTheme.dynamicTextMuted),
+                        const SizedBox(width: 4),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 220),
+                          child: Text(
+                            r.correo,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11.5,
+                              color: AppTheme.dynamicTextMuted,
+                            ),
                           ),
                         ),
                       ],

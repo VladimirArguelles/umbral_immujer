@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import 'package:umbral_immujer/features/profile/data/profile_repository.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
@@ -530,6 +531,33 @@ class _ProfileModalState extends State<ProfileModal> {
                 ),
                 const SizedBox(height: 12),
 
+                // Botón Cambiar Contraseña
+                OutlinedButton.icon(
+                  onPressed: _isSaving ? null : _showChangePasswordDialog,
+                  icon: const Icon(
+                    Symbols.lock_reset,
+                    size: 18,
+                    color: AppTheme.primary,
+                  ),
+                  label: const Text(
+                    'Cambiar Contraseña',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: AppTheme.primary,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: AppTheme.primary.withValues(alpha: 0.45)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
                 // Botón Cerrar Sesión
                 OutlinedButton.icon(
                   onPressed: _isSaving ? null : _handleSignOut,
@@ -555,6 +583,181 @@ class _ProfileModalState extends State<ProfileModal> {
         ),
       ),
     );
+  }
+
+  Future<void> _showChangePasswordDialog() async {
+    final formKey = GlobalKey<FormState>();
+    final newPasswordCtrl = TextEditingController();
+    final confirmPasswordCtrl = TextEditingController();
+    bool obscureNew = true;
+    bool obscureConfirm = true;
+    bool isUpdating = false;
+    String? dialogError;
+
+    final updated = await showDialog<bool>(
+      context: context,
+      barrierDismissible: !isUpdating,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppTheme.dynamicCard,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: AppTheme.dynamicBorder),
+          ),
+          title: Row(
+            children: [
+              const Icon(Symbols.lock_reset, color: AppTheme.primary, size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Cambiar Contraseña',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: AppTheme.dynamicText,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: 380,
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Ingresa tu nueva contraseña de acceso (mínimo 6 caracteres).',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: AppTheme.dynamicTextMuted,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: newPasswordCtrl,
+                    obscureText: obscureNew,
+                    enabled: !isUpdating,
+                    style: TextStyle(color: AppTheme.dynamicText),
+                    decoration: InputDecoration(
+                      labelText: 'Nueva contraseña *',
+                      prefixIcon: const Icon(Symbols.lock, size: 18),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscureNew ? Icons.visibility_off : Icons.visibility,
+                          size: 18,
+                        ),
+                        onPressed: () =>
+                            setDialogState(() => obscureNew = !obscureNew),
+                      ),
+                    ),
+                    validator: (v) {
+                      if (v == null || v.trim().length < 6) {
+                        return 'Mínimo 6 caracteres';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: confirmPasswordCtrl,
+                    obscureText: obscureConfirm,
+                    enabled: !isUpdating,
+                    style: TextStyle(color: AppTheme.dynamicText),
+                    decoration: InputDecoration(
+                      labelText: 'Confirmar contraseña *',
+                      prefixIcon: const Icon(Symbols.verified_user, size: 18),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscureConfirm
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          size: 18,
+                        ),
+                        onPressed: () => setDialogState(
+                          () => obscureConfirm = !obscureConfirm,
+                        ),
+                      ),
+                    ),
+                    validator: (v) {
+                      if (v == null || v.trim() != newPasswordCtrl.text.trim()) {
+                        return 'Las contraseñas no coinciden';
+                      }
+                      return null;
+                    },
+                  ),
+                  if (dialogError != null) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      dialogError!,
+                      style: const TextStyle(
+                        color: AppTheme.errorRed,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isUpdating ? null : () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                foregroundColor: AppTheme.onPrimary,
+              ),
+              onPressed: isUpdating
+                  ? null
+                  : () async {
+                      if (!formKey.currentState!.validate()) return;
+                      setDialogState(() {
+                        isUpdating = true;
+                        dialogError = null;
+                      });
+                      try {
+                        await _profileRepo.updatePassword(newPasswordCtrl.text);
+                        if (ctx.mounted) Navigator.of(ctx).pop(true);
+                      } catch (e) {
+                        setDialogState(() {
+                          isUpdating = false;
+                          dialogError = 'No se pudo actualizar: $e';
+                        });
+                      }
+                    },
+              icon: isUpdating
+                  ? const SizedBox(
+                      width: 15,
+                      height: 15,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppTheme.onPrimary,
+                      ),
+                    )
+                  : const Icon(Symbols.save, size: 17),
+              label: Text(isUpdating ? 'Guardando...' : 'Actualizar'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    newPasswordCtrl.dispose();
+    confirmPasswordCtrl.dispose();
+
+    if (updated == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Contraseña actualizada correctamente.'),
+          backgroundColor: AppTheme.successGreen,
+        ),
+      );
+    }
   }
 
   Widget _buildAvatarPlaceholder() {

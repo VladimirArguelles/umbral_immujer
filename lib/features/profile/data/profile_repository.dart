@@ -178,6 +178,23 @@ class ProfileRepository {
     );
   }
 
+  /// Actualiza la contraseña del usuario autenticado en Supabase Auth.
+  Future<void> updatePassword(String newPassword) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) {
+      throw Exception('No hay una sesión activa para actualizar la contraseña.');
+    }
+
+    final trimmed = newPassword.trim();
+    if (trimmed.length < 6) {
+      throw Exception('La nueva contraseña debe tener al menos 6 caracteres.');
+    }
+
+    await _supabase.auth.updateUser(
+      UserAttributes(password: trimmed),
+    );
+  }
+
   /// Cierre de sesión de Supabase
   Future<void> signOut() async {
     await _supabase.auth.signOut();

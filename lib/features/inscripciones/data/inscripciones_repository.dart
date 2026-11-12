@@ -91,36 +91,103 @@ class InscripcionesRepository {
     return channel;
   }
 
-  /// Consulta si la ventana de inscripciones está activa.
-  Future<bool> isInscripcionesActivas() async {
-    try {
-      final row = await _supabase
-          .from('configuracion_general')
-          .select('valor')
-          .eq('clave', 'inscripciones_activas')
-          .maybeSingle();
+  String? _formatDateOnly(DateTime? d) {
+    if (d == null) return null;
+    final y = d.year.toString().padLeft(4, '0');
+    final m = d.month.toString().padLeft(2, '0');
+    final day = d.day.toString().padLeft(2, '0');
+    return '$y-$m-$day';
+  }
 
-      if (row != null) {
-        final val = row['valor'];
-        if (val is bool) return val;
-        if (val is String) {
-          return val.toLowerCase().trim() == 'true' || val.trim() == '1';
-        }
-        if (val is num) return val != 0;
+  DateTime? _parseDateOnly(dynamic raw) {
+    if (raw == null) return null;
+    final str = raw.toString().replaceAll('"', '').trim();
+    if (str.isEmpty || str == 'null') return null;
+    final parsed = DateTime.tryParse(str);
+    if (parsed == null) return null;
+    return DateTime(parsed.year, parsed.month, parsed.day);
+  }
+
+  bool _parseBoolFlag(dynamic val) {
+    if (val is bool) return val;
+    if (val is String) {
+      return val.toLowerCase().trim() == 'true' || val.trim() == '1';
+    }
+    if (val is num) return val != 0;
+    return false;
+  }
+
+  /// Obtiene la configuración completa del periodo (bandera + fechas inicio/fin).
+  Future<InscripcionesPeriodoConfig> getPeriodoConfig() async {
+    try {
+      final rpcRes = await _supabase.rpc<dynamic>('get_inscripciones_periodo_config');
+      if (rpcRes is Map) {
+        return InscripcionesPeriodoConfig.fromJson(
+          Map<String, dynamic>.from(rpcRes),
+        );
       }
     } catch (e) {
       AppLogger.warning(
-        'Aviso al leer inscripciones_activas: $e',
+        'Fallback lectura periodo desde configuracion_general: $e',
         tag: 'INSCRIPCIONES_REPO',
       );
     }
 
+    bool flag = false;
+    DateTime? inicio;
+    DateTime? fin;
+
     try {
-      final res = await _supabase.rpc<bool>('is_inscripciones_activas');
-      return res;
-    } catch (_) {
-      return false;
+      final rows = await _supabase
+          .from('configuracion_general')
+          .select('clave, valor')
+          .inFilter('clave', [
+            'inscripciones_activas',
+            'inscripciones_fecha_inicio',
+            'inscripciones_fecha_fin',
+          ]);
+
+      for (final raw in (rows as List)) {
+        final map = Map<String, dynamic>.from(raw as Map);
+        final clave = map['clave']?.toString();
+        final valor = map['valor'];
+        if (clave == 'inscripciones_activas') {
+          flag = _parseBoolFlag(valor);
+        } else if (clave == 'inscripciones_fecha_inicio') {
+          inicio = _parseDateOnly(valor);
+        } else if (clave == 'inscripciones_fecha_fin') {
+          fin = _parseDateOnly(valor);
+        }
+      }
+    } catch (e) {
+      AppLogger.warning(
+        'Aviso al leer configuracion_general: $e',
+        tag: 'INSCRIPCIONES_REPO',
+      );
+      try {
+        flag = await _supabase.rpc<bool>('is_inscripciones_activas');
+      } catch (_) {}
     }
+
+    final now = DateTime.now();
+    final hoy = DateTime(now.year, now.month, now.day);
+    var enRango = true;
+    if (inicio != null && hoy.isBefore(inicio)) enRango = false;
+    if (fin != null && hoy.isAfter(fin)) enRango = false;
+
+    return InscripcionesPeriodoConfig(
+      activasFlag: flag,
+      activasEfectivo: flag && enRango,
+      enRangoFechas: enRango,
+      fechaInicio: inicio,
+      fechaFin: fin,
+    );
+  }
+
+  /// Consulta si la ventana de inscripciones está activa considerando fechas.
+  Future<bool> isInscripcionesActivas() async {
+    final config = await getPeriodoConfig();
+    return config.activasEfectivo;
   }
 
   /// Verifica si la cédula ya existe en alumnos y si tiene inscripción activa en el curso indicado.
@@ -283,6 +350,98 @@ class InscripcionesRepository {
       },
       onConflict: 'clave',
     );
+  }
+
+  /// Actualiza el periodo de inscripciones (estado + fechas inicio/fin)
+  Future<InscripcionesPeriodoConfig> setInscripcionesPeriodo({
+    required bool activas,
+    DateTime? fechaInicio,
+    DateTime? fechaFin,
+  }) async {
+    if (fechaInicio != null &&
+        fechaFin != null &&
+        fechaFin.isBefore(DateTime(fechaInicio.year, fechaInicio.month, fechaInicio.day))) {
+      throw Exception('La fecha de cierre no puede ser anterior a la fecha de inicio.');
+    }
+
+    final inicioStr = _formatDateOnly(fechaInicio);
+    final finStr = _formatDateOnly(fechaFin);
+
+    try {
+      final rpcRes = await _supabase.rpc<dynamic>(
+        'admin_set_inscripciones_periodo',
+        params: {
+          'p_activas': activas,
+          'p_fecha_inicio': inicioStr,
+          'p_fecha_fin': finStr,
+        },
+      );
+      if (rpcRes is Map) {
+        return InscripcionesPeriodoConfig.fromJson(
+          Map<String, dynamic>.from(rpcRes),
+        );
+      }
+    } catch (e) {
+      AppLogger.warning(
+        'Fallback en admin_set_inscripciones_periodo: $e',
+        tag: 'INSCRIPCIONES_ADMIN',
+      );
+    }
+
+    await setInscripcionesActivas(activas);
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    await _supabase.from('configuracion_general').upsert(
+      [
+        {
+          'clave': 'inscripciones_fecha_inicio',
+          'valor': inicioStr,
+          'descripcion': 'Fecha de inicio (YYYY-MM-DD) del periodo de inscripciones',
+          'actualizado_en': nowIso,
+        },
+        {
+          'clave': 'inscripciones_fecha_fin',
+          'valor': finStr,
+          'descripcion': 'Fecha de cierre (YYYY-MM-DD) del periodo de inscripciones',
+          'actualizado_en': nowIso,
+        },
+      ],
+      onConflict: 'clave',
+    );
+
+    return getPeriodoConfig();
+  }
+
+  /// Actualiza cupo máximo y admisión abierta de un curso específico.
+  Future<void> setCursoCupo({
+    required String cursoId,
+    required int cupoMaximo,
+    bool? admisionAbierta,
+  }) async {
+    try {
+      await _supabase.rpc(
+        'admin_set_curso_cupo',
+        params: {
+          'p_curso_id': cursoId,
+          'p_cupo_maximo': cupoMaximo,
+          'p_admision_abierta': admisionAbierta,
+        },
+      );
+      return;
+    } catch (e) {
+      AppLogger.warning(
+        'Fallback update directo en setCursoCupo: $e',
+        tag: 'INSCRIPCIONES_ADMIN',
+      );
+    }
+
+    final payload = <String, dynamic>{
+      'cupo_maximo': cupoMaximo,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    };
+    if (admisionAbierta != null) {
+      payload['admision_abierta'] = admisionAbierta;
+    }
+    await _supabase.from('cursos').update(payload).eq('id', cursoId);
   }
 
   Future<List<OperadorTemporal>> getOperadoresTemporales() async {

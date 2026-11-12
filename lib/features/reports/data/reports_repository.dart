@@ -98,4 +98,79 @@ class ReportsRepository {
         .map((item) => ReporteAsistenciaDetallada.fromMap(item as Map<String, dynamic>))
         .toList();
   }
+
+  /// Obtiene el listado oficial de inscripciones filtrable por curso.
+  Future<List<ReporteInscripcion>> getInscripcionesReporte({
+    String? cursoId,
+  }) async {
+    try {
+      var query = _client.from('view_reporte_inscripciones').select();
+      if (cursoId != null && cursoId.isNotEmpty && cursoId != 'todos') {
+        query = query.eq('curso_id', cursoId);
+      }
+      final response = await query
+          .order('fecha_inscripcion', ascending: false)
+          .order('nombre_completo');
+      return (response as List)
+          .map((item) => ReporteInscripcion.fromMap(Map<String, dynamic>.from(item as Map)))
+          .toList();
+    } catch (_) {
+      // Fallback directo sobre tabla inscripciones si la vista aún no existe.
+    }
+
+    var query = _client
+        .from('inscripciones')
+        .select('''
+          id,
+          curso_id,
+          alumno_id,
+          estado,
+          origen,
+          observaciones,
+          created_at,
+          cursos:curso_id (
+            nombre,
+            horario,
+            cupo_maximo,
+            perfiles:profesor_id ( nombre_completo )
+          ),
+          alumnos:alumno_id (
+            id,
+            cedula,
+            nombre_completo,
+            correo,
+            telefono
+          )
+        ''')
+        .isFilter('deleted_at', null);
+
+    if (cursoId != null && cursoId.isNotEmpty && cursoId != 'todos') {
+      query = query.eq('curso_id', cursoId);
+    }
+
+    final rows = await query.order('created_at', ascending: false);
+    return (rows as List).map((raw) {
+      final map = Map<String, dynamic>.from(raw as Map);
+      final curso = map['cursos'] as Map<String, dynamic>?;
+      final profesor = curso?['perfiles'] as Map<String, dynamic>?;
+      final alumno = map['alumnos'] as Map<String, dynamic>?;
+      return ReporteInscripcion(
+        inscripcionId: (map['id'] ?? '').toString(),
+        cursoId: (map['curso_id'] ?? '').toString(),
+        cursoNombre: (curso?['nombre'] ?? '').toString(),
+        horario: (curso?['horario'] ?? 'Por definir').toString(),
+        cupoMaximo: (curso?['cupo_maximo'] as num?)?.toInt() ?? 30,
+        profesorNombre: (profesor?['nombre_completo'] ?? 'Sin asignar').toString(),
+        alumnoId: (map['alumno_id'] ?? alumno?['id'] ?? '').toString(),
+        cedula: (alumno?['cedula'] ?? '').toString(),
+        nombreCompleto: (alumno?['nombre_completo'] ?? '').toString(),
+        correo: (alumno?['correo'] ?? '').toString(),
+        telefono: (alumno?['telefono'] ?? '').toString(),
+        estadoInscripcion: (map['estado'] ?? 'activo').toString(),
+        origen: (map['origen'] ?? 'formulario').toString(),
+        observaciones: map['observaciones'] as String?,
+        fechaInscripcion: DateTime.tryParse(map['created_at']?.toString() ?? '')?.toLocal(),
+      );
+    }).toList();
+  }
 }
