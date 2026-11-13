@@ -105,6 +105,32 @@ No se debe asumir nombres de columnas, tablas, rutas, modelos o estados sin veri
 - **Actualización preventiva en `pubspec.yaml`:** Para evitar problemas de compilación con Kotlin a futuro, mantener actualizadas las dependencias declaradas en `pubspec.yaml` (especialmente los paquetes de Firebase como `firebase_core` y `firebase_auth`, además de `firebase_messaging` y otros plugins nativos Android cuando estén presentes o se integren) a sus versiones más recientes compatibles con la versión activa de Flutter, AGP y Kotlin (`android/settings.gradle.kts`).
 - **Validación de compatibilidad:** Antes de integrar o actualizar plugins nativos, verificar versiones con `flutter pub outdated` y confirmar que el análisis estático (`flutter analyze`) y las compilaciones objetivo permanecen estables.
 
+### 3.7. Arquitectura de Configuración Remota y Lógica Desacoplada ("Over-The-Air" / Zero-Rebuild)
+Para permitir la modificación de reglas de negocio, visibilidad de módulos, textos y parámetros visuales en tiempo real sin recompilar el cliente Flutter ni generar nuevos binarios para ajustes operativos menores, el proyecto implementa una arquitectura desacoplada "Zero-Rebuild":
+
+- **1. Capa de Datos Remota (`supabase/migrations/`):**
+  - **Tabla `app_remote_config`:** Almacena parámetros operativos y visuales bajo esquema clave-valor JSONB (`key VARCHAR PRIMARY KEY`, `value JSONB NOT NULL`, `category VARCHAR` (`'ui'`, `'business_rule'`, `'copy'`, `'general'`), `description TEXT`, `updated_at TIMESTAMPTZ` con trigger).
+    - *Valores estándar:* Paleta institucional dinámica (`primary_color`, `background_color`, `card_background`, `accent_color`), métricas de glassmorphism (`glassmorphism_blur`, `glassmorphism_opacity`), textos y alertas (`welcome_title`, `welcome_subtitle`, `landing_headline`, `maintenance_banner`) y límites operativos (`max_students_per_course`, `require_dni_verification`, `default_practical_contribution_usd`).
+  - **Tabla `feature_flags`:** Controla la activación o desactivación de módulos al vuelo (`flag_key VARCHAR PRIMARY KEY`, `is_enabled BOOLEAN DEFAULT true`, `target_roles TEXT[] DEFAULT ARRAY['todos']`, `description TEXT`, `updated_at TIMESTAMPTZ`).
+    - *Flags canónicos:* `enable_pdf_importer`, `enable_bcv_sync_banner`, `enable_surveys`, `enable_asistencia_bluetooth`, `enable_export_excel`, `enable_umby_floating_assistant`, `enable_auto_enrollment_verification`.
+  - **Políticas RLS:** Políticas `SELECT` abiertas al rol `public` (permitiendo precargar el tema visual y textos en la landing antes de autenticar), y políticas de mutación (`INSERT`, `UPDATE`, `DELETE`) estrictamente restringidas a administradores (`super_admin`).
+  - **Lógica de Negocio Encapsulada en PostgreSQL (RPCs):** Las validaciones críticas de negocio (cupos de admisión, duplicidad de cédula, períodos lectivos) deben ejecutarse en funciones SQL (ej. `validar_inscripcion_alumna`) para poder ajustar políticas operativas directamente en base de datos sin tocar el código fuente del cliente.
+  - **Suscripción Realtime:** Ambas tablas deben estar suscritas a la publicación `supabase_realtime` para emitir eventos `INSERT`, `UPDATE` y `DELETE` instantáneos a los clientes.
+
+- **2. Servicio Reactivo en Flutter (`lib/core/config/remote_config_service.dart`):**
+  - Implementado como `ChangeNotifier` Singleton accesible mediante `RemoteConfigService.instance`.
+  - **Caché y Resiliencia Offline:** Al iniciar, precarga inmediatamente los valores persistidos en `SharedPreferences` para garantizar un arranque instantáneo a 120 FPS sin pantallas blancas ni parpadeos.
+  - **Sincronización en Tiempo Real:** Escucha eventos de `supabase_realtime` en el canal `umbral_remote_config_channel`. Al recibir un cambio, actualiza la memoria, persiste en disco y emite `notifyListeners()`.
+  - **Helpers Tipados:** Métodos de acceso seguros con fallback obligatorio: `isFeatureEnabled(flagKey, {userRole})`, `getRemoteColor(key, fallback)`, `getConfigValue<T>(key, fallback)`, `getRemoteString`, `getRemoteInt`, `getRemoteDouble`, `getRemoteBool`.
+
+- **3. Desacoplamiento Visual y Componentes Reactivos:**
+  - **Tema Dinámico Glassmorphic:** `MaterialApp.router` en `main.dart` se vincula reactivamente a `RemoteConfigService.instance` y `ThemeController.themeMode` usando `Listenable.merge`.
+  - **Tokens Reactivos:** `AppTheme` y `AppColors` deben consumir getters dinámicos (`dynamicPrimary`, `dynamicAccent`, `glassmorphicBlur`, `glassmorphicOpacity`) que consultan el servicio remoto.
+  - **Widget Wrapper `<FeatureGate>` (`lib/src/core/widgets/feature_gate.dart`):** Todo botón, banner o sección condicional debe envolverse con `<FeatureGate>` para permitir encenderlo u ocultarlo al vuelo desde la base de datos sin tocar el código.
+
+- **4. Estrategia Web Anti-Caché ("Zero-Stale Web"):**
+  - En `web/index.html`, la carga de `flutter_bootstrap.js` debe utilizar cache-busting dinámico con marca temporal (`script.src = 'flutter_bootstrap.js?t=' + Date.now()`) para garantizar que al desplegar versiones mayores en `/docs/`, los navegadores web y PWAs descarguen siempre los nuevos assets sin quedarse atrapados en caché antigua.
+
 ---
 
 ## 4. Anti-alucinación y validación de contexto
@@ -204,6 +230,46 @@ Siempre que se realice cualquier modificación en la aplicación o su interfaz:
 - No hacer stage global ni sobrescribir cambios ajenos.
 - Si hay cambios no relacionados en el repositorio, no tocarlos ni mezclarlos.
 
+### 6.6. Protocolo y Secuencia de Pasos para Implementaciones y Ajustes Remotos (Zero-Rebuild)
+Siempre que se trabaje en la implementación, integración o ajuste de parámetros remotos, feature flags o lógica desacoplada, la IA debe seguir obligatoriamente esta secuencia de 7 pasos:
+
+1. **Paso 1: Auditoría de Fuentes de Verdad y Estado del Proyecto:**
+   - Inspeccionar `pubspec.yaml`, `lib/main.dart`, `lib/src/core/theme/app_theme.dart`, `lib/src/core/theme/app_colors.dart`, `web/index.html` y las últimas migraciones en `supabase/migrations/`.
+   - Confirmar si las tablas `app_remote_config` y `feature_flags` ya existen antes de recrearlas y validar las dependencias instaladas (`shared_preferences`, `supabase_flutter`).
+2. **Paso 2: Generación y Aplicación de Migración SQL Versionada:**
+   - Crear el archivo de migración en `supabase/migrations/` con timestamp secuencial (`YYYYMMDDHHMMSS_*.sql`).
+   - Implementar `app_remote_config` y `feature_flags` con claves primarias, columnas auditables (`updated_at` con trigger) y restricciones de categoría.
+   - Definir políticas RLS rigurosas: `SELECT` pública/autenticada y mutaciones (`INSERT`, `UPDATE`, `DELETE`) restringidas a `super_admin`.
+   - Encapsular validaciones críticas de negocio en funciones RPC de PostgreSQL (`validar_inscripcion_alumna`, `obtener_bundle_configuracion_remota`) para poder alterar límites o reglas sin modificar código Dart.
+   - Suscribir las tablas a la publicación `supabase_realtime` (`ALTER PUBLICATION supabase_realtime ADD TABLE ...`).
+3. **Paso 3: Servicio de Sincronización Reactiva (`RemoteConfigService`):**
+   - Centralizar la lógica en `lib/core/config/remote_config_service.dart` como `ChangeNotifier` Singleton.
+   - Cargar primero desde `SharedPreferences` para arranque instantáneo a 120 FPS sin parpadeos, y luego sincronizar con Supabase en segundo plano.
+   - Suscribirse a cambios en tiempo real vía `supabase_realtime` en el canal `umbral_remote_config_channel` y emitir `notifyListeners()`.
+   - Implementar helpers tipados y seguros con fallback: `isFeatureEnabled`, `getRemoteColor`, `getConfigValue<T>`, `getRemoteString`, `getRemoteInt`, `getRemoteDouble`, `getRemoteBool`.
+4. **Paso 4: Desacoplamiento de Widgets y Tema Dinámico:**
+   - Conectar `main.dart` mediante `Listenable.merge([ThemeController.themeMode, RemoteConfigService.instance])`.
+   - Conectar `AppTheme` y `AppColors` a los getters reactivos (`dynamicPrimary`, `dynamicAccent`, `glassmorphicBlur`, `glassmorphicOpacity`).
+   - Envolver componentes condicionales con el widget reutilizable `FeatureGate(flagKey: '...', child: ..., fallback: ...)` (ej. asistente flotante Umby, banners de tasa cambiaria, importadores).
+   - Vincular copys de interfaz y banners de mantenimiento a claves de configuración (`maintenance_banner`, `welcome_title`).
+5. **Paso 5: Estrategia Web Anti-Caché ("Zero-Stale Web"):**
+   - Configurar en `web/index.html` el loader dinámico con marca temporal (`script.src = 'flutter_bootstrap.js?t=' + Date.now()`) para garantizar que al desplegar versiones mayores en `/docs/`, los navegadores web y PWAs descarguen los nuevos assets sin quedarse atrapados en caché antigua.
+6. **Paso 6: Verificación de Calidad Estricta (QA Pipeline):**
+   - Ejecutar `flutter analyze` y asegurar cero errores y cero advertencias antes de proceder.
+   - Probar la resiliencia offline del servicio y la evaluación correcta de los fallbacks tipados.
+7. **Paso 7: Documentación y Guía Operativa de Administración en Vivo (SQL):**
+   - Proporcionar las sentencias SQL limpias para que los administradores alteren en vivo la aplicación desde el SQL Editor de Supabase:
+     ```sql
+     -- Cambiar color primario al vuelo
+     UPDATE public.app_remote_config SET value = '"#E0115F"'::jsonb WHERE key = 'primary_color';
+     -- Activar/desactivar un módulo al vuelo
+     UPDATE public.feature_flags SET is_enabled = false WHERE flag_key = 'enable_umby_floating_assistant';
+     -- Mostrar banner de mantenimiento global
+     UPDATE public.app_remote_config SET value = '"⚠️ Plataforma en mantenimiento."'::jsonb WHERE key = 'maintenance_banner';
+     -- Modificar regla de negocio (ej. cupos máximos por curso)
+     UPDATE public.app_remote_config SET value = '40'::jsonb WHERE key = 'max_students_per_course';
+     ```
+
 ---
 
 ## 7. Reglas de seguridad y credenciales
@@ -249,9 +315,10 @@ Si se requiere dejar contexto técnico para un relevo, se debe documentar en un 
 - [ ] No he inventado tablas, campos ni rutas.
 - [ ] He utilizado el diseño y tokens correctos del proyecto.
 - [ ] No he introducido secretos o credenciales.
+- [ ] Si la tarea involucra parámetros de UI, flags o reglas de negocio, he aplicado la arquitectura remota desacoplada (`app_remote_config`, `feature_flags`, `FeatureGate` o RPCs) con fallbacks tipados y resiliencia offline.
 - [ ] He ejecutado `flutter pub get`.
 - [ ] He ejecutado `flutter analyze`.
-- [ ] Si corresponde, he actualizado la compilación web en `docs/`.
+- [ ] Si corresponde, he actualizado la compilación web en `docs/` con la estrategia anti-caché.
 - [ ] He verificado/actualizado el enlace de descarga del APK y la versión en Supabase (`configuracion_general`) para notificar la actualización.
 - [ ] He verificado que las dependencias relevantes en `pubspec.yaml` (especialmente `firebase_core`, `firebase_auth` si aplica y plugins nativos) se mantengan en sus versiones más recientes compatibles con Flutter y Kotlin.
 - [ ] He revisado que los cambios sean limpios y no mezclen trabajo ajeno.

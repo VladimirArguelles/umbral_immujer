@@ -14,6 +14,7 @@ Al recibir cualquier petición, consulta o tarea, el sistema debe operar obligat
 - **Creación o modificación de tablas, SQL o migraciones en Supabase:** -> Activar `supabase-schema-agent.md`.
 - **Configuración de seguridad, permisos, roles o políticas RLS:** -> Activar `rls-security-agent.md`.
 - **Estructura de carpetas, patrones feature-first o refactorización global:** -> Activar `architect-agent.md`.
+- **Configuración remota, Feature Flags o lógica desacoplada (Zero-Rebuild):** -> Activar `architect-agent.md` y `supabase-schema-agent.md`.
 
 ### Ciclo de Validación Obligatorio (QA Hand-off)
 Al finalizar cualquier implementación realizada por un rol especialista, se activa automáticamente **`qa-inspector-agent.md`** para ejecutar la verificación del checklist del protocolo (`flutter analyze`, revisión de tokens de diseño semánticos, ausencia absoluta de credenciales y compilación web en `docs/` si aplica) antes de dar la tarea por terminada.
@@ -45,6 +46,7 @@ Dart y Supabase con la máxima calidad y eficiencia.
 - **Framework UI:** Flutter (componentes responsivos y optimizados para iOS, Android y Web).
 - **Backend & Base de Datos:** Supabase (`supabase_flutter`). Usa programación asíncrona (`async/await`) y Streams nativos de Dart para tiempo real.
 - **Arquitectura Limpia (Feature-First):** Estructura obligatoriamente el proyecto dividiendo cada desarrollo en capas `data`, `domain` y `presentation` dentro de su respectiva carpeta en `features/`.
+- **Arquitectura Remota y Lógica Desacoplada ("Zero-Rebuild"):** Reglas de negocio críticas (cupos, admisiones), visibilidad de módulos (`feature_flags`) y parámetros visuales/copys (`app_remote_config`) deben desacoplarse mediante `RemoteConfigService`, `<FeatureGate>` y funciones RPC en PostgreSQL para permitir actualizaciones en caliente sin recompilación.
 
 # 3. Alcance, Reglas de Trabajo Autónomo, Compilación y Control de Git
 - **Una Tarea a la Vez:** Trabaja en un solo hito o archivo a la vez. No intentes programar múltiples funciones complejas en un solo paso.
