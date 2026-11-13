@@ -468,12 +468,16 @@ class _SuperAdminNotificationsModalState
                         children: [
                           Row(
                             children: [
-                              Text(
-                                'Alertas & Diagnósticos',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                  color: textMain,
+                              Flexible(
+                                child: Text(
+                                  'Alertas & Diagnósticos',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 16.5,
+                                    fontWeight: FontWeight.w800,
+                                    color: textMain,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
                                 ),
                               ),
                               if (unreadCount > 0) ...[
@@ -524,74 +528,82 @@ class _SuperAdminNotificationsModalState
                 ),
               ),
 
-              // Barra de filtros y marcar todas como leídas
+              // Barra de filtros y marcar todas como leídas (Scroll horizontal responsivo)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                child: Row(
-                  children: [
-                    ChoiceChip(
-                      label: Text('Todas (${_notifications.length})'),
-                      selected: _selectedFilter == 0,
-                      onSelected: (val) => setState(() => _selectedFilter = 0),
-                      labelStyle: GoogleFonts.plusJakartaSans(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                        color: _selectedFilter == 0 ? Colors.white : textMuted,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ChoiceChip(
+                        label: Text('Todas (${_notifications.length})'),
+                        selected: _selectedFilter == 0,
+                        onSelected: (val) => setState(() => _selectedFilter = 0),
+                        labelStyle: GoogleFonts.plusJakartaSans(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          color: _selectedFilter == 0 ? Colors.white : textMuted,
+                        ),
+                        selectedColor: AppColors.primary,
+                        backgroundColor: cardBg,
+                        side: BorderSide(
+                          color: _selectedFilter == 0 ? AppColors.primary : border,
+                        ),
                       ),
-                      selectedColor: AppColors.primary,
-                      backgroundColor: cardBg,
-                      side: BorderSide(
-                        color: _selectedFilter == 0 ? AppColors.primary : border,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    ChoiceChip(
-                      avatar: const Icon(
-                        Symbols.warning,
-                        size: 14,
-                        color: AppColors.warning,
-                      ),
-                      label: Text(
-                        'Incidencias del sistema (${_notifications.where((n) => n.isOperationalIssue).length})',
-                      ),
-                      selected: _selectedFilter == 1,
-                      onSelected: (val) => setState(() => _selectedFilter = 1),
-                      labelStyle: GoogleFonts.plusJakartaSans(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                        color: _selectedFilter == 1 ? Colors.white : textMuted,
-                      ),
-                      selectedColor: AppColors.warning,
-                      backgroundColor: cardBg,
-                      side: BorderSide(
-                        color: _selectedFilter == 1 ? AppColors.warning : border,
-                      ),
-                    ),
-                    const Spacer(),
-                    if (_notifications.any((n) => n.leido))
-                      TextButton.icon(
-                        onPressed: _deleteReviewedNotifications,
-                        icon: const Icon(Symbols.delete_sweep, size: 16),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        avatar: const Icon(
+                          Symbols.warning,
+                          size: 14,
+                          color: AppColors.warning,
+                        ),
                         label: Text(
-                          'Eliminar revisadas (${_notifications.where((n) => n.leido).length})',
-                          style: const TextStyle(fontSize: 11.5),
+                          'Incidencias (${_notifications.where((n) => n.isOperationalIssue).length})',
                         ),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.error,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                        selected: _selectedFilter == 1,
+                        onSelected: (val) => setState(() => _selectedFilter = 1),
+                        labelStyle: GoogleFonts.plusJakartaSans(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          color: _selectedFilter == 1 ? Colors.white : textMuted,
                         ),
-                      ),
-                    if (unreadCount > 0)
-                      TextButton.icon(
-                        onPressed: _markAllAsRead,
-                        icon: const Icon(Symbols.done_all, size: 16),
-                        label: const Text('Marcar todas', style: TextStyle(fontSize: 11.5)),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.primary,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                        selectedColor: AppColors.warning,
+                        backgroundColor: cardBg,
+                        side: BorderSide(
+                          color: _selectedFilter == 1 ? AppColors.warning : border,
                         ),
                       ),
-                  ],
+                      if (_notifications.any((n) => n.leido)) ...[
+                        const SizedBox(width: 8),
+                        TextButton.icon(
+                          onPressed: _deleteReviewedNotifications,
+                          icon: const Icon(Symbols.delete_sweep, size: 16),
+                          label: Text(
+                            'Eliminar revisadas (${_notifications.where((n) => n.leido).length})',
+                            style: const TextStyle(fontSize: 11.5),
+                          ),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.error,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                          ),
+                        ),
+                      ],
+                      if (unreadCount > 0) ...[
+                        const SizedBox(width: 8),
+                        TextButton.icon(
+                          onPressed: _markAllAsRead,
+                          icon: const Icon(Symbols.done_all, size: 16),
+                          label: const Text('Marcar todas', style: TextStyle(fontSize: 11.5)),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
 
@@ -623,6 +635,8 @@ class _SuperAdminNotificationsModalState
                           padding: const EdgeInsets.all(32),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Icon(
                                 Symbols.check_circle,
@@ -637,8 +651,9 @@ class _SuperAdminNotificationsModalState
                                   fontWeight: FontWeight.w700,
                                   color: textMain,
                                 ),
+                                textAlign: TextAlign.center,
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 6),
                               Text(
                                 'Las consultas y fallas reportadas por usuarios aparecerán aquí automáticamente.',
                                 style: GoogleFonts.plusJakartaSans(

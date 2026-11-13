@@ -159,20 +159,26 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
         ),
         title: Row(
           children: [
-            const Icon(Symbols.delete_sweep, color: Color(0xFFF87171), size: 22),
+            const Icon(Symbols.delete_sweep, color: Color(0xFFF87171), size: 20),
             const SizedBox(width: 8),
-            Text(
-              'Eliminar auditoría revisada',
-              style: GoogleFonts.firaCode(
-                color: Colors.white,
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
+            Expanded(
+              child: Text(
+                'Eliminar auditoría',
+                style: GoogleFonts.firaCode(
+                  color: Colors.white,
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
         ),
         content: Text(
-          '¿Deseas eliminar permanentemente los ${_assistantLogs.length} registros de consultas revisadas de Umby / Gemini?',
+          _assistantLogs.length == 1
+              ? '¿Deseas eliminar permanentemente el registro de consulta revisada de Umby / Gemini?'
+              : '¿Deseas eliminar permanentemente los ${_assistantLogs.length} registros de consultas revisadas de Umby / Gemini?',
           style: GoogleFonts.plusJakartaSans(
             color: const Color(0xFFCBD5E1),
             fontSize: 13,
@@ -482,25 +488,27 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
   }
 
   Widget _buildAssistantStatusBar() {
+    final count = _assistantLogs.length;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       color: const Color(0xFF1E293B).withValues(alpha: 0.6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Flexible(
             child: Text(
-              'AUDITORÍA: ${_assistantLogs.length} consultas registradas | Orden DESC',
+              'Auditoría: $count ${count == 1 ? "registro" : "registros"}',
               style: GoogleFonts.firaCode(fontSize: 11, color: const Color(0xFF94A3B8)),
               overflow: TextOverflow.ellipsis,
             ),
           ),
+          const SizedBox(width: 8),
           TextButton.icon(
             onPressed: _confirmarYEliminarTodosLosLogs,
             icon: const Icon(Symbols.delete_sweep, size: 15, color: Color(0xFFF87171)),
             label: Text(
-              'Eliminar revisadas (${_assistantLogs.length})',
+              'Eliminar ($count)',
               style: GoogleFonts.firaCode(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
