@@ -213,9 +213,12 @@ class TeacherActiveSurveyCard extends StatelessWidget {
               Expanded(
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.tune_rounded, size: 18),
-                  label: const Text(
-                    'Gestionar Encuesta',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  label: const Flexible(
+                    child: Text(
+                      'Gestionar Encuesta',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryContainer,

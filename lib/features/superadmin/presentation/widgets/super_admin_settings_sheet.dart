@@ -157,9 +157,12 @@ Future<void> showSuperAdminSettingsSheet(
                         }
                       },
                       icon: const Icon(Symbols.person),
-                      label: const Text(
-                        'Mi Perfil y Contraseña',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                      label: const Flexible(
+                        child: Text(
+                          'Mi Perfil y Contraseña',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ),
                   ),
@@ -180,9 +183,12 @@ Future<void> showSuperAdminSettingsSheet(
                         context.go('/superadmin/configuracion');
                       },
                       icon: const Icon(Symbols.tune),
-                      label: const Text(
-                        'Abrir Configuración General Completa',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                      label: const Flexible(
+                        child: Text(
+                          'Configuración General',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ),
                   ),
@@ -203,9 +209,12 @@ Future<void> showSuperAdminSettingsSheet(
                         context.go('/admin/error-console');
                       },
                       icon: const Icon(Symbols.terminal),
-                      label: const Text(
-                        'Consola de Diagnóstico (Terminal)',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                      label: const Flexible(
+                        child: Text(
+                          'Consola de Diagnóstico (Terminal)',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ),
                   ),
@@ -226,7 +235,12 @@ Future<void> showSuperAdminSettingsSheet(
                         onSignOut();
                       },
                       icon: const Icon(Symbols.logout),
-                      label: const Text('Cerrar Sesión'),
+                      label: const Flexible(
+                        child: Text(
+                          'Cerrar Sesión',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ),
                   ),
                 ],

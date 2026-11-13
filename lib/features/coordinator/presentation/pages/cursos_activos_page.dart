@@ -488,7 +488,12 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
                         OutlinedButton.icon(
                           onPressed: () => setState(() => _filtro = FiltroCursosActivos.todosHoy),
                           icon: const Icon(Icons.calendar_today_rounded, size: 16),
-                          label: Text('Ver los ${cursosProgramadosHoy.length} cursos de hoy ($diaHoy)'),
+                          label: Flexible(
+                            child: Text(
+                              'Ver los ${cursosProgramadosHoy.length} cursos de hoy ($diaHoy)',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.primary,
                             side: const BorderSide(color: AppColors.primary),
@@ -718,11 +723,12 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 6,
+                  runSpacing: 4,
                   children: [
                     const Icon(Icons.people_alt_rounded, size: 16, color: AppColors.mintNeon),
-                    const SizedBox(width: 6),
                     Text(
                       '${curso.alumnosInscritos} matriculadas',
                       style: GoogleFonts.plusJakartaSans(
@@ -731,7 +737,6 @@ class _CursosActivosPageState extends State<CursosActivosPage> {
                         color: AppTheme.dynamicText,
                       ),
                     ),
-                    const SizedBox(width: 8),
                     Text(
                       '• ${curso.presentesHoy} presentes hoy',
                       style: TextStyle(

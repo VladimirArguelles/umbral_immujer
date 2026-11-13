@@ -579,15 +579,17 @@ class AspiranteFormCard extends StatelessWidget {
                       ),
                     )
                   : const Icon(Symbols.how_to_reg),
-              label: Text(
-                isSubmitting
-                    ? 'Registrando aspirante...'
-                    : 'Registrar e Inscribir Aspirante',
-                style: GoogleFonts.plusJakartaSans(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 14,
+              label: Flexible(
+                child: Text(
+                  isSubmitting
+                      ? 'Registrando aspirante...'
+                      : 'Registrar e Inscribir Aspirante',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],

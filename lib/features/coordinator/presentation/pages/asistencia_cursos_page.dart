@@ -134,18 +134,23 @@ class _AsistenciaCursosPageState extends State<AsistenciaCursosPage> {
         elevation: 0,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               '% Asistencia & Ausencias',
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w800,
-                fontSize: 18,
+                fontSize: 16,
                 color: AppTheme.dynamicText,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             Text(
-              'Ausencias y asistencia en cursos activos hoy ($diaHoy)',
+              'Cursos activos hoy ($diaHoy)',
               style: TextStyle(fontSize: 11.5, color: AppTheme.dynamicTextMuted),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

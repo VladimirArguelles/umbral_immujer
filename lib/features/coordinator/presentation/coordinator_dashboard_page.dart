@@ -95,12 +95,15 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
               : null,
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 isSuperAdmin
-                    ? 'UMBRAL • Coordinación (Super Admin)'
-                    : 'UMBRAL • Coordinación General',
-                style: const TextStyle(fontSize: 16),
+                    ? (isDesktopOrTablet ? 'UMBRAL • Coordinación (Super Admin)' : 'Coordinación')
+                    : (isDesktopOrTablet ? 'UMBRAL • Coordinación General' : 'Coordinación'),
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               Text(
                 _currentProfile.fullName,
@@ -108,6 +111,8 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
                   fontSize: 12,
                   fontWeight: FontWeight.normal,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -120,26 +125,36 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
               ),
               onPressed: () => context.go('/inscripciones'),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  foregroundColor: AppTheme.onPrimary,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+            if (isDesktopOrTablet)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: AppTheme.onPrimary,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
+                  icon: const Icon(Icons.visibility_rounded, size: 16),
+                  label: const Text(
+                    'Ver Registros',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: () => context.go('/reports'),
                 ),
-                icon: const Icon(Icons.visibility_rounded, size: 16),
-                label: const Text(
-                  'Ver Registros',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              )
+            else
+              IconButton(
+                tooltip: 'Ver Registros',
+                icon: const Icon(
+                  Icons.visibility_rounded,
+                  color: AppTheme.primary,
                 ),
                 onPressed: () => context.go('/reports'),
               ),
-            ),
             CoordinatorDropdownNav(
               currentIndex: _currentIndex,
               isSuperAdmin: isSuperAdmin,

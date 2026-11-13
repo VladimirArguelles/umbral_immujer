@@ -695,10 +695,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
               ),
             )
           : Icon(Symbols.visibility, size: isCompact ? 15 : 18),
-      label: const Text(
-        'Ver Registros',
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+      label: const Flexible(
+        child: Text(
+          'Ver Registros',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       ),
       style: ElevatedButton.styleFrom(
         backgroundColor: AppTheme.primary,
@@ -725,10 +727,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
         }
       },
       icon: Icon(Symbols.print, size: isCompact ? 15 : 18),
-      label: const Text(
-        'Imprimir',
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+      label: const Flexible(
+        child: Text(
+          'Imprimir',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       ),
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFFE0115F),
@@ -758,10 +762,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
               ),
             )
           : Icon(Symbols.save, size: isCompact ? 15 : 18),
-      label: const Text(
-        'Guardar',
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+      label: const Flexible(
+        child: Text(
+          'Guardar',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       ),
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFF059669),

@@ -272,6 +272,8 @@ class _GestionUsuariosPageState extends State<GestionUsuariosPage> {
             ),
           ],
         ),
+        actionsOverflowButtonSpacing: 8,
+        actionsOverflowAlignment: OverflowBarAlignment.end,
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -286,7 +288,12 @@ class _GestionUsuariosPageState extends State<GestionUsuariosPage> {
             ),
             onPressed: () => Navigator.pop(ctx, true),
             icon: const Icon(Symbols.delete, size: 18),
-            label: const Text('Eliminar Definitivamente'),
+            label: const Flexible(
+              child: Text(
+                'Eliminar Definitivamente',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ),
         ],
       ),
