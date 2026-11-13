@@ -431,7 +431,7 @@ class _CarouselArrow extends StatelessWidget {
       onPressed: onTap,
       tooltip: label,
       visualDensity: VisualDensity.compact,
-      constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+      constraints: const BoxConstraints.tightFor(width: 48, height: 48),
       style: IconButton.styleFrom(
         backgroundColor: AppTheme.surfaceBright,
         foregroundColor: AppTheme.onSurface,

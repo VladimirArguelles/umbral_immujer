@@ -670,14 +670,19 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'RESPUESTA GENERADA POR UMBY / GEMINI:',
-                      style: GoogleFonts.firaCode(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF38BDF8),
+                    Flexible(
+                      child: Text(
+                        'RESPUESTA GENERADA POR UMBY / GEMINI:',
+                        style: GoogleFonts.firaCode(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF38BDF8),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    const SizedBox(width: 8),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -814,10 +819,14 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
                     color: const Color(0xFFF1F5F9),
                   ),
                   overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
               ),
               const SizedBox(width: 8),
-              Text('[$hora]', style: GoogleFonts.firaCode(fontSize: 11, color: const Color(0xFF38BDF8))),
+              Flexible(
+                flex: 0,
+                child: Text('[$hora]', style: GoogleFonts.firaCode(fontSize: 11, color: const Color(0xFF38BDF8))),
+              ),
             ],
           ),
           subtitle: Text(

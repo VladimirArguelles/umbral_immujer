@@ -99,27 +99,34 @@ class _LoginScreenState extends State<LoginScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Iniciar Sesión',
-                                style: TextStyle(
-                                  color: AppTheme.onSurface,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
+                          Expanded(
+                            child: const Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Iniciar Sesión',
+                                  style: TextStyle(
+                                    color: AppTheme.onSurface,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                'Ingresa con el correo de tu cuenta',
-                                style: TextStyle(
-                                  color: AuthFormStyles.softAccent,
-                                  fontSize: 13,
+                                SizedBox(height: 4),
+                                Text(
+                                  'Ingresa con el correo de tu cuenta',
+                                  style: TextStyle(
+                                    color: AuthFormStyles.softAccent,
+                                    fontSize: 13,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 8),
                           IconButton(
                             tooltip: 'Volver',
                             icon: const Icon(

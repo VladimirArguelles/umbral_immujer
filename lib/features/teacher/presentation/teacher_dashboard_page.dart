@@ -119,9 +119,14 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'Módulo Docente',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  Flexible(
+                    child: Text(
+                      'Módulo Docente',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   if (isSuperAdmin) ...[
                     const SizedBox(width: 8),
@@ -153,11 +158,10 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
               ),
               Text(
                 _currentProfile.fullName,
-                style: const TextStyle(
-                  fontSize: 11.5,
-                  color: AppTheme.onSurfaceVariant,
-                  fontWeight: FontWeight.normal,
-                ),
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: AppTheme.onSurfaceVariant,
+                      fontWeight: FontWeight.normal,
+                    ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),

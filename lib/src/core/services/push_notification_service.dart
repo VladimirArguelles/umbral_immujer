@@ -230,14 +230,14 @@ class PushNotificationService {
     if (_fcmToken == null || _fcmToken!.isEmpty) return;
 
     try {
-      await supabase.from('profiles').update({
+      await supabase.from('perfiles').update({
         'fcm_token': _fcmToken,
         'fcm_updated_at': DateTime.now().toIso8601String(),
       }).eq('id', userId);
       debugPrint('[PushNotificationService] FCM Token guardado en Supabase para usuario: $userId');
     } catch (e) {
-      // Ignorar de forma segura si la columna fcm_token aún no ha sido creada en profiles
-      debugPrint('[PushNotificationService] Perfil sin columna fcm_token (omitido): $e');
+      // Ignorar de forma segura si la columna fcm_token aún no ha sido creada en perfiles
+      debugPrint('[PushNotificationService] Error al guardar FCM token en perfiles: $e');
     }
   }
 }

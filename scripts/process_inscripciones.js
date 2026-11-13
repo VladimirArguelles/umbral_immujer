@@ -475,7 +475,8 @@ async function main() {
     };
     const { data: res, error: errRpc } = await supabase.rpc('sync_inscripciones_batch', { payload });
     if (errRpc) {
-      console.error(`Error en lote de alumnos ${i}:`, errRpc.message);
+      console.error(`[ERROR CRÍTICO] Falló el lote de alumnos (índice ${i} a ${i + chunkAlumnos.length}):`, errRpc.message);
+      throw new Error(`Sincronización abortada por fallo en lote de alumnos: ${errRpc.message}`);
     }
   }
 
@@ -491,7 +492,8 @@ async function main() {
     };
     const { data: res, error: errRpc } = await supabase.rpc('sync_inscripciones_batch', { payload });
     if (errRpc) {
-      console.error(`Error en lote de inscripciones ${i}:`, errRpc.message);
+      console.error(`[ERROR CRÍTICO] Falló el lote de inscripciones (índice ${i} a ${i + chunkInsc.length}):`, errRpc.message);
+      throw new Error(`Sincronización abortada por fallo en lote de inscripciones: ${errRpc.message}`);
     }
   }
 
@@ -507,7 +509,8 @@ async function main() {
     };
     const { data: res, error: errRpc } = await supabase.rpc('sync_inscripciones_batch', { payload });
     if (errRpc) {
-      console.error(`Error en lote de asistencias ${i}:`, errRpc.message);
+      console.error(`[ERROR CRÍTICO] Falló el lote de asistencias (índice ${i} a ${i + chunkAsist.length}):`, errRpc.message);
+      throw new Error(`Sincronización abortada por fallo en lote de asistencias: ${errRpc.message}`);
     }
   }
 

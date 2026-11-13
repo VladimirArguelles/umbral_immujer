@@ -254,27 +254,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                title,
-                                style: const TextStyle(
-                                  color: AppTheme.onSurface,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  title,
+                                  style: const TextStyle(
+                                    color: AppTheme.onSurface,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              const Text(
-                                'Crea tu cuenta institucional en la plataforma',
-                                style: TextStyle(
-                                  color: AuthFormStyles.softAccent,
-                                  fontSize: 13,
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'Crea tu cuenta institucional en la plataforma',
+                                  style: TextStyle(
+                                    color: AuthFormStyles.softAccent,
+                                    fontSize: 13,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 8),
                           IconButton(
                             tooltip: 'Volver',
                             icon: const Icon(

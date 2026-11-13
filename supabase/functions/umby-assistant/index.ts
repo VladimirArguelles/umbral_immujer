@@ -77,7 +77,19 @@ serve(async (req: Request) => {
     const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? supabaseAnonKey;
+    const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!supabaseServiceRoleKey) {
+      return new Response(
+        JSON.stringify({
+          error: "Configuración incompleta: SUPABASE_SERVICE_ROLE_KEY es requerida para operaciones de soporte y auditoría.",
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 500,
+        }
+      );
+    }
 
     // Header de autorización del usuario (JWT)
     const authHeader = req.headers.get("Authorization");

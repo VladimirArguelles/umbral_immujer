@@ -1,6 +1,6 @@
 import 'dart:io';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../domain/student_models.dart';
@@ -287,7 +287,7 @@ class StudentRepository {
           'justificativo_${alumno['id']}_${DateTime.now().millisecondsSinceEpoch}.$ext';
       final storagePath = 'justificativos/$fileName';
 
-      // Subir archivo al bucket de Supabase con resguardo
+      // Subir archivo al bucket de justificativos
       try {
         await _supabase.storage.from('justificativos').uploadBinary(
               storagePath,
@@ -300,18 +300,9 @@ class StudentRepository {
             );
         publicUrl =
             _supabase.storage.from('justificativos').getPublicUrl(storagePath);
-      } catch (_) {
-        await _supabase.storage.from('comprobantes').uploadBinary(
-              storagePath,
-              imageBytes,
-              fileOptions: FileOptions(
-                contentType: 'image/$ext',
-                cacheControl: '3600',
-                upsert: true,
-              ),
-            );
-        publicUrl =
-            _supabase.storage.from('comprobantes').getPublicUrl(storagePath);
+      } catch (e) {
+        debugPrint('[StudentRepository] Error al subir archivo a bucket justificativos: $e');
+        rethrow;
       }
     }
 

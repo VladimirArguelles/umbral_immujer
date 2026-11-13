@@ -12,40 +12,75 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    return new Response(
+      JSON.stringify({
+        error: "Configuración incompleta: SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY ausente en el entorno.",
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      }
+    );
+  }
+
   const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
   try {
+    let targetVersion = "0.1.8";
+    let targetBuild = 9;
+    let targetNotes = "Optimización de responsividad móvil en asistente Umby, Consola de Diagnóstico, filtros y sincronización de incidencias en Notificaciones.";
+
+    if (req.method === "POST") {
+      try {
+        const body = await req.json();
+        if (body?.version) targetVersion = String(body.version).trim();
+        if (body?.build) targetBuild = parseInt(String(body.build), 10) || targetBuild;
+        if (body?.notes) targetNotes = String(body.notes).trim();
+      } catch (_) {
+        // Usar valores predeterminados si no se envió body JSON
+      }
+    }
+
     // 1. Actualizar app_build_number
-    await adminClient.from("configuracion_general").upsert({
+    const { error: errBuild } = await adminClient.from("configuracion_general").upsert({
       clave: "app_build_number",
-      valor: 9,
+      valor: targetBuild,
       descripcion: "Número entero de compilación de la última versión",
       updated_at: new Date().toISOString(),
     }, { onConflict: "clave" });
 
+    if (errBuild) {
+      throw new Error(`Fallo al actualizar app_build_number: ${errBuild.message}`);
+    }
+
     // 2. Actualizar app_version_latest
-    await adminClient.from("configuracion_general").upsert({
+    const { error: errVersion } = await adminClient.from("configuracion_general").upsert({
       clave: "app_version_latest",
-      valor: "0.1.8",
+      valor: targetVersion,
       descripcion: "Versión semántica más reciente publicada",
       updated_at: new Date().toISOString(),
     }, { onConflict: "clave" });
 
+    if (errVersion) {
+      throw new Error(`Fallo al actualizar app_version_latest: ${errVersion.message}`);
+    }
+
     // 3. Actualizar app_update_notes
-    await adminClient.from("configuracion_general").upsert({
+    const { error: errNotes } = await adminClient.from("configuracion_general").upsert({
       clave: "app_update_notes",
-      valor: "Optimización de responsividad móvil en asistente Umby, Consola de Diagnóstico, filtros y sincronización de incidencias en Notificaciones.",
+      valor: targetNotes,
       updated_at: new Date().toISOString(),
     }, { onConflict: "clave" });
 
-    // 4. Intentar ejecutar trigger de sincronización si existe
-    try {
-      await adminClient.rpc("ejecutar_sync_notificaciones");
-    } catch (_) {}
+    if (errNotes) {
+      throw new Error(`Fallo al actualizar app_update_notes: ${errNotes.message}`);
+    }
 
-    return new Response(JSON.stringify({ success: true, version: "0.1.8", build: 9 }), {
+    return new Response(JSON.stringify({ success: true, version: targetVersion, build: targetBuild }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });

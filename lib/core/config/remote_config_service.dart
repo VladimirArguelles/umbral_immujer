@@ -280,11 +280,12 @@ class RemoteConfigService extends ChangeNotifier {
       getConfigValue<bool>(key, fallback);
 
   /// Método administrativo para que el Super Admin actualice un valor al vuelo
+  /// Enviando el valor Dart tipado directamente a la columna JSONB de Supabase
   Future<bool> setConfigValue(String key, dynamic value) async {
     try {
       await SupabaseConfig.client
           .from('app_remote_config')
-          .update({'value': jsonEncode(value)})
+          .update({'value': value})
           .eq('key', key);
       _configs[key] = value;
       notifyListeners();
