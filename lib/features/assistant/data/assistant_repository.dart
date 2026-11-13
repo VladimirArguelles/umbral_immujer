@@ -181,12 +181,61 @@ class AssistantRepository {
     }
 
     // 2. Motor de respaldo local si no hay conexión a la Edge Function
-    return _buildLocalFallbackResponse(
+    final fallbackResponse = _buildLocalFallbackResponse(
       query: query,
       moduleContext: moduleContext,
       profile: profile,
       telemetry: telemetry,
     );
+
+    // Registrar auditoría en segundo plano si la Edge Function no estuvo disponible
+    unawaited(_registrarAuditoria(
+      query: query,
+      botAnswer: fallbackResponse.text,
+      moduleContext: moduleContext,
+      telemetry: telemetry,
+      ticketId: fallbackResponse.ticketId,
+      modelo: 'umby-local-fallback',
+    ));
+
+    return fallbackResponse;
+  }
+
+  /// Registra la consulta y respuesta en assistant_logs para auditoría del Super Admin
+  Future<void> _registrarAuditoria({
+    required String query,
+    required String botAnswer,
+    required AssistantModuleContext moduleContext,
+    required AppTelemetryContext telemetry,
+    String? ticketId,
+    String modelo = 'umby-local-fallback',
+  }) async {
+    try {
+      String mod = moduleContext.id;
+      if (mod == 'profesores') mod = 'profesor';
+      if (mod == 'coordinacion') mod = 'coordinador';
+
+      await _supabase.from('assistant_logs').insert({
+        'user_id': telemetry.userId,
+        'user_nombre': telemetry.userName ?? 'Usuario',
+        'user_rol': telemetry.userRole,
+        'modulo_id': mod,
+        'user_question': query,
+        'bot_answer': botAnswer,
+        'modelo_ia': modelo,
+        'ticket_id': ticketId,
+        'metadatos': {
+          'telemetry': telemetry.toJson(),
+          'origen': 'flutter_client',
+          'red': telemetry.networkStatus,
+          'bluetooth': telemetry.bluetoothStatus,
+          'ultimo_error': telemetry.lastError,
+          'ticket_generado': ticketId != null,
+        },
+      });
+    } catch (e) {
+      AppLogger.warning('No se pudo registrar log de asistente en auditoría: $e', tag: 'UMBY');
+    }
   }
 
   ChatMessage _buildLocalFallbackResponse({

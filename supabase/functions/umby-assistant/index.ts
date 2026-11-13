@@ -328,11 +328,15 @@ serve(async (req: Request) => {
 
     // Registro de auditoría e historial en assistant_logs
     try {
+      let logModule = currentModule || "general";
+      if (logModule === "profesores") logModule = "profesor";
+      if (logModule === "coordinacion") logModule = "coordinador";
+
       await adminClient.from("assistant_logs").insert({
         user_id: userId || null,
         user_nombre: userName,
         user_rol: role,
-        modulo_id: currentModule,
+        modulo_id: logModule,
         user_question: query,
         bot_answer: responseText,
         modelo_ia: modelUsed,

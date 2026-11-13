@@ -238,9 +238,12 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E293B),
         elevation: 0,
+        titleSpacing: 0,
         leading: IconButton(
-          icon: const Icon(Symbols.arrow_back, color: Colors.white),
+          icon: const Icon(Symbols.arrow_back, color: Colors.white, size: 22),
           tooltip: 'Regresar',
+          padding: const EdgeInsets.all(8),
+          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           onPressed: () {
             if (context.canPop()) {
               context.pop();
@@ -251,19 +254,23 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
         ),
         title: Row(
           children: [
-            const Icon(Symbols.terminal, color: Color(0xFF38BDF8), size: 22),
-            const SizedBox(width: 10),
-            Text(
-              'Consola de Diagnóstico',
-              style: GoogleFonts.firaCode(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
+            const Icon(Symbols.terminal, color: Color(0xFF38BDF8), size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Consola Diagnóstico',
+                style: GoogleFonts.firaCode(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
               decoration: BoxDecoration(
                 color: const Color(0xFF10B981).withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(4),
@@ -272,25 +279,32 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
               child: Text(
                 'LIVE',
                 style: GoogleFonts.firaCode(
-                  fontSize: 10,
+                  fontSize: 9.5,
                   fontWeight: FontWeight.bold,
                   color: const Color(0xFF10B981),
                 ),
               ),
             ),
+            const SizedBox(width: 4),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Symbols.refresh, color: Color(0xFF38BDF8)),
+            icon: const Icon(Symbols.refresh, color: Color(0xFF38BDF8), size: 20),
             tooltip: 'Recargar auditoría IA',
+            padding: const EdgeInsets.all(6),
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            visualDensity: VisualDensity.compact,
             onPressed: _cargarAssistantLogs,
           ),
           IconButton(
-            icon: const Icon(Icons.delete_sweep, color: Color(0xFFF87171)),
+            icon: const Icon(Icons.delete_sweep, color: Color(0xFFF87171), size: 20),
             tooltip: isAssistantTab
                 ? 'Eliminar consultas revisadas de IA'
                 : 'Limpiar logs de memoria',
+            padding: const EdgeInsets.all(6),
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            visualDensity: VisualDensity.compact,
             onPressed: () {
               if (isAssistantTab) {
                 _confirmarYEliminarTodosLosLogs();
@@ -306,6 +320,7 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
               }
             },
           ),
+          const SizedBox(width: 6),
         ],
         bottom: TabBar(
           controller: _tabController,
@@ -313,15 +328,19 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
           indicatorWeight: 3,
           labelColor: const Color(0xFF38BDF8),
           unselectedLabelColor: const Color(0xFF94A3B8),
-          labelStyle: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold),
+          labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+          labelStyle: GoogleFonts.firaCode(fontSize: 11.5, fontWeight: FontWeight.bold),
+          unselectedLabelStyle: GoogleFonts.firaCode(fontSize: 11.5),
           tabs: [
             const Tab(
-              icon: Icon(Symbols.bug_report, size: 18),
-              text: 'Excepciones en Vivo',
+              icon: Icon(Symbols.bug_report, size: 17),
+              text: 'Excepciones',
             ),
             Tab(
-              icon: const Icon(Symbols.smart_toy, size: 18),
-              text: 'Auditoría IA Umby (${_assistantLogs.length})',
+              icon: const Icon(Symbols.smart_toy, size: 17),
+              text: _assistantLogs.isEmpty
+                  ? 'Auditoría Umby'
+                  : 'Auditoría (${_assistantLogs.length})',
             ),
           ],
         ),

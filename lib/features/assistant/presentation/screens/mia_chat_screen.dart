@@ -591,47 +591,70 @@ class _MiaChatScreenState extends State<MiaChatScreen> {
                 ),
               ),
             ),
-          // Sugerencias específicas del mensaje si las tiene
+          // Sugerencias específicas del mensaje si las tiene (preguntas frecuentes responsive)
           if (!isUser && message.suggestions.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(left: 40, top: 10),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 6,
+              padding: const EdgeInsets.only(left: 40, top: 10, right: 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: message.suggestions.map((sug) {
-                  return InkWell(
-                    onTap: () => _handleSendMessage(sug),
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Symbols.arrow_outward,
-                            size: 12,
-                            color: AppColors.primary,
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => _handleSendMessage(sug),
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            sug,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primary,
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? AppColors.primary.withValues(alpha: 0.12)
+                                : const Color(0xFFF3E8FF),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isDark
+                                  ? AppColors.primary.withValues(alpha: 0.35)
+                                  : const Color(0xFFD8B4FE),
+                              width: 1,
                             ),
                           ),
-                        ],
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(alpha: 0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Symbols.arrow_outward,
+                                  size: 13,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  sug,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark
+                                        ? const Color(0xFFE2E8F0)
+                                        : const Color(0xFF581C87),
+                                    height: 1.3,
+                                  ),
+                                  softWrap: true,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   );
