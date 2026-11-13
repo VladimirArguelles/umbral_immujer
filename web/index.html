@@ -97,7 +97,12 @@
         }, 500);
       }
     });
+
+    // Inyección dinámica de flutter_bootstrap.js con cache-busting automático ("Zero-Stale Web")
+    var script = document.createElement('script');
+    script.src = 'flutter_bootstrap.js?t=' + Date.now();
+    script.async = true;
+    document.body.appendChild(script);
   </script>
-  <script src="flutter_bootstrap.js?v=20261101_2305" async></script>
 </body>
 </html>

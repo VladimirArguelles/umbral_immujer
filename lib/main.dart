@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import 'core/config/remote_config_service.dart';
 import 'core/router/app_router.dart';
 import 'core/services/error_console_service.dart';
 import 'features/teacher/data/attendance_offline_service.dart';
@@ -31,6 +32,9 @@ Future<void> main() async {
   // Inicializa Supabase con valores de compilación recibidos mediante --dart-define.
   await SupabaseConfig.initialize();
   await OnlineUserPresenceService.instance.initialize(SupabaseConfig.client);
+
+  // Inicializa el servicio de Configuración Remota y Feature Flags (Over-The-Air)
+  await RemoteConfigService.instance.initialize(SupabaseConfig.client);
 
   // Inicializa y recupera la preferencia de tema guardada (claro/oscuro).
   await ThemeController.initialize();
@@ -62,15 +66,18 @@ class UmbralApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: ThemeController.themeMode,
-      builder: (context, currentMode, _) {
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        ThemeController.themeMode,
+        RemoteConfigService.instance,
+      ]),
+      builder: (context, _) {
         return MaterialApp.router(
-          title: 'UMBRAL - IMMUJER',
+          title: RemoteConfigService.instance.getRemoteString('welcome_title', 'UMBRAL - IMMUJER'),
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
-          themeMode: currentMode,
+          themeMode: ThemeController.themeMode.value,
           routerConfig: appRouter,
         );
       },

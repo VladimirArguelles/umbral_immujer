@@ -8,6 +8,7 @@ import 'package:umbral_immujer/features/superadmin/domain/super_admin_metrics.da
 import 'package:umbral_immujer/features/superadmin/presentation/widgets/super_admin_theme_tokens.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
+import 'package:umbral_immujer/src/core/widgets/feature_gate.dart';
 
 /// Opens the quick system settings modal bottom sheet for Super Admin.
 Future<void> showSuperAdminSettingsSheet(
@@ -121,12 +122,17 @@ Future<void> showSuperAdminSettingsSheet(
                     onChanged: (val) =>
                         update(currentSettings.copyWith(maintenanceMode: val)),
                   ),
-                  const SizedBox(height: 16),
-                  _BcvQuickBanner(
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      context.go('/superadmin/configuracion');
-                    },
+                  FeatureGate(
+                    flagKey: 'enable_bcv_sync_banner',
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _BcvQuickBanner(
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          context.go('/superadmin/configuracion');
+                        },
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 20),
                   SizedBox(

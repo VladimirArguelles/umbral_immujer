@@ -4,6 +4,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:umbral_immujer/core/config/remote_config_service.dart';
 import 'package:umbral_immujer/features/landing/presentation/widgets/landing_top_bar.dart';
 import 'package:umbral_immujer/features/landing/presentation/widgets/module_card.dart';
 import 'package:umbral_immujer/features/landing/presentation/widgets/particles_background.dart';
@@ -252,27 +253,72 @@ class _LandingPageState extends State<LandingPage> {
             borderRadius: borderRadius,
             border: Border.all(color: AppTheme.outlineVariant),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
+          child: ListenableBuilder(
+            listenable: RemoteConfigService.instance,
+            builder: (context, _) {
+              final welcomeTitle = RemoteConfigService.instance.getRemoteString(
+                'welcome_title',
                 '¡Hola Equipo!',
-                style: GoogleFonts.plusJakartaSans(
-                  color: AppTheme.onSurface,
-                  fontSize: 26,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
+              );
+              final welcomeSubtitle = RemoteConfigService.instance.getRemoteString(
+                'welcome_subtitle',
                 'Bienvenidos a UMBRAL. Selecciona un módulo para comenzar:',
-                style: GoogleFonts.plusJakartaSans(
-                  color: AppTheme.onSurfaceVariant,
-                  fontSize: 14,
-                  height: 1.5,
-                ),
-              ),
-            ],
+              );
+              final maintenance = RemoteConfigService.instance.getRemoteString(
+                'maintenance_banner',
+                '',
+              );
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    welcomeTitle,
+                    style: GoogleFonts.plusJakartaSans(
+                      color: AppTheme.onSurface,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    welcomeSubtitle,
+                    style: GoogleFonts.plusJakartaSans(
+                      color: AppTheme.onSurfaceVariant,
+                      fontSize: 14,
+                      height: 1.5,
+                    ),
+                  ),
+                  if (maintenance.trim().isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.amber.withValues(alpha: 0.6)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.info_outline, color: Colors.amber, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              maintenance,
+                              style: GoogleFonts.plusJakartaSans(
+                                color: Colors.amber,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              );
+            },
           ),
         ),
       ),

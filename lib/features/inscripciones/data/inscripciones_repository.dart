@@ -248,12 +248,43 @@ class InscripcionesRepository {
     );
   }
 
+  /// Valida la inscripción de una alumna contra las reglas de negocio remotas de PostgreSQL (Zero-Rebuild)
+  Future<Map<String, dynamic>> validarInscripcionRemota({
+    required String cursoId,
+    required String cedula,
+  }) async {
+    try {
+      final res = await _supabase.rpc<dynamic>(
+        'validar_inscripcion_alumna',
+        params: {
+          'p_curso_id': cursoId,
+          'p_cedula': cedula,
+        },
+      );
+      if (res is Map) {
+        return Map<String, dynamic>.from(res);
+      }
+    } catch (e) {
+      AppLogger.warning('Error en validación remota RPC: $e', tag: 'INSCRIPCIONES');
+    }
+    return {'valido': true, 'codigo': 'LOCAL_PASS'};
+  }
+
   /// Registra al aspirante en alumnos + inscripciones de forma atómica con validación de cupos.
   Future<InscripcionResultado> registrarAspirante(
     RegistroAspiranteRequest request,
   ) async {
     final cleanCedula =
         request.cedula.trim().replaceAll(RegExp(r'[^0-9a-zA-Z]'), '');
+
+    // Validación mediante regla de negocio remota en PostgreSQL
+    final rpcValidacion = await validarInscripcionRemota(
+      cursoId: request.cursoId,
+      cedula: cleanCedula,
+    );
+    if (rpcValidacion['valido'] == false) {
+      throw Exception(rpcValidacion['motivo'] ?? 'Validación de inscripción rechazada por el sistema.');
+    }
 
     final check = await verificarCedulaEnCurso(
       cedula: cleanCedula,
