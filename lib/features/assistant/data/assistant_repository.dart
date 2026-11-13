@@ -233,6 +233,27 @@ class AssistantRepository {
           'ticket_generado': ticketId != null,
         },
       });
+
+      // Sincronizar simultáneamente con el centro de notificaciones e incidencias del Super Admin
+      try {
+        await _supabase.from('notificaciones').insert({
+          'usuario_origen_id': telemetry.userId,
+          'rol_destino': 'super_admin',
+          'titulo': 'Consulta IA Umby: ${telemetry.userName ?? "Usuario"} (${mod.toUpperCase()})',
+          'mensaje': query,
+          'tipo': 'incidencia_operacion',
+          'datos': {
+            'modulo': mod,
+            'usuario_nombre': telemetry.userName ?? 'Usuario',
+            'usuario_rol': telemetry.userRole,
+            'donde_esta_el_problema': 'Consulta en Asistente Umby ($mod)',
+            'que_debe_revisar': botAnswer,
+          },
+          'leido': false,
+        });
+      } catch (_) {
+        // La auditoría principal en assistant_logs ya fue completada exitosamente
+      }
     } catch (e) {
       AppLogger.warning('No se pudo registrar log de asistente en auditoría: $e', tag: 'UMBY');
     }

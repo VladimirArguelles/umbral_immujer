@@ -211,19 +211,22 @@ git push origin main
 
 Si hay cambios ajenos no relacionados, no se deben mezclar ni sobrescribir; se trabajará solo sobre los archivos de la tarea actual.
 
-### 6.4. Actualización Obligatoria de Archivo de Aplicación, Versión y Notificación OTA
-Siempre que se realice cualquier modificación en la aplicación o su interfaz:
-1. **Incremento de Versión en `pubspec.yaml`:** Incrementar obligatoriamente la versión canónica y número de compilación (`version: major.minor.patch+build_number`, ej: de `0.1.4+5` a `0.1.5+6`).
-2. **Actualización del Archivo de la Aplicación y Assets:**
-   - Compilar y actualizar la salida web en `docs/` (`flutter build web --release --base-href "/umbral_immujer/" --output docs --dart-define-from-file=.env`).
-   - Ruta local del paquete binario compilado: `build/app/outputs/flutter-apk/app-release.apk`.
-   - Garantizar la generación y publicación del nuevo archivo binario de la aplicación firmado con el keystore oficial de release (`release-keystore.jks`, alias `umbral_key`) mediante el flujo automatizado de GitHub Actions (`.github/workflows/build_apk.yml`) al hacer push a `main`, evitando discrepancias de certificados que causen el error *"No se instaló la aplicación"*.
-3. **Sincronización en Base de Datos Supabase (`configuracion_general`):**
-   - `app_version_latest`: Fijar a la nueva versión canónica (ej: `'0.1.5'`).
-   - `app_build_number`: Fijar al nuevo entero de compilación (ej: `6`).
-   - `app_apk_url`: Asegurar que apunte a la ruta canónica de descarga directa del asset en GitHub Releases: `https://github.com/VladimirArguelles/umbral_immujer/releases/download/latest/app-release.apk`.
-   - `app_update_notes`: Redactar las notas resumidas de los cambios de la versión.
-4. **Activación de Notificación en Clientes:** La combinación de versión superior y nuevo `build_number` en Supabase garantiza que todos los dispositivos móviles activos detecten la actualización inmediatamente al abrir la app o dashboard y presenten el modal de descarga e instalación.
+### 6.4. Política Estricta de Versión Binaria vs Arquitectura Remota Zero-Rebuild (REGLA DE OBLIGATORIO CUMPLIMIENTO)
+Queda establecida como **regla inquebrantable de obligatorio cumplimiento** la estricta separación entre modificaciones de interfaz/diseño y liberaciones de binarios nativos:
+
+1. **PROHIBICIÓN ESTRICTA DE BUMP DE VERSIÓN PARA DISEÑO Y UI:**
+   - Para cambios de interfaz de usuario, diseño de widgets, tamaños de texto, ajustes de contenedores, desbordamientos, colores, estilos visuales, copys o parámetros de negocio: **QUEDA ESTRICTAMENTE PROHIBIDO incrementar la versión o número de compilación en `pubspec.yaml` y en la tabla Supabase `configuracion_general` (`app_version_latest` / `app_build_number`).**
+   - Dichas modificaciones deben gestionarse de forma 100% remota ("Zero-Rebuild") a través de `RemoteConfigService`, `<FeatureGate>`, funciones RPC en PostgreSQL y la actualización continua de la versión Web en `docs/`.
+   - **NUNCA** forzar al usuario a descargar e instalar paquetes APK de 68 MB por ajustes visuales o de diseño, previniendo diálogos intrusivos y bucles de actualización en dispositivos móviles.
+
+2. **ÚNICAS EXCEPCIONES PARA INCREMENTO DE VERSIÓN BINARIA:**
+   - El incremento de versión en `pubspec.yaml` y actualización en `configuracion_general` (`app_version_latest`, `app_build_number`, `app_apk_url`, `app_update_notes`) se reserva **exclusivamente** para:
+     a) Modificaciones nativas en el código de plataforma Android/iOS (ej. Gradle, Kotlin, AndroidManifest, Info.plist).
+     b) Incorporación de plugins nativos de Flutter que requieran recompilación binaria obligatoria.
+     c) Cuando el usuario humano lo solicite explícitamente por escrito.
+
+3. **Control y Persistencia de Sesión del Modal de Actualización:**
+   - Si una versión binaria legítima está disponible pero no es mandatoria (`app_update_mandatory = false`), el modal debe ofrecer siempre la opción de "Recordarme más tarde" y respetar el descarte de sesión sin interrumpir la experiencia de navegación del usuario.
 
 ### 6.5. Control de versión y staging
 - Hacer `git add` solo de las rutas modificadas y relevantes para la tarea.

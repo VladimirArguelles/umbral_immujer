@@ -2,7 +2,7 @@ name: umbral_immujer
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 0.1.9+10
+version: 0.1.6+7
 
 environment:
   sdk: ^3.13.5

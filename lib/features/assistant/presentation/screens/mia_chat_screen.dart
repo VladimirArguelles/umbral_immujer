@@ -598,7 +598,7 @@ class _MiaChatScreenState extends State<MiaChatScreen> {
           // Sugerencias específicas del mensaje si las tiene (preguntas frecuentes responsive)
           if (!isUser && message.suggestions.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(left: 40, top: 10, right: 6),
+              padding: const EdgeInsets.only(left: 12, top: 8, right: 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: message.suggestions.map((sug) {
@@ -612,7 +612,7 @@ class _MiaChatScreenState extends State<MiaChatScreen> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
-                            vertical: 8,
+                            vertical: 10,
                           ),
                           decoration: BoxDecoration(
                             color: isDark
@@ -627,31 +627,34 @@ class _MiaChatScreenState extends State<MiaChatScreen> {
                             ),
                           ),
                           child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(alpha: 0.15),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Symbols.arrow_outward,
-                                  size: 13,
-                                  color: AppColors.primary,
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(alpha: 0.15),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Symbols.arrow_outward,
+                                    size: 13,
+                                    color: AppColors.primary,
+                                  ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
                                   sug,
                                   style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 11.5,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                     color: isDark
                                         ? const Color(0xFFE2E8F0)
                                         : const Color(0xFF581C87),
-                                    height: 1.3,
+                                    height: 1.35,
                                   ),
                                   softWrap: true,
                                 ),

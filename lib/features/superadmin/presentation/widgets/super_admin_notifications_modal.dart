@@ -528,82 +528,77 @@ class _SuperAdminNotificationsModalState
                 ),
               ),
 
-              // Barra de filtros y marcar todas como leídas (Scroll horizontal responsivo)
+              // Barra de filtros y acciones (Wrap adaptativo para evitar cualquier desborde horizontal)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ChoiceChip(
-                        label: Text('Todas (${_notifications.length})'),
-                        selected: _selectedFilter == 0,
-                        onSelected: (val) => setState(() => _selectedFilter = 0),
-                        labelStyle: GoogleFonts.plusJakartaSans(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700,
-                          color: _selectedFilter == 0 ? Colors.white : textMuted,
-                        ),
-                        selectedColor: AppColors.primary,
-                        backgroundColor: cardBg,
-                        side: BorderSide(
-                          color: _selectedFilter == 0 ? AppColors.primary : border,
-                        ),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    ChoiceChip(
+                      label: Text('Todas (${_notifications.length})'),
+                      selected: _selectedFilter == 0,
+                      onSelected: (val) => setState(() => _selectedFilter = 0),
+                      labelStyle: GoogleFonts.plusJakartaSans(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: _selectedFilter == 0 ? Colors.white : textMuted,
                       ),
-                      const SizedBox(width: 8),
-                      ChoiceChip(
-                        avatar: const Icon(
-                          Symbols.warning,
-                          size: 14,
-                          color: AppColors.warning,
-                        ),
+                      selectedColor: AppColors.primary,
+                      backgroundColor: cardBg,
+                      side: BorderSide(
+                        color: _selectedFilter == 0 ? AppColors.primary : border,
+                      ),
+                    ),
+                    ChoiceChip(
+                      avatar: const Icon(
+                        Symbols.warning,
+                        size: 14,
+                        color: AppColors.warning,
+                      ),
+                      label: Text(
+                        'Incidencias (${_notifications.where((n) => n.isOperationalIssue).length})',
+                      ),
+                      selected: _selectedFilter == 1,
+                      onSelected: (val) => setState(() => _selectedFilter = 1),
+                      labelStyle: GoogleFonts.plusJakartaSans(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: _selectedFilter == 1 ? Colors.white : textMuted,
+                      ),
+                      selectedColor: AppColors.warning,
+                      backgroundColor: cardBg,
+                      side: BorderSide(
+                        color: _selectedFilter == 1 ? AppColors.warning : border,
+                      ),
+                    ),
+                    if (_notifications.any((n) => n.leido))
+                      TextButton.icon(
+                        onPressed: _deleteReviewedNotifications,
+                        icon: const Icon(Symbols.delete_sweep, size: 16),
                         label: Text(
-                          'Incidencias (${_notifications.where((n) => n.isOperationalIssue).length})',
+                          'Eliminar revisadas (${_notifications.where((n) => n.leido).length})',
+                          style: const TextStyle(fontSize: 11.5),
                         ),
-                        selected: _selectedFilter == 1,
-                        onSelected: (val) => setState(() => _selectedFilter = 1),
-                        labelStyle: GoogleFonts.plusJakartaSans(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700,
-                          color: _selectedFilter == 1 ? Colors.white : textMuted,
-                        ),
-                        selectedColor: AppColors.warning,
-                        backgroundColor: cardBg,
-                        side: BorderSide(
-                          color: _selectedFilter == 1 ? AppColors.warning : border,
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          visualDensity: VisualDensity.compact,
                         ),
                       ),
-                      if (_notifications.any((n) => n.leido)) ...[
-                        const SizedBox(width: 8),
-                        TextButton.icon(
-                          onPressed: _deleteReviewedNotifications,
-                          icon: const Icon(Symbols.delete_sweep, size: 16),
-                          label: Text(
-                            'Eliminar revisadas (${_notifications.where((n) => n.leido).length})',
-                            style: const TextStyle(fontSize: 11.5),
-                          ),
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppColors.error,
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                          ),
+                    if (unreadCount > 0)
+                      TextButton.icon(
+                        onPressed: _markAllAsRead,
+                        icon: const Icon(Symbols.done_all, size: 16),
+                        label: const Text('Marcar todas', style: TextStyle(fontSize: 11.5)),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          visualDensity: VisualDensity.compact,
                         ),
-                      ],
-                      if (unreadCount > 0) ...[
-                        const SizedBox(width: 8),
-                        TextButton.icon(
-                          onPressed: _markAllAsRead,
-                          icon: const Icon(Symbols.done_all, size: 16),
-                          label: const Text('Marcar todas', style: TextStyle(fontSize: 11.5)),
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppColors.primary,
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
               ),
 
@@ -631,36 +626,56 @@ class _SuperAdminNotificationsModalState
                       )
                     : filteredList.isEmpty
                     ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(32),
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Icon(
-                                Symbols.check_circle,
-                                size: 48,
-                                color: AppColors.mintNeon.withValues(alpha: 0.6),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'No hay incidencias ni notificaciones pendientes',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: textMain,
+                              Container(
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppColors.mintNeon.withValues(alpha: 0.12),
+                                  border: Border.all(
+                                    color: AppColors.mintNeon.withValues(alpha: 0.35),
+                                    width: 1.5,
+                                  ),
                                 ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'Las consultas y fallas reportadas por usuarios aparecerán aquí automáticamente.',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12,
-                                  color: textMuted,
+                                child: const Icon(
+                                  Symbols.check_circle,
+                                  size: 32,
+                                  color: AppColors.mintNeon,
                                 ),
-                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 320),
+                                child: Text(
+                                  'No hay incidencias ni notificaciones pendientes',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: textMain,
+                                    height: 1.35,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 320),
+                                child: Text(
+                                  'Las consultas y fallas reportadas por usuarios aparecerán aquí automáticamente.',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 12,
+                                    color: textMuted,
+                                    height: 1.4,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
                               ),
                             ],
                           ),

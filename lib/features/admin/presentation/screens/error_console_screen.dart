@@ -164,9 +164,9 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
             Expanded(
               child: Text(
                 'Eliminar auditoría',
-                style: GoogleFonts.firaCode(
+                style: GoogleFonts.plusJakartaSans(
                   color: Colors.white,
-                  fontSize: 14.5,
+                  fontSize: 15,
                   fontWeight: FontWeight.bold,
                 ),
                 maxLines: 1,
@@ -260,14 +260,14 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
         ),
         title: Row(
           children: [
-            const Icon(Symbols.terminal, color: Color(0xFF38BDF8), size: 20),
-            const SizedBox(width: 8),
-            Expanded(
+            const Icon(Symbols.terminal, color: Color(0xFF38BDF8), size: 19),
+            const SizedBox(width: 6),
+            Flexible(
               child: Text(
                 'Consola Diagnóstico',
-                style: GoogleFonts.firaCode(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w600,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -276,7 +276,7 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
             ),
             const SizedBox(width: 6),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
               decoration: BoxDecoration(
                 color: const Color(0xFF10B981).withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(4),
@@ -285,7 +285,7 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
               child: Text(
                 'LIVE',
                 style: GoogleFonts.firaCode(
-                  fontSize: 9.5,
+                  fontSize: 8.5,
                   fontWeight: FontWeight.bold,
                   color: const Color(0xFF10B981),
                 ),
@@ -296,20 +296,20 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
         ),
         actions: [
           IconButton(
-            icon: const Icon(Symbols.refresh, color: Color(0xFF38BDF8), size: 20),
+            icon: const Icon(Symbols.refresh, color: Color(0xFF38BDF8), size: 19),
             tooltip: 'Recargar auditoría IA',
-            padding: const EdgeInsets.all(6),
-            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            padding: const EdgeInsets.all(4),
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
             visualDensity: VisualDensity.compact,
             onPressed: _cargarAssistantLogs,
           ),
           IconButton(
-            icon: const Icon(Icons.delete_sweep, color: Color(0xFFF87171), size: 20),
+            icon: const Icon(Icons.delete_sweep, color: Color(0xFFF87171), size: 19),
             tooltip: isAssistantTab
                 ? 'Eliminar consultas revisadas de IA'
                 : 'Limpiar logs de memoria',
-            padding: const EdgeInsets.all(6),
-            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            padding: const EdgeInsets.all(4),
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
             visualDensity: VisualDensity.compact,
             onPressed: () {
               if (isAssistantTab) {
@@ -326,7 +326,7 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
               }
             },
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 4),
         ],
         bottom: TabBar(
           controller: _tabController,
@@ -334,18 +334,18 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
           indicatorWeight: 3,
           labelColor: const Color(0xFF38BDF8),
           unselectedLabelColor: const Color(0xFF94A3B8),
-          labelPadding: const EdgeInsets.symmetric(horizontal: 6),
-          labelStyle: GoogleFonts.firaCode(fontSize: 11.5, fontWeight: FontWeight.bold),
-          unselectedLabelStyle: GoogleFonts.firaCode(fontSize: 11.5),
+          labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+          labelStyle: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold),
+          unselectedLabelStyle: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w500),
           tabs: [
             const Tab(
-              icon: Icon(Symbols.bug_report, size: 17),
+              icon: Icon(Symbols.bug_report, size: 16),
               text: 'Excepciones',
             ),
             Tab(
-              icon: const Icon(Symbols.smart_toy, size: 17),
+              icon: const Icon(Symbols.smart_toy, size: 16),
               text: _assistantLogs.isEmpty
-                  ? 'Auditoría Umby'
+                  ? 'Auditoría IA'
                   : 'Auditoría (${_assistantLogs.length})',
             ),
           ],
@@ -670,13 +670,14 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Flexible(
+                    Expanded(
                       child: Text(
-                        'RESPUESTA GENERADA POR UMBY / GEMINI:',
-                        style: GoogleFonts.firaCode(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+                        'RESPUESTA UMBY / IA:',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
                           color: const Color(0xFF38BDF8),
+                          letterSpacing: 0.5,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -689,8 +690,8 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
                         IconButton(
                           icon: const Icon(Symbols.content_copy, size: 16, color: Color(0xFF38BDF8)),
                           tooltip: 'Copiar interacción',
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.all(4),
+                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
                           onPressed: () {
                             Clipboard.setData(
                               ClipboardData(
@@ -705,12 +706,12 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
                             );
                           },
                         ),
-                        const SizedBox(width: 14),
+                        const SizedBox(width: 6),
                         IconButton(
                           icon: const Icon(Symbols.delete_outline, size: 17, color: Color(0xFFF87171)),
                           tooltip: 'Eliminar esta consulta revisada',
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.all(4),
+                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
                           onPressed: () => _confirmarYEliminarLog(logId),
                         ),
                       ],
