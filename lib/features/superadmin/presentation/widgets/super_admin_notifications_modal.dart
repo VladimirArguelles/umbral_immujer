@@ -1,8 +1,10 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:umbral_immujer/core/services/error_console_service.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_colors.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
@@ -42,7 +44,8 @@ class SuperAdminNotificationItem {
   }
 
   bool get isOperationalIssue => tipo == 'incidencia_operacion';
-  String? get dondeEstaElProblema => datos['donde_esta_el_problema']?.toString();
+  String? get dondeEstaElProblema =>
+      datos['donde_esta_el_problema']?.toString();
   String? get queDebeRevisar => datos['que_debe_revisar']?.toString();
   String? get usuarioNombre => datos['usuario_nombre']?.toString();
   String? get usuarioRol => datos['usuario_rol']?.toString();
@@ -68,11 +71,23 @@ class _SuperAdminNotificationBellButtonState
   final SupabaseClient _supabase = SupabaseConfig.client;
   int _unreadCount = 0;
   Timer? _pollingTimer;
+  RealtimeChannel? _notificationsChannel;
 
   @override
   void initState() {
     super.initState();
     _loadUnreadCount();
+    _notificationsChannel = _supabase
+        .channel(
+          'super-admin-notifications-${DateTime.now().microsecondsSinceEpoch}',
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'notificaciones',
+          callback: (_) => _loadUnreadCount(),
+        )
+        .subscribe();
     // Consulta periódica cada 30 segundos
     _pollingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       _loadUnreadCount();
@@ -82,6 +97,21 @@ class _SuperAdminNotificationBellButtonState
   @override
   void dispose() {
     _pollingTimer?.cancel();
+    final channel = _notificationsChannel;
+    if (channel != null) {
+      unawaited(
+        _supabase.removeChannel(channel).then<void>((_) {}).catchError((
+          Object error,
+          StackTrace stackTrace,
+        ) {
+          ErrorConsoleService.instance.registrarError(
+            origen: 'SuperAdminNotificationBellButton.dispose',
+            error: error,
+            causa: stackTrace,
+          );
+        }),
+      );
+    }
     super.dispose();
   }
 
@@ -91,17 +121,25 @@ class _SuperAdminNotificationBellButtonState
           .from('notificaciones')
           .select('id')
           .or('rol_destino.eq.super_admin,rol_destino.eq.todos')
-          .eq('leido', false);
+          .eq('tipo', 'incidencia_operacion')
+          .eq('leido', false)
+          .count();
 
       if (!mounted) return;
       setState(() {
-        _unreadCount = (res as List).length;
+        _unreadCount = res.count;
       });
       widget.onNotificationCountChanged?.call();
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      ErrorConsoleService.instance.registrarError(
+        origen: 'SuperAdminNotificationBellButton._loadUnreadCount',
+        error: error,
+        causa: stackTrace,
+      );
+    }
   }
 
-  void _openNotificationsModal() async {
+  Future<void> _openNotificationsModal() async {
     await SuperAdminNotificationsModal.show(context);
     _loadUnreadCount();
   }
@@ -148,7 +186,10 @@ class _SuperAdminNotificationBellButtonState
                     right: -5,
                     top: -5,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 1.5,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.error,
                         borderRadius: BorderRadius.circular(10),
@@ -160,7 +201,10 @@ class _SuperAdminNotificationBellButtonState
                           ),
                         ],
                       ),
-                      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
                       child: Center(
                         child: Text(
                           _unreadCount > 9 ? '9+' : '$_unreadCount',
@@ -203,6 +247,7 @@ class _SuperAdminNotificationsModalState
     extends State<SuperAdminNotificationsModal> {
   final SupabaseClient _supabase = SupabaseConfig.client;
   List<SuperAdminNotificationItem> _notifications = [];
+  RealtimeChannel? _notificationsChannel;
   bool _isLoading = true;
   String? _errorMessage;
   int _selectedFilter = 0; // 0 = Todas, 1 = Solo incidencias operativas
@@ -211,16 +256,56 @@ class _SuperAdminNotificationsModalState
   void initState() {
     super.initState();
     _fetchNotifications();
+    _notificationsChannel = _supabase
+        .channel(
+          'super-admin-notification-list-${DateTime.now().microsecondsSinceEpoch}',
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'notificaciones',
+          callback: (_) => _fetchNotifications(),
+        )
+        .subscribe();
+  }
+
+  @override
+  void dispose() {
+    final channel = _notificationsChannel;
+    if (channel != null) {
+      unawaited(
+        _supabase.removeChannel(channel).then<void>((_) {}).catchError((
+          Object error,
+          StackTrace stackTrace,
+        ) {
+          ErrorConsoleService.instance.registrarError(
+            origen: 'SuperAdminNotificationsModal.dispose',
+            error: error,
+            causa: stackTrace,
+          );
+        }),
+      );
+    }
+    super.dispose();
   }
 
   Future<void> _fetchNotifications() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      final res = await _supabase
+      final pendingIssueRows = await _supabase
+          .from('notificaciones')
+          .select('*')
+          .or('rol_destino.eq.super_admin,rol_destino.eq.todos')
+          .eq('tipo', 'incidencia_operacion')
+          .eq('leido', false)
+          .order('created_at', ascending: false)
+          .limit(40);
+      final recentRows = await _supabase
           .from('notificaciones')
           .select('*')
           .or('rol_destino.eq.super_admin,rol_destino.eq.todos')
@@ -228,10 +313,15 @@ class _SuperAdminNotificationsModalState
           .limit(40);
 
       if (!mounted) return;
+      final notificationsById = <String, SuperAdminNotificationItem>{};
+      for (final row in [...pendingIssueRows, ...recentRows]) {
+        final notification = SuperAdminNotificationItem.fromMap(row);
+        notificationsById.putIfAbsent(notification.id, () => notification);
+      }
+      final notifications = notificationsById.values.toList()
+        ..sort((first, second) => second.createdAt.compareTo(first.createdAt));
       setState(() {
-        _notifications = (res as List)
-            .map((item) => SuperAdminNotificationItem.fromMap(item))
-            .toList();
+        _notifications = notifications;
         _isLoading = false;
       });
     } catch (e) {
@@ -247,7 +337,10 @@ class _SuperAdminNotificationsModalState
     try {
       await _supabase
           .from('notificaciones')
-          .update({'leido': true, 'updated_at': DateTime.now().toIso8601String()})
+          .update({
+            'leido': true,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
           .eq('id', id);
 
       if (!mounted) return;
@@ -266,7 +359,144 @@ class _SuperAdminNotificationsModalState
           );
         }
       });
-    } catch (_) {}
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'No se pudo marcar la incidencia como atendida: $error',
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _openIssueDetails(SuperAdminNotificationItem item) async {
+    if (!item.leido) await _markAsRead(item.id);
+    if (!mounted) return;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        final size = MediaQuery.sizeOf(dialogContext);
+        final cardBg = AppTheme.isDark ? const Color(0xFF13111C) : Colors.white;
+        final border = AppTheme.isDark
+            ? const Color(0xFF2D283E)
+            : const Color(0xFFE2E8F0);
+
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(16),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: size.width < 652 ? size.width - 32 : 620,
+              maxHeight: size.height - 32,
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: border),
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: IconButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(),
+                        tooltip: 'Cerrar',
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ),
+                    Text(
+                      item.titulo,
+                      softWrap: true,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.isDark
+                            ? Colors.white
+                            : AppColors.textMain,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      item.mensaje,
+                      softWrap: true,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        height: 1.5,
+                        color: AppTheme.isDark
+                            ? const Color(0xFFB8B3C5)
+                            : const Color(0xFF475569),
+                      ),
+                    ),
+                    if (item.datos.isNotEmpty) ...[
+                      const SizedBox(height: 20),
+                      Text(
+                        'Metadatos',
+                        softWrap: true,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.isDark
+                              ? Colors.white
+                              : AppColors.textMain,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ...item.datos.entries.map(
+                        (entry) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                entry.key,
+                                softWrap: true,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              Text(
+                                entry.value?.toString() ?? '—',
+                                softWrap: true,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12,
+                                  height: 1.4,
+                                  color: AppTheme.isDark
+                                      ? const Color(0xFFB8B3C5)
+                                      : const Color(0xFF475569),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(),
+                        child: const Text('Cerrar'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _deleteNotification(String id) async {
@@ -305,7 +535,10 @@ class _SuperAdminNotificationsModalState
     try {
       await _supabase
           .from('notificaciones')
-          .update({'leido': true, 'updated_at': DateTime.now().toIso8601String()})
+          .update({
+            'leido': true,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
           .or('rol_destino.eq.super_admin,rol_destino.eq.todos')
           .eq('leido', false);
 
@@ -325,7 +558,15 @@ class _SuperAdminNotificationsModalState
             )
             .toList();
       });
-    } catch (_) {}
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No se pudieron marcar las notificaciones: $error'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
   Future<void> _deleteReviewedNotifications() async {
@@ -335,7 +576,9 @@ class _SuperAdminNotificationsModalState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.isDark ? const Color(0xFF13111C) : Colors.white,
+        backgroundColor: AppTheme.isDark
+            ? const Color(0xFF13111C)
+            : Colors.white,
         title: Text(
           'Eliminar notificaciones revisadas',
           style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
@@ -351,7 +594,10 @@ class _SuperAdminNotificationsModalState
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Eliminar', style: TextStyle(color: Colors.white)),
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -398,7 +644,9 @@ class _SuperAdminNotificationsModalState
     final cardBg = isDark ? const Color(0xFF13111C) : Colors.white;
     final border = isDark ? const Color(0xFF2D283E) : const Color(0xFFE2E8F0);
     final textMain = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textMuted = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final textMuted = isDark
+        ? const Color(0xFF94A3B8)
+        : const Color(0xFF64748B);
 
     final filteredList = _notifications.where((n) {
       if (_selectedFilter == 1) {
@@ -432,13 +680,13 @@ class _SuperAdminNotificationsModalState
             children: [
               // Header
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 18,
+                ),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      AppColors.primary.withValues(alpha: 0.18),
-                      cardBg,
-                    ],
+                    colors: [AppColors.primary.withValues(alpha: 0.18), cardBg],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                   ),
@@ -482,25 +730,32 @@ class _SuperAdminNotificationsModalState
                               ),
                               if (unreadCount > 0) ...[
                                 const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.error.withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: AppColors.error.withValues(alpha: 0.6),
-                                      width: 0.8,
+                                Flexible(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
                                     ),
-                                  ),
-                                  child: Text(
-                                    '$unreadCount sin leer',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.error,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.error.withValues(
+                                        alpha: 0.2,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: AppColors.error.withValues(
+                                          alpha: 0.6,
+                                        ),
+                                        width: 0.8,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '$unreadCount sin leer',
+                                      softWrap: true,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.error,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -530,7 +785,10 @@ class _SuperAdminNotificationsModalState
 
               // Barra de filtros y acciones (Wrap adaptativo para evitar cualquier desborde horizontal)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Wrap(
                   spacing: 8,
                   runSpacing: 6,
@@ -548,7 +806,9 @@ class _SuperAdminNotificationsModalState
                       selectedColor: AppColors.primary,
                       backgroundColor: cardBg,
                       side: BorderSide(
-                        color: _selectedFilter == 0 ? AppColors.primary : border,
+                        color: _selectedFilter == 0
+                            ? AppColors.primary
+                            : border,
                       ),
                     ),
                     ChoiceChip(
@@ -570,7 +830,9 @@ class _SuperAdminNotificationsModalState
                       selectedColor: AppColors.warning,
                       backgroundColor: cardBg,
                       side: BorderSide(
-                        color: _selectedFilter == 1 ? AppColors.warning : border,
+                        color: _selectedFilter == 1
+                            ? AppColors.warning
+                            : border,
                       ),
                     ),
                     if (_notifications.any((n) => n.leido))
@@ -591,7 +853,10 @@ class _SuperAdminNotificationsModalState
                       TextButton.icon(
                         onPressed: _markAllAsRead,
                         icon: const Icon(Symbols.done_all, size: 16),
-                        label: const Text('Marcar todas', style: TextStyle(fontSize: 11.5)),
+                        label: const Text(
+                          'Marcar todas',
+                          style: TextStyle(fontSize: 11.5),
+                        ),
                         style: TextButton.styleFrom(
                           foregroundColor: AppColors.primary,
                           padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -608,7 +873,9 @@ class _SuperAdminNotificationsModalState
               Expanded(
                 child: _isLoading
                     ? const Center(
-                        child: CircularProgressIndicator(color: AppColors.primary),
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
                       )
                     : _errorMessage != null
                     ? Center(
@@ -627,7 +894,10 @@ class _SuperAdminNotificationsModalState
                     : filteredList.isEmpty
                     ? Center(
                         child: SingleChildScrollView(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 32,
+                          ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -638,9 +908,13 @@ class _SuperAdminNotificationsModalState
                                 height: 56,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: AppColors.mintNeon.withValues(alpha: 0.12),
+                                  color: AppColors.mintNeon.withValues(
+                                    alpha: 0.12,
+                                  ),
                                   border: Border.all(
-                                    color: AppColors.mintNeon.withValues(alpha: 0.35),
+                                    color: AppColors.mintNeon.withValues(
+                                      alpha: 0.35,
+                                    ),
                                     width: 1.5,
                                   ),
                                 ),
@@ -652,7 +926,9 @@ class _SuperAdminNotificationsModalState
                               ),
                               const SizedBox(height: 16),
                               ConstrainedBox(
-                                constraints: const BoxConstraints(maxWidth: 320),
+                                constraints: const BoxConstraints(
+                                  maxWidth: 320,
+                                ),
                                 child: Text(
                                   'No hay incidencias ni notificaciones pendientes',
                                   style: GoogleFonts.plusJakartaSans(
@@ -666,7 +942,9 @@ class _SuperAdminNotificationsModalState
                               ),
                               const SizedBox(height: 8),
                               ConstrainedBox(
-                                constraints: const BoxConstraints(maxWidth: 320),
+                                constraints: const BoxConstraints(
+                                  maxWidth: 320,
+                                ),
                                 child: Text(
                                   'Las consultas y fallas reportadas por usuarios aparecerán aquí automáticamente.',
                                   style: GoogleFonts.plusJakartaSans(
@@ -684,7 +962,8 @@ class _SuperAdminNotificationsModalState
                     : ListView.separated(
                         padding: const EdgeInsets.all(16),
                         itemCount: filteredList.length,
-                        separatorBuilder: (context, _) => const SizedBox(height: 12),
+                        separatorBuilder: (context, _) =>
+                            const SizedBox(height: 12),
                         itemBuilder: (context, index) {
                           final item = filteredList[index];
                           return _buildNotificationCard(
@@ -716,223 +995,242 @@ class _SuperAdminNotificationsModalState
     final isIssue = item.isOperationalIssue;
     final accentColor = isIssue ? AppColors.warning : AppColors.primary;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1726) : const Color(0xFFF8FAFC),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: isIssue ? () => _openIssueDetails(item) : null,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: item.leido
-              ? border
-              : accentColor.withValues(alpha: 0.6),
-          width: item.leido ? 1 : 1.5,
-        ),
-        boxShadow: item.leido
-            ? []
-            : [
-                BoxShadow(
-                  color: accentColor.withValues(alpha: 0.12),
-                  blurRadius: 12,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Fila superior: badge de tipo, módulo y fecha
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: accentColor.withValues(alpha: 0.5),
-                    width: 0.8,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      isIssue ? Symbols.warning : Symbols.info,
-                      size: 13,
-                      color: accentColor,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      isIssue ? 'INCIDENCIA UMBY' : 'NOTIFICACIÓN',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w800,
-                        color: accentColor,
-                        letterSpacing: 0.5,
-                      ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1A1726) : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: item.leido ? border : accentColor.withValues(alpha: 0.6),
+              width: item.leido ? 1 : 1.5,
+            ),
+            boxShadow: item.leido
+                ? []
+                : [
+                    BoxShadow(
+                      color: accentColor.withValues(alpha: 0.12),
+                      blurRadius: 12,
+                      offset: const Offset(0, 3),
                     ),
                   ],
-                ),
-              ),
-              if (item.modulo != null) ...[
-                const SizedBox(width: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    item.modulo!.toUpperCase(),
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: accentColor.withValues(alpha: 0.5),
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Icon(
+                          isIssue ? Symbols.warning : Symbols.info,
+                          size: 13,
+                          color: accentColor,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          isIssue ? 'INCIDENCIA UMBY' : 'NOTIFICACIÓN',
+                          softWrap: true,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                            color: accentColor,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
-              const Spacer(),
-              Text(
-                _formatTimeAgo(item.createdAt),
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 11,
-                  color: textMuted,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              if (!item.leido) ...[
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Symbols.check_circle, size: 18),
-                  color: AppColors.mintNeon,
-                  tooltip: 'Marcar como leída',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  onPressed: () => _markAsRead(item.id),
-                ),
-              ],
-              const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(Symbols.delete_outline, size: 18),
-                color: AppColors.error,
-                tooltip: 'Eliminar notificación',
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                onPressed: () => _deleteNotification(item.id),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 10),
-
-          // Título y mensaje de la notificación
-          Text(
-            item.titulo,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: textMain,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            item.mensaje,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 12.5,
-              color: textMuted,
-              height: 1.4,
-            ),
-          ),
-
-          // Bloque Especial de Análisis del Agente Virtual (Dónde está el problema y Qué revisar)
-          if (isIssue && (item.dondeEstaElProblema != null || item.queDebeRevisar != null)) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF221C30) : const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: AppColors.warning.withValues(alpha: 0.4),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Symbols.psychology,
-                        size: 16,
-                        color: AppColors.warning,
+                  if (item.modulo != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'ANÁLISIS DE LA IA (UMBY)',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.warning,
-                          letterSpacing: 0.6,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 260),
+                        child: Text(
+                          item.modulo!.toUpperCase(),
+                          softWrap: true,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primary,
+                          ),
                         ),
                       ),
-                    ],
+                    ),
+                  Text(
+                    _formatTimeAgo(item.createdAt),
+                    softWrap: true,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      color: textMuted,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                  if (item.dondeEstaElProblema != null) ...[
-                    const SizedBox(height: 8),
-                    RichText(
-                      text: TextSpan(
-                        style: GoogleFonts.plusJakartaSans(fontSize: 12),
-                        children: [
-                          TextSpan(
-                            text: '📍 Dónde se encuentra el problema:\n',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontWeight: FontWeight.w800,
-                              color: textMain,
-                            ),
-                          ),
-                          TextSpan(
-                            text: item.dondeEstaElProblema,
-                            style: GoogleFonts.plusJakartaSans(
-                              color: textMuted,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
+                  if (!item.leido)
+                    IconButton(
+                      icon: const Icon(Symbols.check_circle, size: 18),
+                      color: AppColors.mintNeon,
+                      tooltip: 'Marcar como atendida',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => _markAsRead(item.id),
                     ),
-                  ],
-                  if (item.queDebeRevisar != null) ...[
-                    const SizedBox(height: 8),
-                    RichText(
-                      text: TextSpan(
-                        style: GoogleFonts.plusJakartaSans(fontSize: 12),
-                        children: [
-                          TextSpan(
-                            text: '🛠️ Qué debe revisar el Super Admin:\n',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontWeight: FontWeight.w800,
-                              color: textMain,
-                            ),
-                          ),
-                          TextSpan(
-                            text: item.queDebeRevisar,
-                            style: GoogleFonts.plusJakartaSans(
-                              color: textMuted,
-                              fontWeight: FontWeight.w500,
-                              height: 1.35,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                  IconButton(
+                    icon: const Icon(Symbols.delete_outline, size: 18),
+                    color: AppColors.error,
+                    tooltip: 'Eliminar notificación',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onPressed: () => _deleteNotification(item.id),
+                  ),
                 ],
               ),
-            ),
-          ],
-        ],
+              const SizedBox(height: 10),
+              Text(
+                item.titulo,
+                softWrap: true,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: textMain,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                item.mensaje,
+                softWrap: true,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12.5,
+                  color: textMuted,
+                  height: 1.4,
+                ),
+              ),
+              if (isIssue &&
+                  (item.dondeEstaElProblema != null ||
+                      item.queDebeRevisar != null)) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF221C30)
+                        : const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: AppColors.warning.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Symbols.psychology,
+                            size: 16,
+                            color: AppColors.warning,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'ANÁLISIS DE LA IA (UMBY)',
+                              softWrap: true,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                color: AppColors.warning,
+                                letterSpacing: 0.6,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (item.dondeEstaElProblema != null) ...[
+                        const SizedBox(height: 8),
+                        Text.rich(
+                          TextSpan(
+                            style: GoogleFonts.plusJakartaSans(fontSize: 12),
+                            children: [
+                              TextSpan(
+                                text: '📍 Dónde se encuentra el problema:\n',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontWeight: FontWeight.w800,
+                                  color: textMain,
+                                ),
+                              ),
+                              TextSpan(
+                                text: item.dondeEstaElProblema,
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: textMuted,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                          softWrap: true,
+                        ),
+                      ],
+                      if (item.queDebeRevisar != null) ...[
+                        const SizedBox(height: 8),
+                        Text.rich(
+                          TextSpan(
+                            style: GoogleFonts.plusJakartaSans(fontSize: 12),
+                            children: [
+                              TextSpan(
+                                text: '🛠️ Qué debe revisar el Super Admin:\n',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontWeight: FontWeight.w800,
+                                  color: textMain,
+                                ),
+                              ),
+                              TextSpan(
+                                text: item.queDebeRevisar,
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: textMuted,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ],
+                          ),
+                          softWrap: true,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

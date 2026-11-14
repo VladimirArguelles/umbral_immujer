@@ -141,36 +141,72 @@ Antes de cerrar una tarea o dejarla lista para revisión:
 Cuando se modifica la app o se trabaja en UI, se debe actualizar la salida Web en `docs/` usando:
 
 ```powershell
-flutter build web --release --base-href "/umbral_immujer/" --output docs --dart-define-from-file=.env
+flutter build web --release --output=docs --base-href="/umbral_immujer/" --dart-define-from-file=.env
 ```
 
 Esto garantiza que la versión web del proyecto siga sincronizada con el repositorio y con la publicación en GitHub Pages.
 
-### 6.3. Publicación obligatoria en GitHub
-Siempre que se realice una modificación en el proyecto, además de compilar la versión web en `docs/`, se debe subir los cambios al repositorio remoto de GitHub para dejar el estado actualizado y disponible.
+### 6.3. Inmutabilidad de versión y exclusión de binarios
+- Está estrictamente prohibido modificar `version:` en `pubspec.yaml` (versión semántica o build number) durante compilaciones rutinarias, cambios UI/UX o despliegues de parches.
+- La versión solo puede cambiar por orden explícita del arquitecto para un hito mayor. No se debe cambiar la versión para evitar o forzar notificaciones de actualización por cambios menores.
+- `.gitignore` debe excluir permanentemente `build/` en cualquier nivel y todos los archivos `*.apk`.
+- Nunca ejecutar `git add` ni incluir en un commit `app-release.apk` u otros APK. El APK se distribuye únicamente mediante GitHub Releases.
+
+### 6.4. Pipeline dual de compilación y publicación
+Cuando se solicite compilar o desplegar cambios de Umbral_Immujer hacia GitHub, ejecutar la secuencia completa en PowerShell y en este orden. No publicar solo uno de los destinos:
+
+1. **Web / GitHub Pages** — generar `docs/`:
+
+   ```powershell
+   flutter build web --release --output=docs --base-href="/umbral_immujer/" --dart-define-from-file=.env
+   if ($LASTEXITCODE -ne 0) { throw "Falló la compilación web." }
+   ```
+
+2. **Android Release** — compilar el APK sin modificar `pubspec.yaml`:
+
+   ```powershell
+   flutter build apk --release
+   if ($LASTEXITCODE -ne 0) { throw "Falló la compilación Android." }
+   ```
+
+3. **GitHub Release `latest-build`** — comprobar autenticación y crear el release si aún no existe. Si `gh auth status` falla, detener la publicación e informar que GitHub CLI no está autenticado o disponible.
+
+   ```powershell
+   gh auth status
+   if ($LASTEXITCODE -ne 0) { throw "Autentica GitHub CLI con gh auth login antes de publicar." }
+
+   gh release view latest-build
+   if ($LASTEXITCODE -ne 0) {
+     gh release create latest-build --title "UMBRAL Latest Build" --notes "Compilación continua automática"
+     if ($LASTEXITCODE -ne 0) { throw "No se pudo crear el release latest-build." }
+   }
+
+   gh release upload latest-build build/app/outputs/flutter-apk/app-release.apk --clobber
+   if ($LASTEXITCODE -ne 0) { throw "No se pudo subir o sobrescribir el APK en GitHub Releases." }
+   ```
+
+   GitHub Releases es el único destino permitido para el binario Android. `--clobber` reemplaza el APK del release fijo; no crear tags variables ni subir APKs al historial Git.
+
+4. **Sincronización Web en Git** — revisar el estado y agregar exclusivamente `docs/` y las rutas de código fuente modificadas por la tarea. Luego crear un commit claro y publicar en `main`:
 
 Reglas obligatorias:
-- Ejecutar la compilación web antes de cerrar la tarea.
-- Revisar el estado de Git y confirmar que solo se suben los cambios relevantes para la tarea.
-- Hacer `git add` solo de las rutas modificadas y no mezclar trabajo ajeno.
-- Crear commit con mensaje claro y subir los cambios al repositorio remoto.
-- Si el proyecto requiere publicar la versión web, dejar `docs/` sincronizado con la rama activa.
+- Ejecutar `git status --short` antes de preparar el commit y confirmar que no se incluyan cambios ajenos.
+- Ejecutar `git add docs/` y `git add <rutas de código fuente modificadas>` de forma explícita; nunca usar `git add .` ni agregar `build/` o APKs.
+- Crear el commit y ejecutar `git push origin main` solo después de completar ambas compilaciones y la publicación del APK.
+- Si existen cambios locales ajenos que pudieran ser sobrescritos o mezclados, detenerse y solicitar confirmación.
 
-Ejemplo de flujo mínimo requerido:
+Ejemplo de sincronización Git:
 
 ```powershell
-flutter pub get
-flutter analyze
-flutter build web --release --base-href "/umbral_immujer/" --output docs --dart-define-from-file=.env
 git status --short
-git add AI_PROTOCOL.md AGENTS.md docs/
-git commit -m "chore: sincronizar compilación web y protocolo"
+git add docs/
+# Agregar explícitamente cada ruta de código fuente modificada por la tarea.
+git add AI_PROTOCOL.md .gitignore
+git commit -m "chore: publicar compilación dual UMBRAL"
 git push origin main
 ```
 
-Si hay cambios ajenos no relacionados, no se deben mezclar ni sobrescribir; se trabajará solo sobre los archivos de la tarea actual.
-
-### 6.4. Control de versión y staging
+### 6.5. Control de versión y staging
 - Hacer `git add` solo de las rutas modificadas y relevantes para la tarea.
 - No hacer stage global ni sobrescribir cambios ajenos.
 - Si hay cambios no relacionados en el repositorio, no tocarlos ni mezclarlos.
