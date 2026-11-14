@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../config/remote_config_service.dart';
@@ -27,6 +28,8 @@ class GitHubReleaseInfo {
   final int apkFileSize;
   final String htmlUrl;
   final bool isMandatory;
+  final String? assetUpdatedAt;
+  final String? publishedAt;
 
   const GitHubReleaseInfo({
     required this.hasUpdate,
@@ -42,6 +45,8 @@ class GitHubReleaseInfo {
     this.apkFileSize = 0,
     required this.htmlUrl,
     this.isMandatory = false,
+    this.assetUpdatedAt,
+    this.publishedAt,
   });
 
   String get localDisplayVersion => localBuildNumber != null
@@ -241,6 +246,8 @@ class UpdateService {
     String htmlUrl = 'https://github.com/$resolvedOwner/$resolvedRepo/releases/latest';
     String remoteVersionRaw = localSemver;
     int? remoteBuildNumber;
+    String? assetUpdatedAt;
+    String? publishedAt;
 
     final dio = Dio(
       BaseOptions(
@@ -261,6 +268,7 @@ class UpdateService {
         releaseTitle = data['name']?.toString() ?? tagName;
         releaseNotes = data['body']?.toString() ?? 'Mejoras y correcciones generales.';
         htmlUrl = data['html_url']?.toString() ?? htmlUrl;
+        publishedAt = data['published_at']?.toString();
 
         // Buscar el asset APK dentro de la lista de assets de GitHub
         final assets = data['assets'];
@@ -275,6 +283,7 @@ class UpdateService {
                 if (sizeVal is num) {
                   apkFileSize = sizeVal.toInt();
                 }
+                assetUpdatedAt = asset['updated_at']?.toString() ?? publishedAt;
                 break;
               }
             }
@@ -287,11 +296,12 @@ class UpdateService {
         }
 
         // Extraer la versión semántica remota a partir de tagName o releaseTitle
-        if (tagName.toLowerCase() == 'latest') {
-          // Si el tag es 'latest', intentar extraer versión del título o notas
+        if (tagName.toLowerCase().startsWith('latest')) {
+          // Si el tag es 'latest' o 'latest-build', intentar extraer versión del título o notas
           final titleDigits = RegExp(r'\d+\.\d+(\.\d+)?').firstMatch(releaseTitle)?.group(0);
-          remoteVersionRaw = titleDigits ?? localSemver;
-          remoteBuildNumber = parseBuildNumber(releaseTitle);
+          final notesDigits = RegExp(r'\d+\.\d+(\.\d+)?').firstMatch(releaseNotes)?.group(0);
+          remoteVersionRaw = titleDigits ?? notesDigits ?? localSemver;
+          remoteBuildNumber = parseBuildNumber(releaseTitle) ?? parseBuildNumber(releaseNotes);
         } else {
           remoteVersionRaw = formatSemver(tagName);
           remoteBuildNumber = parseBuildNumber(tagName);
@@ -306,12 +316,32 @@ class UpdateService {
     }
 
     final remoteSemver = formatSemver(remoteVersionRaw);
-    final hasUpdate = isUpdateAvailable(
+    final semverUpdate = isUpdateAvailable(
       remoteVersion: remoteSemver,
       currentVersion: localSemver,
       remoteBuildNumber: remoteBuildNumber,
       currentBuildNumber: localBuildNumber,
     );
+
+    // Si la versión SemVer es idéntica pero el release proviene de compilación continua (latest / latest-build)
+    bool continuousUpdate = false;
+    if (!semverUpdate && assetUpdatedAt != null && assetUpdatedAt.isNotEmpty) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final lastApplied = prefs.getString('last_installed_asset_updated_at');
+        if (lastApplied != null && lastApplied.isNotEmpty) {
+          final remoteTime = DateTime.tryParse(assetUpdatedAt);
+          final localTime = DateTime.tryParse(lastApplied);
+          if (remoteTime != null && localTime != null && remoteTime.isAfter(localTime)) {
+            continuousUpdate = true;
+          }
+        }
+      } catch (e) {
+        debugPrint('[UpdateService] Error comparando timestamps de actualización continua: $e');
+      }
+    }
+
+    final hasUpdate = semverUpdate || continuousUpdate;
 
     return GitHubReleaseInfo(
       hasUpdate: hasUpdate,
@@ -330,6 +360,8 @@ class UpdateService {
       apkFileName: apkFileName,
       apkFileSize: apkFileSize,
       htmlUrl: htmlUrl,
+      assetUpdatedAt: assetUpdatedAt,
+      publishedAt: publishedAt,
     );
   }
 
@@ -402,6 +434,7 @@ class UpdateService {
     required String apkUrl,
     required String latestVersion,
     required void Function(double progress, String statusText) onProgress,
+    String? assetUpdatedAt,
   }) async {
     if (kIsWeb || !isAndroidPlatform) {
       onProgress(1.0, 'Abriendo enlace en navegador externo...');
@@ -525,7 +558,14 @@ class UpdateService {
 
       debugPrint('[UpdateService] Resultado de instalación: ${result.type} (${result.message})');
 
-      if (result.type != ResultType.done) {
+      if (result.type == ResultType.done) {
+        if (assetUpdatedAt != null && assetUpdatedAt.isNotEmpty) {
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('last_installed_asset_updated_at', assetUpdatedAt);
+          } catch (_) {}
+        }
+      } else {
         if (result.type == ResultType.permissionDenied) {
           throw Exception(
             'Permiso denegado para instalar aplicaciones desconocidas. Autoriza a UMBRAL en Ajustes de Android.',

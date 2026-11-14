@@ -63,6 +63,7 @@ class _GlassmorphicUpdateDialogState extends State<GlassmorphicUpdateDialog> {
       await UpdateService.instance.downloadAndInstallApk(
         apkUrl: widget.releaseInfo.apkDownloadUrl,
         latestVersion: widget.releaseInfo.remoteVersion,
+        assetUpdatedAt: widget.releaseInfo.assetUpdatedAt,
         onProgress: (progress, status) {
           if (mounted) {
             setState(() {
