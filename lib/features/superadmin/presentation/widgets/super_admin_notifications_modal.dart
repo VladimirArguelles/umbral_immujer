@@ -721,6 +721,9 @@ class _SuperAdminNotificationsModalState
       if (_selectedFilter == 1) {
         return n.isOperationalIssue;
       }
+      if (_selectedFilter == 2) {
+        return !n.isOperationalIssue;
+      }
       return true;
     }).toList();
 
@@ -787,7 +790,7 @@ class _SuperAdminNotificationsModalState
                             children: [
                               Flexible(
                                 child: Text(
-                                  'Alertas & Diagnósticos',
+                                  'Notificaciones & Auditoría IA',
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 16.5,
                                     fontWeight: FontWeight.w800,
@@ -833,7 +836,7 @@ class _SuperAdminNotificationsModalState
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Incidencias operativas reportadas por usuarios y equipos del sistema',
+                            'Gestión exclusiva de consultas del Asistente Virtual Umby e incidencias del sistema',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
                               color: textMuted,
@@ -882,12 +885,12 @@ class _SuperAdminNotificationsModalState
                     ),
                     ChoiceChip(
                       avatar: const Icon(
-                        Symbols.warning,
+                        Symbols.smart_toy,
                         size: 14,
-                        color: AppColors.warning,
+                        color: Color(0xFF38BDF8),
                       ),
                       label: Text(
-                        'Incidencias (${_notifications.where((n) => n.isOperationalIssue).length})',
+                        'Auditoría IA (${_notifications.where((n) => n.isOperationalIssue).length})',
                       ),
                       selected: _selectedFilter == 1,
                       onSelected: (val) => setState(() => _selectedFilter = 1),
@@ -896,10 +899,34 @@ class _SuperAdminNotificationsModalState
                         fontWeight: FontWeight.w700,
                         color: _selectedFilter == 1 ? Colors.white : textMuted,
                       ),
-                      selectedColor: AppColors.warning,
+                      selectedColor: const Color(0xFF0284C7),
                       backgroundColor: cardBg,
                       side: BorderSide(
                         color: _selectedFilter == 1
+                            ? const Color(0xFF38BDF8)
+                            : border,
+                      ),
+                    ),
+                    ChoiceChip(
+                      avatar: const Icon(
+                        Symbols.notifications,
+                        size: 14,
+                        color: AppColors.warning,
+                      ),
+                      label: Text(
+                        'Generales (${_notifications.where((n) => !n.isOperationalIssue).length})',
+                      ),
+                      selected: _selectedFilter == 2,
+                      onSelected: (val) => setState(() => _selectedFilter = 2),
+                      labelStyle: GoogleFonts.plusJakartaSans(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: _selectedFilter == 2 ? Colors.white : textMuted,
+                      ),
+                      selectedColor: AppColors.warning,
+                      backgroundColor: cardBg,
+                      side: BorderSide(
+                        color: _selectedFilter == 2
                             ? AppColors.warning
                             : border,
                       ),

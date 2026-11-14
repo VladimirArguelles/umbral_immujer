@@ -5,7 +5,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import 'core/config/remote_config_service.dart';
 import 'core/router/app_router.dart';
-import 'core/services/error_console_service.dart';
+import 'core/services/error_tracking_service.dart';
 import 'features/teacher/data/attendance_offline_service.dart';
 import 'src/core/config/supabase_config.dart';
 import 'src/core/services/online_user_presence_service.dart';
@@ -39,23 +39,14 @@ Future<void> main() async {
   // Inicializa y recupera la preferencia de tema guardada (claro/oscuro).
   await ThemeController.initialize();
 
-  // Configura observadores globales para registrar errores en la consola de diagnóstico en memoria.
+  // Configura observadores globales para registrar errores en telemetría Supabase y memoria.
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
-    ErrorConsoleService.instance.registrarError(
-      origen: 'Framework Flutter UI',
-      error: details.exceptionAsString(),
-      causa: details.stack,
-    );
+    ErrorTrackingService.instance.captureWidgetError(details);
   };
 
   PlatformDispatcher.instance.onError = (error, stack) {
-    ErrorConsoleService.instance.registrarError(
-      origen: 'Motor Dart Asíncrono',
-      error: error,
-      causa: stack,
-    );
-    return true;
+    return ErrorTrackingService.instance.captureAsyncError(error, stack);
   };
 
   runApp(const UmbralApp());

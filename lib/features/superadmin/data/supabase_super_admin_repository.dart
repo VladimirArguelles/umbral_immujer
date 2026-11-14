@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:umbral_immujer/core/services/error_tracking_service.dart';
 import 'package:umbral_immujer/features/superadmin/domain/super_admin_metrics.dart';
 import 'package:umbral_immujer/features/superadmin/domain/super_admin_repository.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
@@ -12,38 +13,54 @@ class SupabaseSuperAdminRepository implements SuperAdminRepository {
 
   @override
   Future<SuperAdminMetricsResult> fetchMetrics() async {
-    Object? authenticatedUsersError;
-    final authenticatedUsersFuture = _client
-        .rpc<int>('count_authenticated_users')
-        .then<int?>((count) => count)
-        .catchError((Object error) {
-          authenticatedUsersError = error;
-          return null;
-        });
+    try {
+      Object? authenticatedUsersError;
+      final authenticatedUsersFuture = _client
+          .rpc<int>('count_authenticated_users')
+          .then<int?>((count) => count)
+          .catchError((Object error, StackTrace stack) {
+            authenticatedUsersError = error;
+            ErrorTrackingService.instance.reportException(
+              error: error,
+              stackTrace: stack,
+              module: 'metrics_rpc',
+              severity: 'warning',
+            );
+            return null;
+          });
 
-    final futures = await Future.wait([
-      _client.from('alumnos').select('id').count(),
-      _client.from('cursos').select('id').eq('estado', 'activo').count(),
-      _client.from('perfiles').select('id').eq('rol', 'profesor').count(),
-      _client.from('perfiles').select('id').eq('rol', 'coordinador').count(),
-      _client.from('asistencia').select('id').count(),
-      _client.from('asistencia').select('id').eq('estado', 'Presente').count(),
-    ]);
+      final futures = await Future.wait([
+        _client.from('alumnos').select('id').count(),
+        _client.from('cursos').select('id').eq('estado', 'activo').count(),
+        _client.from('perfiles').select('id').eq('rol', 'profesor').count(),
+        _client.from('perfiles').select('id').eq('rol', 'coordinador').count(),
+        _client.from('asistencia').select('id').count(),
+        _client.from('asistencia').select('id').eq('estado', 'Presente').count(),
+      ]);
 
-    final authenticatedUsers = await authenticatedUsersFuture;
+      final authenticatedUsers = await authenticatedUsersFuture;
 
-    return SuperAdminMetricsResult(
-      metrics: SuperAdminMetrics(
-        totalStudents: futures[0].count,
-        totalCourses: futures[1].count,
-        totalTeachers: futures[2].count,
-        totalCoordinators: futures[3].count,
-        totalUsers: authenticatedUsers,
-        totalAttendances: futures[4].count,
-        totalPresent: futures[5].count,
-      ),
-      partialError: authenticatedUsersError,
-    );
+      return SuperAdminMetricsResult(
+        metrics: SuperAdminMetrics(
+          totalStudents: futures[0].count,
+          totalCourses: futures[1].count,
+          totalTeachers: futures[2].count,
+          totalCoordinators: futures[3].count,
+          totalUsers: authenticatedUsers,
+          totalAttendances: futures[4].count,
+          totalPresent: futures[5].count,
+        ),
+        partialError: authenticatedUsersError,
+      );
+    } catch (e, stack) {
+      await ErrorTrackingService.instance.reportException(
+        error: e,
+        stackTrace: stack,
+        module: 'superadmin_metrics',
+        severity: 'error',
+      );
+      rethrow;
+    }
   }
 
   @override
