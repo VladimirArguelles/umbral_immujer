@@ -279,6 +279,70 @@ class RemoteConfigService extends ChangeNotifier {
   bool getRemoteBool(String key, bool fallback) =>
       getConfigValue<bool>(key, fallback);
 
+  Map<String, dynamic> getRemoteMap(
+    String key, [
+    Map<String, dynamic> fallback = const {},
+  ]) {
+    final val = _configs[key];
+    if (val is Map<String, dynamic>) return val;
+    if (val is Map) return Map<String, dynamic>.from(val);
+    return fallback;
+  }
+
+  List<dynamic> getRemoteList(String key, [List<dynamic> fallback = const []]) {
+    final val = _configs[key];
+    if (val is List) return val;
+    return fallback;
+  }
+
+  // ===========================================================================
+  // TOKENS VISUALES DINÁMICOS Y PARÁMETROS SERVER-DRIVEN UI
+  // ===========================================================================
+
+  /// Desenfoque dinámico para Glassmorphism (sigma)
+  double get glassmorphismBlur =>
+      getRemoteDouble('glassmorphism_blur', 14.0);
+
+  /// Opacidad dinámica para tarjetas translúcidas Glassmorphic
+  double get glassmorphismOpacity =>
+      getRemoteDouble('glassmorphism_opacity', 0.70);
+
+  /// Opacidad dinámica para bordes luminosos Glassmorphic
+  double get glassmorphismBorderOpacity =>
+      getRemoteDouble('glassmorphism_border_opacity', 0.20);
+
+  /// Color primario institucional dinámico
+  Color get dynamicPrimary =>
+      getRemoteColor('primary_color', const Color(0xFFE0115F));
+
+  /// Color de acento neón institucional dinámico
+  Color get dynamicAccent =>
+      getRemoteColor('accent_color', const Color(0xFF0BD984));
+
+  /// Color complementario secundario dinámico
+  Color get dynamicSecondaryAccent =>
+      getRemoteColor('accent_secondary', const Color(0xFF3B82F6));
+
+  /// Estado del banner institucional reactivo
+  bool get isAnnouncementBannerActive =>
+      getRemoteBool('announcement_banner_enabled', false);
+
+  String get announcementBannerText =>
+      getRemoteString('announcement_banner_text', '');
+
+  String get announcementBannerType =>
+      getRemoteString('announcement_banner_type', 'info');
+
+  String get maintenanceBannerText =>
+      getRemoteString('maintenance_banner', '');
+
+  /// Repositorio de GitHub para actualizaciones OTA
+  String get githubRepoOwner =>
+      getRemoteString('github_repo_owner', 'VladimirArguelles');
+
+  String get githubRepoName =>
+      getRemoteString('github_repo_name', 'umbral_immujer');
+
   /// Método administrativo para que el Super Admin actualice un valor al vuelo
   /// Enviando el valor Dart tipado directamente a la columna JSONB de Supabase
   Future<bool> setConfigValue(String key, dynamic value) async {

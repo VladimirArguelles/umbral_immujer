@@ -11,6 +11,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../widgets/app_update_dialog.dart';
+import '../../../../core/services/update_service.dart';
 
 /// Información de la versión de la app y actualización disponible.
 class UpdateInfo {
@@ -78,6 +79,17 @@ class AppUpdateService {
     BuildContext context, {
     bool force = false,
   }) async {
+    // 1. Delegación prioritaria al servicio de GitHub Releases OTA con UI Glassmorphic
+    try {
+      await UpdateService.instance.checkAndShowUpdateModal(context, force: force);
+      if (UpdateService.instance.hasCheckedThisSession) {
+        return;
+      }
+    } catch (e) {
+      debugPrint('[AppUpdateService] Intento con GitHub Releases falló, usando fallback Supabase: $e');
+    }
+
+    // 2. Fallback secundario a Supabase configuracion_general
     if (!force && (_hasCheckedUpdate || _isUpdateDialogDismissed)) {
       return;
     }
@@ -88,8 +100,6 @@ class AppUpdateService {
     if (!context.mounted) return;
     if (!force && !_isActiveRootDashboard(context)) return;
 
-    // Fija la bandera antes de la llamada asíncrona para evitar verificaciones
-    // duplicadas si el usuario cambia de módulo antes de recibir respuesta.
     if (!force) {
       _hasCheckedUpdate = true;
     }
