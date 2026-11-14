@@ -27,7 +27,6 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen> {
 
   // Filtros activos
   String _selectedSeverity = 'all'; // 'all', 'critical', 'error', 'warning'
-  String _selectedModule = 'all';
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
@@ -178,26 +177,16 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen> {
       if (_selectedSeverity != 'all' && item.severity != _selectedSeverity) {
         return false;
       }
-      if (_selectedModule != 'all' && item.module != _selectedModule) {
-        return false;
-      }
       if (_searchQuery.isNotEmpty) {
         final q = _searchQuery.toLowerCase();
         final matchesMsg = item.errorMessage.toLowerCase().contains(q);
         final matchesMod = item.module.toLowerCase().contains(q);
         final matchesStack = item.stackTrace?.toLowerCase().contains(q) ?? false;
-        if (!matchesMsg && !matchesMod && !matchesStack) return false;
+        final matchesRoute = (item.metadata['full_route']?.toString().toLowerCase().contains(q) ?? false);
+        if (!matchesMsg && !matchesMod && !matchesStack && !matchesRoute) return false;
       }
       return true;
     }).toList();
-  }
-
-  List<String> get _availableModules {
-    final modules = <String>{'all'};
-    for (final ex in _exceptions) {
-      if (ex.module.isNotEmpty) modules.add(ex.module);
-    }
-    return modules.toList();
   }
 
   @override
@@ -373,7 +362,7 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen> {
           ),
           const SizedBox(height: 10),
 
-          // Chips de Severidad y Módulo
+          // Chips de Severidad
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -385,31 +374,6 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen> {
                 _buildSeverityChip('error', 'Errores', const Color(0xFFF97316)),
                 const SizedBox(width: 6),
                 _buildSeverityChip('warning', 'Advertencias', const Color(0xFFF59E0B)),
-                const SizedBox(width: 12),
-                Container(width: 1, height: 20, color: const Color(0xFF334155)),
-                const SizedBox(width: 12),
-
-                // Selector de Módulo
-                DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedModule,
-                    dropdownColor: const Color(0xFF1E293B),
-                    icon: const Icon(Symbols.arrow_drop_down, color: Color(0xFF94A3B8), size: 18),
-                    style: GoogleFonts.firaCode(fontSize: 11, color: const Color(0xFF38BDF8)),
-                    items: _availableModules.map((mod) {
-                      return DropdownMenuItem<String>(
-                        value: mod,
-                        child: Text(
-                          mod == 'all' ? 'Módulo: Todos' : 'Módulo: $mod',
-                          style: GoogleFonts.firaCode(fontSize: 11),
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) setState(() => _selectedModule = val);
-                    },
-                  ),
-                ),
               ],
             ),
           ),
@@ -533,7 +497,7 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    item.module,
+                    item.metadata['full_route']?.toString() ?? item.module,
                     style: GoogleFonts.firaCode(
                       fontSize: 10,
                       color: const Color(0xFF38BDF8),
@@ -568,6 +532,63 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen> {
           children: [
             const Divider(color: Color(0xFF1E293B)),
             const SizedBox(height: 8),
+
+            // Ruta Completa y Específica del Error o Falla
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Symbols.route, size: 18, color: Color(0xFF38BDF8)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'RUTA COMPLETA ESPECÍFICA:',
+                          style: GoogleFonts.firaCode(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF38BDF8),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        SelectableText(
+                          item.metadata['full_route']?.toString() ?? item.module,
+                          style: GoogleFonts.firaCode(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFFE2E8F0),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Symbols.content_copy, size: 16, color: Color(0xFF94A3B8)),
+                    tooltip: 'Copiar ruta de la falla',
+                    onPressed: () {
+                      final routeToCopy = item.metadata['full_route']?.toString() ?? item.module;
+                      Clipboard.setData(ClipboardData(text: routeToCopy));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Ruta de la falla copiada al portapapeles.'),
+                          duration: Duration(seconds: 2),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
 
             // Mensaje de Error Completo
             Container(

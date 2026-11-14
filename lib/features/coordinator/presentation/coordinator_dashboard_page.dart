@@ -138,9 +138,9 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  icon: const Icon(Icons.visibility_rounded, size: 16),
+                  icon: const Icon(Icons.folder_rounded, size: 16),
                   label: const Text(
-                    'Ver Registros',
+                    'Centro de Reportes',
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                   ),
                   onPressed: () => context.go('/reports'),
@@ -148,9 +148,9 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
               )
             else
               IconButton(
-                tooltip: 'Ver Registros',
+                tooltip: 'Centro de Reportes y Documentos Oficiales',
                 icon: const Icon(
-                  Icons.visibility_rounded,
+                  Icons.folder_rounded,
                   color: AppTheme.primary,
                 ),
                 onPressed: () => context.go('/reports'),

@@ -243,6 +243,17 @@ Future<void> showSuperAdminSettingsSheet(
                       ),
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Text(
+                      'Umbral • Versión instalada: 0.1.6+7',
+                      style: GoogleFonts.firaCode(
+                        fontSize: 11,
+                        color: SuperAdminTokens.textDim,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

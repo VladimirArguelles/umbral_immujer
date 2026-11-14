@@ -40,6 +40,15 @@ Future<void> main() async {
   await ThemeController.initialize();
 
   // Configura observadores globales para registrar errores en telemetría Supabase y memoria.
+  ErrorTrackingService.currentRouteProvider = () {
+    try {
+      final uri = appRouter.routerDelegate.currentConfiguration.uri.toString();
+      return uri.isNotEmpty ? uri : '/';
+    } catch (_) {
+      return '/';
+    }
+  };
+
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
     ErrorTrackingService.instance.captureWidgetError(details);

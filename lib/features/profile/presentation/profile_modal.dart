@@ -1,8 +1,10 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:umbral_immujer/features/profile/data/profile_repository.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
@@ -52,6 +54,9 @@ class _ProfileModalState extends State<ProfileModal> {
   bool _isSaving = false;
   final ImagePicker _picker = ImagePicker();
 
+  String _appName = 'Umbral';
+  String _appVersion = '0.1.6+7';
+
   @override
   void initState() {
     super.initState();
@@ -60,6 +65,20 @@ class _ProfileModalState extends State<ProfileModal> {
     _emailCtrl = TextEditingController(text: widget.profile.email);
     _phoneCtrl = TextEditingController(text: widget.profile.telefono ?? '');
     _cedulaCtrl = TextEditingController(text: widget.profile.cedula ?? '');
+    _loadAppInfo();
+  }
+
+  Future<void> _loadAppInfo() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _appName = info.appName.isNotEmpty ? info.appName : 'Umbral';
+          final build = info.buildNumber.isNotEmpty ? '+${info.buildNumber}' : '';
+          _appVersion = '${info.version}$build';
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -392,7 +411,73 @@ class _ProfileModalState extends State<ProfileModal> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
+
+                // Nombre de la Aplicación y Versión Instalada
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? AppTheme.surfaceContainer
+                        : const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isDark
+                          ? AppTheme.outlineVariant
+                          : const Color(0xFFE2E8F0),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Symbols.verified,
+                          color: AppTheme.primary,
+                          size: 16,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _appName,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 4,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: textMuted.withValues(alpha: 0.6),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          'Versión: $_appVersion',
+                          style: GoogleFonts.firaCode(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.primary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
 
                 // Campo Nombre Completo
                 TextFormField(
