@@ -76,7 +76,7 @@ class _SuperAdminNotificationBellButtonState
   @override
   void initState() {
     super.initState();
-    _loadUnreadCount();
+    _syncAndLoad();
     _notificationsChannel = _supabase
         .channel(
           'super-admin-notifications-${DateTime.now().microsecondsSinceEpoch}',
@@ -92,6 +92,13 @@ class _SuperAdminNotificationBellButtonState
     _pollingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       _loadUnreadCount();
     });
+  }
+
+  Future<void> _syncAndLoad() async {
+    await SuperAdminNotificationsModal.syncPendingAssistantLogs();
+    if (mounted) {
+      await _loadUnreadCount();
+    }
   }
 
   @override
@@ -238,6 +245,67 @@ class SuperAdminNotificationsModal extends StatefulWidget {
     );
   }
 
+  /// Sincroniza preventivamente consultas/incidencias de assistant_logs con la tabla notificaciones
+  static Future<void> syncPendingAssistantLogs() async {
+    try {
+      final supabase = SupabaseConfig.client;
+      final logs = await supabase
+          .from('assistant_logs')
+          .select('id, user_id, user_nombre, user_rol, modulo_id, user_question, bot_answer, created_at')
+          .order('created_at', ascending: false)
+          .limit(40);
+
+      if (logs.isEmpty) return;
+
+      final existingNotifs = await supabase
+          .from('notificaciones')
+          .select('datos')
+          .eq('tipo', 'incidencia_operacion')
+          .or('rol_destino.eq.super_admin,rol_destino.eq.todos')
+          .limit(100);
+
+      final syncedIds = <String>{};
+      for (final n in existingNotifs) {
+        final d = n['datos'];
+        if (d is Map && d['assistant_log_id'] != null) {
+          syncedIds.add(d['assistant_log_id'].toString());
+        }
+      }
+
+      for (final log in logs) {
+        final logId = log['id']?.toString();
+        if (logId == null || syncedIds.contains(logId)) continue;
+
+        final userNombre = log['user_nombre']?.toString() ?? 'Usuario';
+        final modulo = (log['modulo_id']?.toString() ?? 'general').toUpperCase();
+        final botAnswer = log['bot_answer']?.toString() ?? '';
+        final userQuestion = log['user_question']?.toString() ?? 'Consulta';
+        final createdAt = log['created_at']?.toString();
+
+        await supabase.from('notificaciones').insert({
+          'usuario_origen_id': log['user_id'],
+          'rol_destino': 'super_admin',
+          'titulo': 'Consulta IA Umby: $userNombre ($modulo)',
+          'mensaje': userQuestion,
+          'tipo': 'incidencia_operacion',
+          'datos': {
+            'modulo': log['modulo_id'] ?? 'general',
+            'usuario_nombre': userNombre,
+            'usuario_rol': log['user_rol'] ?? 'usuario',
+            'donde_esta_el_problema': 'Consulta en Asistente Umby ($modulo)',
+            'que_debe_revisar': botAnswer,
+            'assistant_log_id': logId,
+          },
+          'leido': false,
+          'created_at': createdAt ?? DateTime.now().toIso8601String(),
+        });
+        syncedIds.add(logId);
+      }
+    } catch (_) {
+      // Manejo seguro silencioso
+    }
+  }
+
   @override
   State<SuperAdminNotificationsModal> createState() =>
       _SuperAdminNotificationsModalState();
@@ -297,6 +365,7 @@ class _SuperAdminNotificationsModalState
     });
 
     try {
+      await SuperAdminNotificationsModal.syncPendingAssistantLogs();
       final pendingIssueRows = await _supabase
           .from('notificaciones')
           .select('*')

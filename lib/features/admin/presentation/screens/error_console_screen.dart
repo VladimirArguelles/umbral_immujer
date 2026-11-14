@@ -120,6 +120,12 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
 
     try {
       await SupabaseConfig.client.from('assistant_logs').delete().eq('id', id);
+      try {
+        await SupabaseConfig.client
+            .from('notificaciones')
+            .delete()
+            .contains('datos', {'assistant_log_id': id});
+      } catch (_) {}
       if (mounted) {
         setState(() {
           _assistantLogs.removeWhere((log) => log['id']?.toString() == id);
@@ -208,6 +214,13 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen>
           .from('assistant_logs')
           .delete()
           .neq('id', '00000000-0000-0000-0000-000000000000');
+      try {
+        await SupabaseConfig.client
+            .from('notificaciones')
+            .delete()
+            .eq('tipo', 'incidencia_operacion')
+            .or('rol_destino.eq.super_admin,rol_destino.eq.todos');
+      } catch (_) {}
 
       if (mounted) {
         setState(() {
