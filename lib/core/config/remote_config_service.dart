@@ -85,7 +85,7 @@ class RemoteConfigService extends ChangeNotifier {
   Future<void> syncWithRemote([SupabaseClient? client]) async {
     final supabase = client ?? SupabaseConfig.client;
     try {
-      // Intento 1: RPC consolidado en un solo viaje HTTP
+      // Intento 1: RPC consolidado en un solo viaje HTTP (configs, flags y general)
       final response = await supabase.rpc('obtener_bundle_configuracion_remota');
       if (response is Map) {
         final configsMap = response['configs'];
@@ -102,6 +102,15 @@ class RemoteConfigService extends ChangeNotifier {
           flagsMap.forEach((k, v) {
             if (v is Map) {
               _flags[k.toString()] = Map<String, dynamic>.from(v);
+            }
+          });
+        }
+
+        final generalMap = response['general'];
+        if (generalMap is Map) {
+          generalMap.forEach((k, v) {
+            if (v is Map && v.containsKey('value')) {
+              _configs.putIfAbsent(k.toString(), () => v['value']);
             }
           });
         }
@@ -132,6 +141,14 @@ class RemoteConfigService extends ChangeNotifier {
         }
       }
 
+      final genRows = await supabase.from('configuracion_general').select('clave, valor');
+      for (final row in (genRows as List)) {
+        final k = row['clave']?.toString();
+        if (k != null) {
+          _configs.putIfAbsent(k, () => row['valor']);
+        }
+      }
+
       await _saveToLocalCache();
       notifyListeners();
     } catch (err) {
@@ -150,13 +167,15 @@ class RemoteConfigService extends ChangeNotifier {
           schema: 'public',
           table: 'app_remote_config',
           callback: (payload) {
-            final newRow = payload.newRecord;
-            final k = newRow['key']?.toString();
+            final row = payload.eventType == PostgresChangeEvent.delete
+                ? payload.oldRecord
+                : payload.newRecord;
+            final k = row['key']?.toString();
             if (k != null) {
               if (payload.eventType == PostgresChangeEvent.delete) {
                 _configs.remove(k);
               } else {
-                _configs[k] = newRow['value'];
+                _configs[k] = row['value'];
               }
               _saveToLocalCache();
               notifyListeners();
@@ -169,13 +188,15 @@ class RemoteConfigService extends ChangeNotifier {
           schema: 'public',
           table: 'feature_flags',
           callback: (payload) {
-            final newRow = payload.newRecord;
-            final k = newRow['flag_key']?.toString();
+            final row = payload.eventType == PostgresChangeEvent.delete
+                ? payload.oldRecord
+                : payload.newRecord;
+            final k = row['flag_key']?.toString();
             if (k != null) {
               if (payload.eventType == PostgresChangeEvent.delete) {
                 _flags.remove(k);
               } else {
-                _flags[k] = Map<String, dynamic>.from(newRow);
+                _flags[k] = Map<String, dynamic>.from(row);
               }
               _saveToLocalCache();
               notifyListeners();
@@ -183,7 +204,34 @@ class RemoteConfigService extends ChangeNotifier {
             }
           },
         )
-        ..subscribe();
+        ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'configuracion_general',
+          callback: (payload) {
+            final row = payload.eventType == PostgresChangeEvent.delete
+                ? payload.oldRecord
+                : payload.newRecord;
+            final k = row['clave']?.toString();
+            if (k != null) {
+              if (payload.eventType == PostgresChangeEvent.delete) {
+                _configs.remove(k);
+              } else {
+                _configs[k] = row['valor'];
+              }
+              _saveToLocalCache();
+              notifyListeners();
+              AppLogger.info('⚡ Configuración general actualizada en vivo: $k', tag: 'OTA');
+            }
+          },
+        )
+        ..subscribe((status, [error]) {
+          if (status == RealtimeSubscribeStatus.subscribed) {
+            AppLogger.info('⚡ Canal Realtime de Zero-Rebuild conectado exitosamente.', tag: 'OTA');
+          } else if (status == RealtimeSubscribeStatus.channelError) {
+            AppLogger.warning('Error en canal Realtime OTA: $error', tag: 'OTA');
+          }
+        });
     } catch (e) {
       AppLogger.warning('Error al inicializar suscripción Realtime para OTA: $e', tag: 'OTA');
     }
