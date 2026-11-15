@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:umbral_immujer/core/services/error_console_service.dart';
+import 'package:umbral_immujer/core/services/error_tracking_service.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_colors.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
@@ -569,24 +570,88 @@ class _SuperAdminNotificationsModalState
   }
 
   Future<void> _deleteNotification(String id) async {
-    try {
-      await _supabase.from('notificaciones').delete().eq('id', id);
+    final itemIndex = _notifications.indexWhere((n) => n.id == id);
+    if (itemIndex == -1) return;
+    final item = _notifications[itemIndex];
 
+    try {
+      // 1. Ejecutar delete en notificaciones confirmando retorno de filas eliminadas
+      final deletedRows = await _supabase
+          .from('notificaciones')
+          .delete()
+          .eq('id', id)
+          .select('id');
+
+      if (deletedRows.isEmpty) {
+        // Fallo silencioso por permisos RLS o registro no existente
+        await ErrorTrackingService.instance.logDatabaseException(
+          operation: 'DELETE',
+          table: 'notificaciones',
+          recordId: id,
+          reason: 'Fallo al eliminar notificación: se devolvieron 0 filas afectadas (bloqueo por RLS o no existe).',
+          metadata: {
+            'item_title': item.titulo,
+            'item_tipo': item.tipo,
+          },
+        );
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'No se pudo eliminar la notificación (0 filas afectadas por políticas RLS).',
+              style: GoogleFonts.plusJakartaSans(fontSize: 12),
+            ),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+
+      // 2. Si proviene de assistant_logs o tickets_soporte, purgar el registro fuente para evitar re-sincronización automática
+      final assistantLogId = item.datos['assistant_log_id']?.toString();
+      if (assistantLogId != null && assistantLogId.isNotEmpty) {
+        try {
+          await _supabase.from('assistant_logs').delete().eq('id', assistantLogId);
+        } catch (_) {}
+      }
+
+      final ticketId = item.datos['ticket_id']?.toString();
+      if (ticketId != null && ticketId.isNotEmpty) {
+        try {
+          await _supabase.from('tickets_soporte').delete().eq('id', ticketId);
+        } catch (_) {}
+      }
+
+      // 3. Actualizar inmediatamente el estado local y los contadores
       if (!mounted) return;
       setState(() {
-        _notifications.removeWhere((n) => n.id == id);
+        _notifications.removeAt(itemIndex);
       });
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Notificación eliminada',
+            'Notificación eliminada permanentemente.',
             style: GoogleFonts.plusJakartaSans(fontSize: 12),
           ),
-          backgroundColor: AppColors.error,
+          backgroundColor: AppColors.primary,
           duration: const Duration(seconds: 2),
         ),
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      await ErrorTrackingService.instance.logDatabaseException(
+        operation: 'DELETE',
+        table: 'notificaciones',
+        recordId: id,
+        error: e,
+        stackTrace: stackTrace,
+        metadata: {
+          'item_title': item.titulo,
+          'item_tipo': item.tipo,
+        },
+      );
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -674,12 +739,52 @@ class _SuperAdminNotificationsModalState
 
     if (confirmed != true) return;
 
+    final reviewedItems = _notifications.where((n) => n.leido).toList();
+    final reviewedIds = reviewedItems.map((n) => n.id).toList();
+
     try {
-      await _supabase
+      final deletedRows = await _supabase
           .from('notificaciones')
           .delete()
-          .eq('leido', true)
-          .or('rol_destino.eq.super_admin,rol_destino.eq.todos');
+          .inFilter('id', reviewedIds)
+          .select('id');
+
+      if (deletedRows.isEmpty) {
+        await ErrorTrackingService.instance.logDatabaseException(
+          operation: 'DELETE_BATCH',
+          table: 'notificaciones',
+          recordId: reviewedIds.join(','),
+          reason: 'Fallo al purgar notificaciones revisadas: se devolvieron 0 filas afectadas por RLS.',
+        );
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'No se pudieron eliminar las notificaciones revisadas (0 filas afectadas por políticas RLS).',
+              style: GoogleFonts.plusJakartaSans(fontSize: 12),
+            ),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+
+      // Purgar de assistant_logs o tickets para que no se recreen en la siguiente sincronización
+      for (final item in reviewedItems) {
+        final assistantLogId = item.datos['assistant_log_id']?.toString();
+        if (assistantLogId != null && assistantLogId.isNotEmpty) {
+          try {
+            await _supabase.from('assistant_logs').delete().eq('id', assistantLogId);
+          } catch (_) {}
+        }
+        final ticketId = item.datos['ticket_id']?.toString();
+        if (ticketId != null && ticketId.isNotEmpty) {
+          try {
+            await _supabase.from('tickets_soporte').delete().eq('id', ticketId);
+          } catch (_) {}
+        }
+      }
 
       if (!mounted) return;
       setState(() {
@@ -689,14 +794,22 @@ class _SuperAdminNotificationsModalState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Notificaciones revisadas eliminadas.',
+            'Notificaciones revisadas eliminadas permanentemente (${deletedRows.length} registros).',
             style: GoogleFonts.plusJakartaSans(fontSize: 12),
           ),
           backgroundColor: AppColors.primary,
           duration: const Duration(seconds: 2),
         ),
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      await ErrorTrackingService.instance.logDatabaseException(
+        operation: 'DELETE_BATCH',
+        table: 'notificaciones',
+        recordId: 'batch',
+        error: e,
+        stackTrace: stackTrace,
+      );
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

@@ -148,7 +148,12 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen> {
     try {
       await _supabase.from('system_exceptions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       ErrorConsoleService.instance.limpiarLogs();
-      await _fetchExceptions();
+      if (mounted) {
+        setState(() {
+          _exceptions.clear();
+        });
+      }
+      await _fetchExceptions(silent: true);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

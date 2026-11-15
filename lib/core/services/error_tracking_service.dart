@@ -198,6 +198,38 @@ class ErrorTrackingService {
     }
   }
 
+  /// Registra una excepción o fallo lógico/silencioso en operaciones de base de datos
+  /// (por ejemplo, cuando RLS bloquea un DELETE/UPDATE devolviendo 0 filas afectadas).
+  Future<void> logDatabaseException({
+    required String operation,
+    required String table,
+    required String recordId,
+    String? reason,
+    dynamic error,
+    StackTrace? stackTrace,
+    String severity = 'error',
+    Map<String, dynamic>? metadata,
+  }) async {
+    final msg = reason ??
+        (error != null
+            ? error.toString()
+            : 'Operación $operation en $table devolvió 0 filas afectadas (bloqueo por RLS o ID inexistente).');
+
+    await reportException(
+      error: 'DatabaseFailure [$operation:$table] - $msg',
+      stackTrace: stackTrace,
+      module: table,
+      severity: severity,
+      metadata: {
+        'operation': operation,
+        'table': table,
+        'record_id': recordId,
+        'is_database_failure': true,
+        ...?metadata,
+      },
+    );
+  }
+
   /// Captura y clasifica errores del árbol de widgets (FlutterError.onError)
   void captureWidgetError(FlutterErrorDetails details) {
     final errStr = details.exceptionAsString();
