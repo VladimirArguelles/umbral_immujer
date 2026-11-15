@@ -42,7 +42,16 @@ ALTER TABLE public.app_remote_config ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.feature_flags ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.configuracion_general ENABLE ROW LEVEL SECURITY;
 
--- Lectura abierta a todo cliente (público / anónimo / autenticado) para bootstrap inmediato
+-- Políticas de lectura abierta solicitadas por protocolo:
+DROP POLICY IF EXISTS "Permitir lectura de config UI" ON public.app_remote_config;
+CREATE POLICY "Permitir lectura de config UI" ON public.app_remote_config
+FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Permitir lectura de feature flags" ON public.feature_flags;
+CREATE POLICY "Permitir lectura de feature flags" ON public.feature_flags
+FOR SELECT USING (true);
+
+-- Alias y compatibilidad con políticas previas
 DROP POLICY IF EXISTS "remote_config_read_public" ON public.app_remote_config;
 CREATE POLICY "remote_config_read_public"
 ON public.app_remote_config FOR SELECT TO public USING (true);
