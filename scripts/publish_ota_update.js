@@ -1,19 +1,29 @@
 /**
  * Script de Despliegue Rápido OTA (Over-The-Air) para UMBRAL IMMUJER
  * Sube el APK a Supabase Storage (bucket 'app-updates'), publica version.json
- * y actualiza configuracion_general en caliente para la app móvil.
+ * con hash SHA-256 de integridad y actualiza configuracion_general en caliente.
  */
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+
+// 1. Cargar preferentemente .env.deploy para mantener service_role segregado
+const deployEnvPath = path.resolve(__dirname, '../.env.deploy');
+const defaultEnvPath = path.resolve(__dirname, '../.env');
+
+if (fs.existsSync(deployEnvPath)) {
+  require('dotenv').config({ path: deployEnvPath });
+} else {
+  require('dotenv').config({ path: defaultEnvPath });
+}
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://kkgacvhbcxgoxjpnkxmw.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
 if (!SUPABASE_KEY) {
-  console.error('Error: No se encontró SUPABASE_ANON_KEY ni SUPABASE_SERVICE_ROLE_KEY en .env');
+  console.error('Error: No se encontró SUPABASE_ANON_KEY ni SUPABASE_SERVICE_ROLE_KEY en el entorno ni en .env.deploy');
   process.exit(1);
 }
 
@@ -55,15 +65,20 @@ async function deployOTA() {
 
   console.log(`Versión objetivo: ${version}+${buildNumber}`);
 
-  // 2. Comprobar si existe el binario APK compilado
+  // 2. Comprobar si existe el binario APK compilado y calcular SHA-256
   const apkPath = path.resolve(__dirname, '../build/app/outputs/flutter-apk/app-release.apk');
   let apkPublicUrl = `https://github.com/VladimirArguelles/umbral_immujer/releases/download/latest/app-release.apk`;
+  let apkSha256 = null;
 
   const bucketName = 'app-updates';
 
   if (fs.existsSync(apkPath)) {
     console.log(`Encontrado APK local: ${apkPath}`);
     const apkBuffer = fs.readFileSync(apkPath);
+    
+    // Cálculo de integridad SHA-256
+    apkSha256 = crypto.createHash('sha256').update(apkBuffer).digest('hex');
+    console.log(`Integridad SHA-256 del APK: ${apkSha256}`);
     console.log(`Subiendo APK a Supabase Storage [${bucketName}/app-release.apk] (${(apkBuffer.length / (1024 * 1024)).toFixed(2)} MB)...`);
 
     const { error: uploadError } = await supabase.storage
@@ -95,6 +110,7 @@ async function deployOTA() {
     mandatory: false,
     notes: 'Actualización en caliente con Deep Link y soporte OTA integrado.',
     apk_url: apkPublicUrl,
+    apk_sha256: apkSha256,
     updated_at: new Date().toISOString(),
   };
 
@@ -121,11 +137,14 @@ async function deployOTA() {
     { clave: 'app_update_notes', valor: JSON.stringify(versionPayload.notes) },
   ];
 
+  if (apkSha256) {
+    updates.push({ clave: 'app_apk_sha256', valor: JSON.stringify(apkSha256) });
+  }
+
   for (const item of updates) {
     const { error } = await supabase
       .from('configuracion_general')
-      .update({ valor: item.valor, actualizado_en: new Date().toISOString() })
-      .eq('clave', item.clave);
+      .upsert({ clave: item.clave, valor: item.valor, actualizado_en: new Date().toISOString() }, { onConflict: 'clave' });
 
     if (error) {
       console.warn(`Error actualizando ${item.clave}: ${error.message}`);
@@ -135,6 +154,9 @@ async function deployOTA() {
   console.log('--- Despliegue OTA Finalizado Exitosamente ---');
   console.log(`Versión activa en servidor: ${version}+${buildNumber}`);
   console.log(`URL de descarga: ${apkPublicUrl}`);
+  if (apkSha256) {
+    console.log(`Hash SHA-256 verificado: ${apkSha256}`);
+  }
 }
 
 deployOTA().catch(err => {

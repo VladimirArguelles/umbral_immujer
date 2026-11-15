@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:umbral_immujer/features/coordinator/data/coordinator_repository.dart';
 import 'package:umbral_immujer/features/coordinator/domain/coordinator_models.dart';
+import 'package:umbral_immujer/src/core/services/storage_url_service.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 
 /// List of student absence justification requests with approval controls.
@@ -216,12 +217,24 @@ class _JustificativoCard extends StatelessWidget {
                 ),
               ],
             ),
-            Image.network(
-              url,
-              errorBuilder: (_, _, _) => const Padding(
-                padding: EdgeInsets.all(24),
-                child: Text('No fue posible cargar el comprobante.'),
-              ),
+            FutureBuilder<String>(
+              future: StorageUrlService.getSignedUrl(url),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                final resolvedUrl = snapshot.data ?? url;
+                return Image.network(
+                  resolvedUrl,
+                  errorBuilder: (_, _, _) => const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text('No fue posible cargar el comprobante.'),
+                  ),
+                );
+              },
             ),
           ],
         ),

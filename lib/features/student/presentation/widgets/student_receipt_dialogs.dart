@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:umbral_immujer/src/core/services/storage_url_service.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 
 /// Shows a bottom sheet prompting the user to pick an image from Camera or Gallery.
@@ -153,27 +154,41 @@ void showStudentReceiptModal(
                 padding: const EdgeInsets.all(12),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    url,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, _, _) => Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.broken_image_outlined,
-                            size: 48,
-                            color: AppTheme.errorRed,
+                  child: FutureBuilder<String>(
+                    future: StorageUrlService.getSignedUrl(url),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(32),
+                            child: CircularProgressIndicator(),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'No se pudo cargar la imagen del comprobante.',
-                            style: TextStyle(color: AppTheme.dynamicTextMuted),
+                        );
+                      }
+                      final resolvedUrl = snapshot.data ?? url;
+                      return Image.network(
+                        resolvedUrl,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, _, _) => Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.broken_image_outlined,
+                                size: 48,
+                                color: AppTheme.errorRed,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'No se pudo cargar la imagen del comprobante.',
+                                style: TextStyle(color: AppTheme.dynamicTextMuted),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),

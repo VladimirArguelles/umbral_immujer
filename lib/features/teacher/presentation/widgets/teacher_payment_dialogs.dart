@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:umbral_immujer/features/teacher/data/teacher_repository.dart';
 import 'package:umbral_immujer/features/teacher/domain/teacher_models.dart';
+import 'package:umbral_immujer/src/core/services/storage_url_service.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 
 /// Displays an uploaded payment receipt image inside a centered modal dialog.
@@ -28,20 +29,32 @@ void showTeacherPaymentProofDialog(
           Padding(
             padding: const EdgeInsets.all(12.0),
             child: InteractiveViewer(
-              child: Image.network(
-                url,
-                fit: BoxFit.contain,
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) return child;
-                  return const Padding(
-                    padding: EdgeInsets.all(24.0),
-                    child: Center(child: CircularProgressIndicator()),
+              child: FutureBuilder<String>(
+                future: StorageUrlService.getSignedUrl(url),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Padding(
+                      padding: EdgeInsets.all(32.0),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  final resolvedUrl = snapshot.data ?? url;
+                  return Image.network(
+                    resolvedUrl,
+                    fit: BoxFit.contain,
+                    loadingBuilder: (context, child, progress) {
+                      if (progress == null) return child;
+                      return const Padding(
+                        padding: EdgeInsets.all(24.0),
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    },
+                    errorBuilder: (context, error, stack) => const Padding(
+                      padding: EdgeInsets.all(24.0),
+                      child: Text('No se pudo cargar la imagen del capture'),
+                    ),
                   );
                 },
-                errorBuilder: (context, error, stack) => const Padding(
-                  padding: EdgeInsets.all(24.0),
-                  child: Text('No se pudo cargar la imagen del capture'),
-                ),
               ),
             ),
           ),

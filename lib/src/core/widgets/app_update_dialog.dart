@@ -55,6 +55,7 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
       await AppUpdateService.instance.downloadAndInstallApk(
         apkUrl: widget.updateInfo.apkUrl,
         latestVersion: widget.updateInfo.latestVersion,
+        expectedSha256: widget.updateInfo.apkSha256,
         onProgress: (progress, status) {
           if (mounted) {
             setState(() {

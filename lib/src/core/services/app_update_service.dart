@@ -1,5 +1,6 @@
 import 'dart:io' show Directory, File, FileMode, FileSystemException;
 
+import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +22,7 @@ class UpdateInfo {
   final int? currentBuildNumber;
   final int? latestBuildNumber;
   final String apkUrl;
+  final String? apkSha256;
   final String releaseNotes;
   final bool isMandatory;
 
@@ -31,6 +33,7 @@ class UpdateInfo {
     this.currentBuildNumber,
     this.latestBuildNumber,
     required this.apkUrl,
+    this.apkSha256,
     required this.releaseNotes,
     this.isMandatory = false,
   });
@@ -278,6 +281,7 @@ class AppUpdateService {
     String latestVerRaw = localSemverClean;
     int? remoteBuildNumber;
     String apkUrl = defaultReleaseUrl;
+    String? remoteSha256;
     String notes =
         'Mejoras de rendimiento, corrección de interfaz y nuevas funcionalidades.';
     bool isMandatory = false;
@@ -291,6 +295,7 @@ class AppUpdateService {
             'app_version_latest',
             'app_build_number',
             'app_apk_url',
+            'app_apk_sha256',
             'app_update_notes',
             'app_update_mandatory',
           ]);
@@ -307,6 +312,8 @@ class AppUpdateService {
           );
         } else if (clave == 'app_apk_url' && valor != null) {
           apkUrl = valor.toString().replaceAll('"', '').trim();
+        } else if (clave == 'app_apk_sha256' && valor != null) {
+          remoteSha256 = valor.toString().replaceAll('"', '').trim();
         } else if (clave == 'app_update_notes' && valor != null) {
           notes = valor.toString().replaceAll('"', '').trim();
         } else if (clave == 'app_update_mandatory' && valor != null) {
@@ -341,6 +348,7 @@ class AppUpdateService {
       currentBuildNumber: localBuildNumber,
       latestBuildNumber: remoteBuildNumber,
       apkUrl: apkUrl.isNotEmpty ? apkUrl : defaultReleaseUrl,
+      apkSha256: remoteSha256,
       releaseNotes: notes,
       isMandatory: isMandatory,
     );
@@ -396,6 +404,7 @@ class AppUpdateService {
   Future<void> downloadAndInstallApk({
     required String apkUrl,
     required String latestVersion,
+    String? expectedSha256,
     required void Function(double progress, String statusText) onProgress,
   }) async {
     if (kIsWeb || !isAndroidPlatform) {
@@ -494,6 +503,22 @@ class AppUpdateService {
         throw StateError(
           'La descarga no es un APK/ZIP válido. Verifica que app_apk_url apunte al archivo APK.',
         );
+      }
+
+      // Verificación de integridad criptográfica SHA-256 contra tampering/inyección
+      if (expectedSha256 != null && expectedSha256.trim().isNotEmpty) {
+        onProgress(0.95, 'Verificando firma de integridad SHA-256...');
+        final digest = await sha256.bind(downloadedFile.openRead()).first;
+        final actualHash = digest.toString().toLowerCase();
+        final cleanExpected = expectedSha256.trim().toLowerCase();
+
+        if (actualHash != cleanExpected) {
+          if (await downloadedFile.exists()) await downloadedFile.delete();
+          throw StateError(
+            'Fallo de integridad criptográfica: El hash SHA-256 del APK ($actualHash) no coincide con el registrado en el servidor ($cleanExpected). La instalación ha sido cancelada por seguridad.',
+          );
+        }
+        debugPrint('[AppUpdateService] Verificación SHA-256 completada con éxito: $actualHash');
       }
 
       if (await targetFile.exists()) await targetFile.delete();

@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-deploy-token",
   "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
 };
 
@@ -14,6 +14,8 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  const deploySecret = Deno.env.get("DEPLOY_SECRET");
 
   if (!supabaseUrl || !serviceRoleKey) {
     return new Response(
@@ -23,6 +25,48 @@ serve(async (req) => {
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,
+      }
+    );
+  }
+
+  // 1. Verificación de Seguridad: Requiere Token de Despliegue secreto o JWT de Super Admin
+  const deployToken = req.headers.get("x-deploy-token");
+  const authHeader = req.headers.get("Authorization");
+  let authorized = false;
+
+  if (deploySecret && deployToken && deployToken === deploySecret) {
+    authorized = true;
+  } else if (authHeader && authHeader.startsWith("Bearer ")) {
+    try {
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: userData } = await userClient.auth.getUser();
+      if (userData?.user?.id) {
+        const adminClient = createClient(supabaseUrl, serviceRoleKey);
+        const { data: profile } = await adminClient
+          .from("perfiles")
+          .select("rol")
+          .eq("id", userData.user.id)
+          .maybeSingle();
+
+        if (profile?.rol === "super_admin") {
+          authorized = true;
+        }
+      }
+    } catch (_e) {
+      authorized = false;
+    }
+  }
+
+  if (!authorized) {
+    return new Response(
+      JSON.stringify({
+        error: "Acceso denegado: Esta operación requiere permisos de Super Admin o un token de despliegue válido.",
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403,
       }
     );
   }

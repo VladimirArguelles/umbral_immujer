@@ -1,5 +1,6 @@
 import 'dart:io' show Directory, File, FileMode, FileSystemException;
 
+import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -433,6 +434,7 @@ class UpdateService {
   Future<void> downloadAndInstallApk({
     required String apkUrl,
     required String latestVersion,
+    String? expectedSha256,
     required void Function(double progress, String statusText) onProgress,
     String? assetUpdatedAt,
   }) async {
@@ -534,6 +536,22 @@ class UpdateService {
           magicBytes[2] != 0x03 ||
           magicBytes[3] != 0x04) {
         throw StateError('El archivo recibido no es un paquete APK/ZIP de Android válido.');
+      }
+
+      // Validación criptográfica de integridad SHA-256
+      if (expectedSha256 != null && expectedSha256.trim().isNotEmpty) {
+        onProgress(0.95, 'Verificando firma de integridad SHA-256...');
+        final digest = await sha256.bind(downloadedFile.openRead()).first;
+        final actualHash = digest.toString().toLowerCase();
+        final cleanExpected = expectedSha256.trim().toLowerCase();
+
+        if (actualHash != cleanExpected) {
+          if (await downloadedFile.exists()) await downloadedFile.delete();
+          throw StateError(
+            'Fallo de integridad criptográfica: El hash SHA-256 del APK ($actualHash) no coincide con el registrado en el servidor ($cleanExpected). La instalación ha sido cancelada por seguridad.',
+          );
+        }
+        debugPrint('[UpdateService] Verificación SHA-256 completada con éxito: $actualHash');
       }
 
       // Mover atómicamente el archivo temporal a su destino final

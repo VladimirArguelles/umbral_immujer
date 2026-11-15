@@ -116,25 +116,54 @@ serve(async (req: Request) => {
     const query = (body.message || body.query || "").trim();
     const telemetry = body.telemetry || {};
 
-    // Normalización del rol del usuario
-    let rawRole = (body.userRole || body.role || telemetry.userRole || "alumno")
-      .toLowerCase()
-      .trim()
-      .replace(/[\s\-]/g, "_");
+    // 2.1 Autenticación segura y resolución de rol desde la base de datos (Zero-Trust)
+    let verifiedUserId: string | null = null;
+    let verifiedRole = "alumno";
+    let verifiedUserName = "Usuario";
 
-    if (
-      rawRole === "superadmin" ||
-      rawRole === "super_admin" ||
-      rawRole === "admin" ||
-      rawRole === "administrador"
-    ) {
-      rawRole = "super_admin";
-    } else if (rawRole === "docente" || rawRole === "maestro") {
-      rawRole = "profesor";
-    } else if (rawRole === "estudiante" || rawRole === "participante") {
-      rawRole = "alumno";
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      try {
+        const { data: userData } = await userClient.auth.getUser();
+        if (userData?.user?.id) {
+          verifiedUserId = userData.user.id;
+          const { data: profile } = await adminClient
+            .from("perfiles")
+            .select("rol, nombre_completo")
+            .or(`id.eq.${verifiedUserId},user_id.eq.${verifiedUserId}`)
+            .limit(1)
+            .maybeSingle();
+
+          if (profile?.rol) {
+            verifiedRole = profile.rol.toLowerCase().trim();
+          }
+          if (profile?.nombre_completo) {
+            verifiedUserName = profile.nombre_completo.trim().split(" ")[0] || "Usuario";
+          }
+        }
+      } catch (_e) {
+        // Fallback a rol visitante/alumno seguro ante error de verificación
+      }
     }
-    const role = rawRole;
+
+    // Normalización de rol verificado por servidor
+    if (
+      verifiedRole === "superadmin" ||
+      verifiedRole === "super_admin" ||
+      verifiedRole === "admin" ||
+      verifiedRole === "administrador"
+    ) {
+      verifiedRole = "super_admin";
+    } else if (verifiedRole === "coordinador" || verifiedRole === "coordinadora") {
+      verifiedRole = "coordinador";
+    } else if (verifiedRole === "docente" || verifiedRole === "maestro" || verifiedRole === "profesor" || verifiedRole === "profesora") {
+      verifiedRole = "profesor";
+    } else if (verifiedRole === "operador_inscripcion") {
+      verifiedRole = "operador_inscripcion";
+    } else {
+      verifiedRole = "alumno";
+    }
+
+    const role = verifiedRole;
     const isSuperAdmin = role === "super_admin";
     const isCoordinator = role === "coordinador" || isSuperAdmin;
     const isTeacher = role === "profesor" || isSuperAdmin;
@@ -150,8 +179,10 @@ serve(async (req: Request) => {
       .trim();
 
     const lastError = body.errorContext || body.lastError || telemetry.lastError || null;
-    const userId = body.userId || telemetry.userId || null;
-    const userName = body.userName || telemetry.userName || "Usuario";
+    const userId = verifiedUserId;
+    const userName = verifiedUserName !== "Usuario"
+      ? verifiedUserName
+      : (body.userName || telemetry.userName || "Usuario");
 
     // 3. Consulta de tablas de Supabase aplicando estrictamente las políticas RLS
     // A) Guías operativas oficiales (filtradas por RLS según el rol del usuario conectado)

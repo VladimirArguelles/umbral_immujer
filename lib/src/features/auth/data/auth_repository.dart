@@ -31,6 +31,7 @@ class AuthRepository {
   User? get currentUser => _supabase.auth.currentUser;
 
   /// Valida si el alumno existe en el padrón institucional y si posee inscripción activa.
+  /// Implementa consulta segura vía RPC verificar_pre_registro_alumno sin exponer la tabla alumnos.
   Future<AlumnoValidationResult> validateAlumnoEligibility({
     required String cedula,
     String? email,
@@ -39,6 +40,51 @@ class AuthRepository {
     final numericCedula = cedula.trim().replaceAll(RegExp(r'[^0-9]'), '');
 
     try {
+      // 1. Invocar RPC segura de pre-registro (sin exponer la tabla alumnos al público)
+      try {
+        final rpcRes = await _supabase.rpc('verificar_pre_registro_alumno', params: {
+          'p_cedula': cleanCedula.isNotEmpty ? cleanCedula : numericCedula,
+          'p_correo': email?.trim(),
+        });
+
+        if (rpcRes is Map) {
+          final valido = rpcRes['valido'] == true;
+          final codigo = rpcRes['codigo'] as String?;
+          final motivo = rpcRes['motivo'] as String?;
+
+          if (valido) {
+            final tieneInscripcion = rpcRes['tiene_inscripcion'] == true;
+            return AlumnoValidationResult(
+              foundInAlumnos: true,
+              hasActiveInscripcion: tieneInscripcion,
+              data: Map<String, dynamic>.from(rpcRes),
+              errorMessage: tieneInscripcion
+                  ? null
+                  : 'Acceso denegado: La participante figura en el padrón, pero no cuenta con inscripción activa en ningún curso.',
+            );
+          } else if (codigo == 'YA_REGISTRADO') {
+            return AlumnoValidationResult(
+              foundInAlumnos: true,
+              hasActiveInscripcion: false,
+              isLinked: true,
+              errorMessage: motivo ?? 'Este registro ya está vinculado a una cuenta activa.',
+            );
+          } else {
+            return AlumnoValidationResult(
+              foundInAlumnos: false,
+              hasActiveInscripcion: false,
+              errorMessage: motivo ?? 'Acceso denegado: El documento $cedula no se encuentra registrado en el padrón.',
+            );
+          }
+        }
+      } catch (rpcErr) {
+        AppLogger.warning(
+          'RPC verificar_pre_registro_alumno no disponible o falló ($rpcErr). Intentando consulta directa...',
+          tag: 'AUTH_VALIDATION',
+        );
+      }
+
+      // 2. Fallback de consulta directa (en caso de que el usuario ya esté autenticado o desarrollo local)
       final alumnoData = await _findAlumnoRecord(
         cleanCedula: cleanCedula,
         numericCedula: numericCedula,
