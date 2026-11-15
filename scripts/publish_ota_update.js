@@ -1,7 +1,7 @@
 /**
- * Script de Despliegue Rápido OTA (Over-The-Air) para UMBRAL IMMUJER
+ * Script de Publicación y Distribución OTA de Nueva Versión APK para UMBRAL IMMUJER
  * Sube el APK a Supabase Storage (bucket 'app-updates'), publica version.json
- * con hash SHA-256 de integridad y actualiza configuracion_general en caliente.
+ * con hash SHA-256 de integridad y actualiza configuracion_general.
  */
 
 const fs = require('fs');
@@ -110,7 +110,7 @@ async function deployOTA() {
     version: version,
     build_number: buildNumber,
     mandatory: false,
-    notes: 'Actualización en caliente con Deep Link y soporte OTA integrado.',
+    notes: 'Nueva versión oficial con mejoras y correcciones del sistema.',
     apk_url: apkPublicUrl,
     apk_sha256: apkSha256,
     updated_at: new Date().toISOString(),

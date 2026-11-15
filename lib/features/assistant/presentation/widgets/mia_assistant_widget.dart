@@ -6,7 +6,6 @@ import 'package:umbral_immujer/features/assistant/domain/assistant_models.dart';
 import 'package:umbral_immujer/features/assistant/presentation/screens/mia_chat_screen.dart';
 import 'package:umbral_immujer/src/core/theme/app_colors.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
-import 'package:umbral_immujer/src/core/widgets/feature_gate.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
 
 /// Modal interactivo del Asistente Virtual Mía para despliegue emergente.
@@ -860,17 +859,14 @@ class MiaAssistantWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FeatureGate(
-      flagKey: 'enable_umby_floating_assistant',
-      child: isFloating
-          ? MiaFloatingAssistant(
-              profile: profile,
-              currentModule: currentModule,
-            )
-          : MiaAssistantHeaderButton(
-              profile: profile,
-              moduleContext: currentModule,
-            ),
-    );
+    return isFloating
+        ? MiaFloatingAssistant(
+            profile: profile,
+            currentModule: currentModule,
+          )
+        : MiaAssistantHeaderButton(
+            profile: profile,
+            moduleContext: currentModule,
+          );
   }
 }

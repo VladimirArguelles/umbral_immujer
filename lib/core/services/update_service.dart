@@ -11,7 +11,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../config/remote_config_service.dart';
 import '../widgets/glassmorphic_update_dialog.dart';
 
 /// Modelo de datos que encapsula el estado de la versión y el release de GitHub.
@@ -230,11 +229,9 @@ class UpdateService {
       explicitBuild: localBuildRaw,
     );
 
-    // 2. Determinar el repositorio de destino (con fallback a RemoteConfig)
-    final resolvedOwner = owner ??
-        RemoteConfigService.instance.getRemoteString('github_repo_owner', defaultOwner);
-    final resolvedRepo = repo ??
-        RemoteConfigService.instance.getRemoteString('github_repo_name', defaultRepo);
+    // 2. Determinar el repositorio de destino
+    final resolvedOwner = owner ?? defaultOwner;
+    final resolvedRepo = repo ?? defaultRepo;
 
     final url = 'https://api.github.com/repos/$resolvedOwner/$resolvedRepo/releases/latest';
 

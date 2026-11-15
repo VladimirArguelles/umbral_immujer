@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
-import '../config/remote_config_service.dart';
+import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import '../services/update_service.dart';
 
 /// Diálogo modal interactivo con estética Glassmorphic para notificar,
@@ -111,9 +111,9 @@ class _GlassmorphicUpdateDialogState extends State<GlassmorphicUpdateDialog> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final blur = RemoteConfigService.instance.glassmorphismBlur;
-    final primaryColor = RemoteConfigService.instance.dynamicPrimary;
-    final accentColor = RemoteConfigService.instance.dynamicAccent;
+    const blur = 14.0;
+    final primaryColor = Theme.of(context).colorScheme.primary;
+    const accentColor = AppTheme.mintNeon;
 
     final titleColor = isDark ? Colors.white : const Color(0xFF0F172A);
     final subtitleColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);

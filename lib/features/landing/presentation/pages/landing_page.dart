@@ -4,8 +4,6 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:umbral_immujer/core/config/remote_config_service.dart';
-import 'package:umbral_immujer/core/widgets/remote_config_widgets.dart';
 import 'package:umbral_immujer/features/landing/presentation/widgets/landing_top_bar.dart';
 import 'package:umbral_immujer/features/landing/presentation/widgets/module_card.dart';
 import 'package:umbral_immujer/features/landing/presentation/widgets/particles_background.dart';
@@ -170,7 +168,6 @@ class _LandingPageState extends State<LandingPage> {
                       // El encabezado ofrece acceso directo al inicio de sesión.
                       LandingTopBar(onLoginPressed: () => _openAuth(context)),
                       const SizedBox(height: 16),
-                      const RemoteConfigBanner(margin: EdgeInsets.only(bottom: 12)),
                       _buildWelcomeCard(),
                       const SizedBox(height: 24),
                       const _FormationCarousel(),
@@ -243,68 +240,53 @@ class _LandingPageState extends State<LandingPage> {
   /// Presenta el saludo dentro de una superficie de vidrio esmerilado.
   Widget _buildWelcomeCard() {
     final borderRadius = BorderRadius.circular(24);
+    const blur = 14.0;
+    const opacity = 0.70;
+    const borderOpacity = 0.35;
+    const primaryAccent = AppTheme.primary;
 
-    return ListenableBuilder(
-      listenable: RemoteConfigService.instance,
-      builder: (context, _) {
-        final blur = RemoteConfigService.instance.glassmorphismBlur;
-        final opacity = RemoteConfigService.instance.glassmorphismOpacity;
-        final borderOpacity = RemoteConfigService.instance.glassmorphismBorderOpacity;
-        final primaryAccent = RemoteConfigService.instance.dynamicPrimary;
-
-        final welcomeTitle = RemoteConfigService.instance.getRemoteString(
-          'welcome_title',
-          '¡Hola Equipo!',
-        );
-        final welcomeSubtitle = RemoteConfigService.instance.getRemoteString(
-          'welcome_subtitle',
-          'Bienvenidos a UMBRAL. Selecciona un módulo para comenzar:',
-        );
-
-        return ClipRRect(
-          borderRadius: borderRadius,
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: AppTheme.surfaceContainer.withValues(
-                  alpha: opacity.clamp(0.2, 0.95),
-                ),
-                borderRadius: borderRadius,
-                border: Border.all(
-                  color: primaryAccent.withValues(
-                    alpha: borderOpacity.clamp(0.1, 0.6),
-                  ),
-                  width: 1.2,
-                ),
+    return ClipRRect(
+      borderRadius: borderRadius,
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceContainer.withValues(
+              alpha: opacity,
+            ),
+            borderRadius: borderRadius,
+            border: Border.all(
+              color: primaryAccent.withValues(
+                alpha: borderOpacity,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    welcomeTitle,
-                    style: GoogleFonts.plusJakartaSans(
-                      color: AppTheme.onSurface,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    welcomeSubtitle,
-                    style: GoogleFonts.plusJakartaSans(
-                      color: AppTheme.onSurfaceVariant,
-                      fontSize: 14,
-                      height: 1.5,
-                    ),
-                  ),
-                ],
-              ),
+              width: 1.2,
             ),
           ),
-        );
-      },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '¡Hola Equipo!',
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppTheme.onSurface,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Bienvenidos a UMBRAL. Selecciona un módulo para comenzar:',
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppTheme.onSurfaceVariant,
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

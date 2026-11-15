@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:umbral_immujer/core/config/remote_config_service.dart';
 
 class ThemeController {
   static const String _prefKey = 'umbral_theme_mode';
@@ -281,20 +280,18 @@ abstract final class AppTheme {
       ),
     );
 
-    final dynamicPrimary = RemoteConfigService.instance.getRemoteColor('primary_color', primary);
-    final dynamicBg = RemoteConfigService.instance.getRemoteColor('background_color', background);
     final activeColorScheme = colorScheme.copyWith(
-      primary: dynamicPrimary,
-      primaryContainer: dynamicPrimary,
-      surfaceTint: dynamicPrimary,
+      primary: primary,
+      primaryContainer: primary,
+      surfaceTint: primary,
     );
 
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: activeColorScheme,
-      scaffoldBackgroundColor: dynamicBg,
-      primaryColor: dynamicPrimary,
+      scaffoldBackgroundColor: background,
+      primaryColor: primary,
       textTheme: textTheme,
       appBarTheme: AppBarTheme(
         backgroundColor: surfaceContainerLow,
@@ -308,7 +305,7 @@ abstract final class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: dynamicPrimary,
+          backgroundColor: primary,
           foregroundColor: onPrimary,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           shape: RoundedRectangleBorder(
@@ -320,7 +317,7 @@ abstract final class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: dynamicPrimary,
+          foregroundColor: primary,
           side: const BorderSide(color: activeOutline, width: 1),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
           shape: RoundedRectangleBorder(
@@ -467,16 +464,14 @@ abstract final class AppTheme {
       ),
     );
 
-    final dynamicLightPrimary = RemoteConfigService.instance.getRemoteColor('primary_color', lightPrimary);
-
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
       colorScheme: ColorScheme(
         brightness: Brightness.light,
-        primary: dynamicLightPrimary,
+        primary: lightPrimary,
         onPrimary: const Color(0xFF000000),
-        primaryContainer: dynamicLightPrimary,
+        primaryContainer: lightPrimary,
         onPrimaryContainer: const Color(0xFF000000),
         secondary: const Color(0xFF475569),
         onSecondary: Colors.white,
@@ -502,16 +497,16 @@ abstract final class AppTheme {
         outlineVariant: activeOutline,
       ),
       scaffoldBackgroundColor: lightBackground,
-      primaryColor: dynamicLightPrimary,
+      primaryColor: lightPrimary,
       textTheme: textTheme,
       tabBarTheme: TabBarThemeData(
-        labelColor: dynamicLightPrimary,
+        labelColor: lightPrimary,
         unselectedLabelColor: lightOnSurfaceVariant,
-        indicatorColor: dynamicLightPrimary,
+        indicatorColor: lightPrimary,
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: lightSurface,
-        indicatorColor: dynamicLightPrimary.withValues(alpha: 0.12),
+        indicatorColor: lightPrimary.withValues(alpha: 0.12),
         surfaceTintColor: Colors.transparent,
         labelTextStyle: WidgetStatePropertyAll(
           textTheme.labelSmall?.copyWith(color: lightOnSurfaceVariant),
@@ -529,7 +524,7 @@ abstract final class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: dynamicLightPrimary,
+          backgroundColor: lightPrimary,
           foregroundColor: onPrimary,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           shape: RoundedRectangleBorder(
