@@ -6,6 +6,7 @@ import 'package:umbral_immujer/src/features/auth/data/auth_repository.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
 
 import 'auth_form_styles.dart';
+import 'forgot_password_dialog.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -192,7 +193,33 @@ class _LoginScreenState extends State<LoginScreen> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () {
+                            ForgotPasswordDialog.show(
+                              context,
+                              authRepository: _authRepo,
+                              initialValue: _emailController.text.trim(),
+                            );
+                          },
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: const Text(
+                            '¿Olvidó su contraseña?',
+                            style: TextStyle(
+                              color: AuthFormStyles.softAccent,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       ElevatedButton(
                         style: AuthFormStyles.actionButtonStyle,
                         onPressed: _isLoading ? null : _handleLogin,

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:umbral_immujer/src/core/services/app_update_service.dart';
 import 'package:umbral_immujer/src/core/utils/app_logger.dart';
@@ -601,6 +602,130 @@ class AuthRepository {
     }
 
     return UserProfile.fromJson(data);
+  }
+
+  /// Envía un correo con enlace y código para restablecer la contraseña.
+  /// Si el usuario ingresó su cédula o usuario en vez de un correo directo,
+  /// busca en perfiles o en el padrón de alumnos para encontrar su correo electrónico registrado.
+  Future<String> sendPasswordResetEmail(String input) async {
+    final cleanInput = input.trim();
+    if (cleanInput.isEmpty) {
+      throw Exception('Por favor ingresa tu correo electrónico o tu número de cédula.');
+    }
+
+    String targetEmail = cleanInput;
+
+    // Si el usuario ingresó cédula o identificador en vez de un correo
+    if (!cleanInput.contains('@')) {
+      final cleanCedula = cleanInput.replaceAll(RegExp(r'[^0-9a-zA-Z]'), '');
+      final numericCedula = cleanInput.replaceAll(RegExp(r'[^0-9]'), '');
+
+      // 1. Buscar en perfiles
+      try {
+        final perfil = await _supabase
+            .from('perfiles')
+            .select('email, correo')
+            .or('cedula.eq.$cleanInput,cedula.eq.$cleanCedula,cedula.eq.$numericCedula')
+            .limit(1)
+            .maybeSingle();
+
+        if (perfil != null) {
+          final emailVal = perfil['email'] ?? perfil['correo'];
+          if (emailVal != null && emailVal.toString().trim().isNotEmpty) {
+            targetEmail = emailVal.toString().trim();
+          }
+        }
+      } catch (e) {
+        AppLogger.warning('No se pudo resolver cédula en perfiles: $e', tag: 'AUTH_RESET');
+      }
+
+      // 2. Si no se halló en perfiles, buscar en alumnos
+      if (!targetEmail.contains('@')) {
+        try {
+          final alumno = await _supabase
+              .from('alumnos')
+              .select('email, correo')
+              .or('cedula.eq.$cleanInput,cedula.eq.$cleanCedula,cedula.eq.$numericCedula')
+              .limit(1)
+              .maybeSingle();
+
+          if (alumno != null) {
+            final emailVal = alumno['email'] ?? alumno['correo'];
+            if (emailVal != null && emailVal.toString().trim().isNotEmpty) {
+              targetEmail = emailVal.toString().trim();
+            }
+          }
+        } catch (e) {
+          AppLogger.warning('No se pudo resolver cédula en alumnos: $e', tag: 'AUTH_RESET');
+        }
+      }
+
+      if (!targetEmail.contains('@')) {
+        throw Exception(
+          'No se encontró ningún correo electrónico registrado asociado a "$cleanInput". Verifica tus datos o ingresa tu correo directamente.',
+        );
+      }
+    }
+
+    try {
+      await _supabase.auth.resetPasswordForEmail(
+        targetEmail,
+        redirectTo: kIsWeb ? null : 'https://vladimirarguelles.github.io/umbral_immujer/#/login',
+      );
+      AppLogger.info('Correo de recuperación solicitado para $targetEmail', tag: 'AUTH_RESET');
+      return targetEmail;
+    } on AuthException catch (e) {
+      AppLogger.warning('Fallo en Supabase resetPasswordForEmail: ${e.message}', tag: 'AUTH_RESET');
+      if (e.message.toLowerCase().contains('rate limit')) {
+        throw Exception('Has alcanzado el límite de intentos permitidos. Espera unos minutos antes de reintentar.');
+      }
+      throw Exception(e.message);
+    } catch (e, stackTrace) {
+      AppLogger.error('Excepción al enviar correo de recuperación', tag: 'AUTH_RESET', error: e, stackTrace: stackTrace);
+      rethrow;
+    }
+  }
+
+  /// Verifica el código OTP recibido por correo y actualiza la contraseña de inmediato.
+  Future<void> verifyOtpAndResetPassword({
+    required String email,
+    required String token,
+    required String newPassword,
+  }) async {
+    final cleanEmail = email.trim();
+    final cleanToken = token.trim();
+    final cleanPassword = newPassword.trim();
+
+    if (cleanPassword.length < 6) {
+      throw Exception('La nueva contraseña debe tener al menos 6 caracteres.');
+    }
+
+    try {
+      final res = await _supabase.auth.verifyOTP(
+        email: cleanEmail,
+        token: cleanToken,
+        type: OtpType.recovery,
+      );
+
+      if (res.session == null) {
+        throw Exception('El código de verificación no es válido o ya ha expirado.');
+      }
+
+      await _supabase.auth.updateUser(
+        UserAttributes(password: cleanPassword),
+      );
+
+      AppLogger.info('Contraseña actualizada con éxito mediante código OTP para $cleanEmail', tag: 'AUTH_RESET_OTP');
+    } on AuthException catch (e) {
+      AppLogger.warning('Error al verificar OTP de recuperación: ${e.message}', tag: 'AUTH_RESET_OTP');
+      if (e.message.toLowerCase().contains('expired') || e.message.toLowerCase().contains('invalid')) {
+        throw Exception('El código de verificación es incorrecto o ha expirado.');
+      }
+      throw Exception(e.message);
+    } catch (e, stackTrace) {
+      AppLogger.error('Excepción al verificar OTP y actualizar contraseña', tag: 'AUTH_RESET_OTP', error: e, stackTrace: stackTrace);
+      rethrow;
+    }
   }
 
   Future<void> signOut() async {
