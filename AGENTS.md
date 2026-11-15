@@ -52,16 +52,21 @@ Dart y Supabase con la máxima calidad y eficiencia.
 - **Una Tarea a la Vez:** Trabaja en un solo hito o archivo a la vez. No intentes programar múltiples funciones complejas en un solo paso.
 - **Directorio Restringido:** Opera estrictamente dentro del directorio raíz del proyecto. No accedas ni indexes archivos del sistema operativo ajenos a la app.
 - **Sin Datos de Ejemplo en Diseños:** Cuando se indique crear, actualizar o modificar un diseño o interfaz gráfica, NUNCA colocar ningún dato ficticio, mock ni ejemplo quemado. Implementar exclusivamente la estructura real y limpia conectada a los datos reales o estados vacíos correspondientes.
-- **Compilación Web Obligatoria en `docs`:** Siempre que se realice cualquier modificación o desarrollo en el proyecto que afecte Flutter o UI, compila obligatoriamente la versión Web en la carpeta `docs` (`flutter build web --release --base-href "/umbral_immujer/" --output docs --dart-define-from-file=.env`) para mantener actualizado y sincronizado GitHub Pages.
-- **Política Estricta de Versión Binaria vs Arquitectura Remota Zero-Rebuild (Regla Inquebrantable):**
-  - **Para cambios de UI, diseño, estilos, colores, layout, corrección de desbordamientos o widgets:** QUEDA ESTRICTAMENTE PROHIBIDO incrementar la versión o build number en `pubspec.yaml` ni modificar `app_version_latest` / `app_build_number` en `configuracion_general` de Supabase. Todo cambio de diseño debe desplegarse vía `RemoteConfigService`, `<FeatureGate>`, RPCs de PostgreSQL y actualización continua de `docs/` (Web) sin obligar a los usuarios móviles a descargar ni reinstalar nuevos paquetes APK.
-  - **El incremento de versión binaria (APK)** en `pubspec.yaml` y Supabase se reserva única y exclusivamente para modificaciones nativas de plugins o cuando el usuario lo solicite explícitamente por escrito.
-  - Al compilar versiones nativas autorizadas, se sincroniza en GitHub para generar el APK firmado vía GitHub Actions y se actualiza `configuracion_general` con las notas correspondientes.
+- **Compilación y Despliegue Dual Obligatorio (Web + Android OTA):**
+  - Siempre que se realice cualquier modificación en archivos `.dart` (widgets, pantallas, estilos o lógica) o en `pubspec.yaml` y se solicite compilar o desplegar:
+    1. **Incrementar versión:** Incrementar automáticamente en `+1` el *build number* en `pubspec.yaml` (ej. `0.1.6+7` -> `0.1.6+8`) para que la app Android detecte la actualización.
+    2. **Compilar Web:** `flutter build web --release --base-href "/umbral_immujer/" --output docs --dart-define-from-file=.env`.
+    3. **Compilar APK Nativo:** `flutter build apk --release --dart-define-from-file=.env`.
+    4. **Publicar Actualización OTA:** Ejecutar `npm --prefix scripts run deploy:ota` para subir el APK a Supabase Storage (`app-updates`), generar `version.json` con hash SHA-256 y sincronizar `app_build_number` en `configuracion_general`.
+    5. **Versionado Git:** `git add docs/ pubspec.yaml .agents/ <archivos-modificados>`, commit y push a `main` asegurando que `.env`, `.env.deploy` y `*.apk` nunca se incluyan en el repositorio.
 - **Validación Obligatoria antes de Git:** Antes de realizar cualquier commit o push, ejecuta obligatoriamente `flutter pub get` seguido de `flutter analyze`. Si el analizador reporta errores o advertencias (warnings), tienes prohibido hacer el commit hasta corregirlos.
-- **Flujo mínimo de publicación en GitHub:** Cuando la tarea requiera dejar el proyecto actualizado en remoto, se debe ejecutar este flujo mínimo y obligatorio:
+- **Flujo mínimo de publicación en GitHub:** Cuando la tarea requiera dejar el proyecto actualizado en remoto, se debe ejecutar el flujo dual completo:
   - `flutter pub get`
   - `flutter analyze`
+  - Incrementar build number (+1) en `pubspec.yaml`
   - `flutter build web --release --base-href "/umbral_immujer/" --output docs --dart-define-from-file=.env`
+  - `flutter build apk --release --dart-define-from-file=.env`
+  - `npm --prefix scripts run deploy:ota`
   - `git status --short`
   - `git add <ruta(s) modificadas>`
   - `git commit -m "<mensaje claro>"`

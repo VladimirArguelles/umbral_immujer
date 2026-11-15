@@ -129,7 +129,7 @@ Nunca inventes columnas, rutas, funciones, estados o contratos. Si no lo has ver
 
 ---
 
-## 6. Pipeline obligatorio de validación
+## 6. Pipeline obligatorio de validación y Despliegue Dual (Web + Android OTA)
 
 ### 6.1. Verificación mínima requerida
 Antes de cerrar una tarea o dejarla lista para revisión:
@@ -137,79 +137,46 @@ Antes de cerrar una tarea o dejarla lista para revisión:
 2. `flutter analyze`
 3. Si la tarea toca lógica de negocio o widgets relevantes, ejecutar tests específicos o `flutter test` cuando sea viable.
 
-### 6.2. Compilación web obligatoria
-Cuando se modifica la app o se trabaja en UI, se debe actualizar la salida Web en `docs/` usando:
+### 6.2. Regla Obligatoria de Despliegue Dual (Web + Android OTA)
+Cada vez que se realicen cambios en archivos `.dart` (widgets, pantallas, estilos o lógica) o en `pubspec.yaml` y se solicite compilar o desplegar la aplicación, es obligatorio ejecutar la siguiente secuencia integral de despliegue dual:
 
-```powershell
-flutter build web --release --output=docs --base-href="/umbral_immujer/" --dart-define-from-file=.env
-```
+1. **Incrementar versión (Build Number):**
+   Aumentar automáticamente en `+1` el *build number* en `pubspec.yaml` (ej. pasar de `0.1.6+7` a `0.1.6+8`) para que los dispositivos móviles Android detecten la existencia de una nueva versión disponible.
 
-Esto garantiza que la versión web del proyecto siga sincronizada con el repositorio y con la publicación en GitHub Pages.
-
-### 6.3. Inmutabilidad de versión y exclusión de binarios
-- Está estrictamente prohibido modificar `version:` en `pubspec.yaml` (versión semántica o build number) durante compilaciones rutinarias, cambios UI/UX o despliegues de parches.
-- La versión solo puede cambiar por orden explícita del arquitecto para un hito mayor. No se debe cambiar la versión para evitar o forzar notificaciones de actualización por cambios menores.
-- `.gitignore` debe excluir permanentemente `build/` en cualquier nivel y todos los archivos `*.apk`.
-- Nunca ejecutar `git add` ni incluir en un commit `app-release.apk` u otros APK. El APK se distribuye únicamente mediante GitHub Releases.
-
-### 6.4. Pipeline dual de compilación y publicación
-Cuando se solicite compilar o desplegar cambios de Umbral_Immujer hacia GitHub, ejecutar la secuencia completa en PowerShell y en este orden. No publicar solo uno de los destinos:
-
-1. **Web / GitHub Pages** — generar `docs/`:
-
+2. **Compilar Web (GitHub Pages):**
+   Generar la salida Web en `docs/` con las variables de entorno inyectadas:
    ```powershell
-   flutter build web --release --output=docs --base-href="/umbral_immujer/" --dart-define-from-file=.env
+   flutter build web --release --base-href "/umbral_immujer/" --output docs --dart-define-from-file=.env
    if ($LASTEXITCODE -ne 0) { throw "Falló la compilación web." }
    ```
 
-2. **Android Release** — compilar el APK sin modificar `pubspec.yaml`:
-
+3. **Compilar APK Nativo (Android):**
+   Compilar el APK de producción con las variables de entorno inyectadas:
    ```powershell
-   flutter build apk --release
-   if ($LASTEXITCODE -ne 0) { throw "Falló la compilación Android." }
+   flutter build apk --release --dart-define-from-file=.env
+   if ($LASTEXITCODE -ne 0) { throw "Falló la compilación de Android APK." }
    ```
 
-3. **GitHub Release `latest-build`** — comprobar autenticación y crear el release si aún no existe. Si `gh auth status` falla, detener la publicación e informar que GitHub CLI no está autenticado o disponible.
-
+4. **Publicar Actualización OTA en Supabase:**
+   Ejecutar el script de despliegue OTA (leyendo las credenciales administrativas desde `.env.deploy` preferentemente o `.env`):
    ```powershell
-   gh auth status
-   if ($LASTEXITCODE -ne 0) { throw "Autentica GitHub CLI con gh auth login antes de publicar." }
-
-   gh release view latest-build
-   if ($LASTEXITCODE -ne 0) {
-     gh release create latest-build --title "UMBRAL Latest Build" --notes "Compilación continua automática"
-     if ($LASTEXITCODE -ne 0) { throw "No se pudo crear el release latest-build." }
-   }
-
-   gh release upload latest-build build/app/outputs/flutter-apk/app-release.apk --clobber
-   if ($LASTEXITCODE -ne 0) { throw "No se pudo subir o sobrescribir el APK en GitHub Releases." }
+   npm --prefix scripts run deploy:ota
+   if ($LASTEXITCODE -ne 0) { throw "Falló la publicación OTA a Supabase Storage y configuracion_general." }
    ```
+   Este paso automatizado:
+   - Sube el nuevo APK a Supabase Storage en el bucket `app-updates/app-release.apk`.
+   - Genera y sube `version.json` con el hash criptográfico SHA-256 de integridad y el nuevo *build number*.
+   - Sincroniza en caliente `app_version_latest` y `app_build_number` en la tabla `configuracion_general` de Supabase.
 
-   GitHub Releases es el único destino permitido para el binario Android. `--clobber` reemplaza el APK del release fijo; no crear tags variables ni subir APKs al historial Git.
-
-4. **Sincronización Web en Git** — revisar el estado y agregar exclusivamente `docs/` y las rutas de código fuente modificadas por la tarea. Luego crear un commit claro y publicar en `main`:
-
-Reglas obligatorias:
-- Ejecutar `git status --short` antes de preparar el commit y confirmar que no se incluyan cambios ajenos.
-- Ejecutar `git add docs/` y `git add <rutas de código fuente modificadas>` de forma explícita; nunca usar `git add .` ni agregar `build/` o APKs.
-- Crear el commit y ejecutar `git push origin main` solo después de completar ambas compilaciones y la publicación del APK.
-- Si existen cambios locales ajenos que pudieran ser sobrescritos o mezclados, detenerse y solicitar confirmación.
-
-Ejemplo de sincronización Git:
-
-```powershell
-git status --short
-git add docs/
-# Agregar explícitamente solo las rutas de código fuente o configuración modificadas por la tarea:
-git add <ruta1> <ruta2>
-git commit -m "tipo(scope): descripción clara del cambio"
-git push origin main
-```
-
-### 6.5. Control de versión y staging
-- Hacer `git add` solo de las rutas modificadas y relevantes para la tarea.
-- No hacer stage global ni sobrescribir cambios ajenos.
-- Si hay cambios no relacionados en el repositorio, no tocarlos ni mezclarlos.
+5. **Versionado Git y Publicación en `main`:**
+   Revisar el estado con `git status --short` y hacer commit y push únicamente de los archivos fuente modificados, `pubspec.yaml` y la carpeta `docs/`.
+   - **Regla estricta:** Verificar siempre que `.env`, `.env.deploy` y los binarios `*.apk` (incluyendo `build/`) permanezcan excluidos por `.gitignore` y jamás se incluyan en el commit.
+   ```powershell
+   git status --short
+   git add docs/ pubspec.yaml .agents/ <rutas-fuente-modificadas>
+   git commit -m "tipo(scope): descripción clara del cambio y build incrementado"
+   git push origin main
+   ```
 
 ---
 
@@ -258,7 +225,11 @@ Si se requiere dejar contexto técnico para un relevo, se debe documentar en un 
 - [ ] No he introducido secretos o credenciales.
 - [ ] He ejecutado `flutter pub get`.
 - [ ] He ejecutado `flutter analyze`.
-- [ ] Si corresponde, he actualizado la compilación web en `docs/`.
+- [ ] Si se modificó código `.dart` o UI, he incrementado en `+1` el *build number* en `pubspec.yaml`.
+- [ ] He compilado la versión Web en `docs/` (`flutter build web --release --base-href "/umbral_immujer/" --output docs --dart-define-from-file=.env`).
+- [ ] He compilado el APK de Android (`flutter build apk --release --dart-define-from-file=.env`).
+- [ ] He ejecutado `npm --prefix scripts run deploy:ota` para publicar el APK en Supabase Storage, generar `version.json` con SHA-256 y sincronizar `configuracion_general`.
+- [ ] He verificado que `.env`, `.env.deploy` y los binarios `*.apk` no se incluyan en el commit.
 - [ ] He verificado que las dependencias relevantes en `pubspec.yaml` (especialmente `supabase_flutter` y plugins nativos) se mantengan en sus versiones más recientes compatibles con Flutter y Kotlin.
 - [ ] He revisado que los cambios sean limpios y no mezclen trabajo ajeno.
 

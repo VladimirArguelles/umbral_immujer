@@ -34,12 +34,13 @@ Antes de certificar la entrega, debes verificar y validar:
    - Verificar que no existan claves de Supabase, tokens o credenciales secretas embebidas en el código fuente.
    - Confirmar el uso correcto de variables de entorno y `--dart-define`.
 
-4. **Compilación Web Obligatoria en `docs/`:**
-   - Si la tarea involucró cambios en Flutter (UI, lógica, widgets o rutas), compilar obligatoriamente la versión Web:
-     ```powershell
-     flutter build web --release --base-href "/umbral_immujer/" --output docs --dart-define-from-file=.env
-     ```
-   - Garantizar que la compilación en `docs/` quede actualizada y lista para GitHub Pages.
+4. **Despliegue Dual Obligatorio (Web + Android OTA):**
+   - Si la tarea involucró cambios en Flutter (UI, lógica, widgets o rutas):
+     1. Incrementar en `+1` el *build number* en `pubspec.yaml`.
+     2. Compilar versión Web en `docs/`: `flutter build web --release --base-href "/umbral_immujer/" --output docs --dart-define-from-file=.env`.
+     3. Compilar versión nativa Android APK: `flutter build apk --release --dart-define-from-file=.env`.
+     4. Publicar actualización OTA: `npm --prefix scripts run deploy:ota` para actualizar Supabase Storage (`app-updates`), generar `version.json` con SHA-256 y sincronizar `configuracion_general`.
+     5. Sincronizar en Git solo código fuente, `pubspec.yaml` y `docs/`, garantizando que `.env`, `.env.deploy` y `*.apk` no se incluyan.
 
 5. **Rendimiento, Memoria y Asincronía:**
    - Todo `TextEditingController`, `AnimationController`, `ScrollController` o `StreamSubscription` debe liberarse en su método `dispose()`.

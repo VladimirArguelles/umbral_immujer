@@ -13,22 +13,24 @@ const { createClient } = require('@supabase/supabase-js');
 const deployEnvPath = path.resolve(__dirname, '../.env.deploy');
 const defaultEnvPath = path.resolve(__dirname, '../.env');
 
-if (fs.existsSync(deployEnvPath)) {
-  require('dotenv').config({ path: deployEnvPath });
-} else {
-  require('dotenv').config({ path: defaultEnvPath });
-}
+const dotenv = require('dotenv');
+const parsedDeploy = fs.existsSync(deployEnvPath)
+  ? dotenv.parse(fs.readFileSync(deployEnvPath))
+  : {};
+const parsedDefault = fs.existsSync(defaultEnvPath)
+  ? dotenv.parse(fs.readFileSync(defaultEnvPath))
+  : {};
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://kkgacvhbcxgoxjpnkxmw.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+const SUPABASE_URL = parsedDeploy.SUPABASE_URL || parsedDefault.SUPABASE_URL || 'https://kkgacvhbcxgoxjpnkxmw.supabase.co';
+const SUPABASE_KEY = parsedDeploy.SUPABASE_SERVICE_ROLE_KEY || parsedDeploy.SUPABASE_ANON_KEY || parsedDefault.SUPABASE_SERVICE_ROLE_KEY || parsedDefault.SUPABASE_ANON_KEY;
 
 if (!SUPABASE_KEY) {
   console.error('Error: No se encontró SUPABASE_ANON_KEY ni SUPABASE_SERVICE_ROLE_KEY en el entorno ni en .env.deploy');
   process.exit(1);
 }
 
-const adminEmail = process.env.SUPERADMIN_EMAIL || process.env.ADMIN_EMAIL;
-const adminPassword = process.env.SUPERADMIN_PASSWORD || process.env.ADMIN_PASSWORD;
+const adminEmail = parsedDeploy.SUPERADMIN_EMAIL || parsedDeploy.ADMIN_EMAIL || parsedDefault.SUPERADMIN_EMAIL || parsedDefault.ADMIN_EMAIL;
+const adminPassword = parsedDeploy.SUPERADMIN_PASSWORD || parsedDeploy.ADMIN_PASSWORD || parsedDefault.SUPERADMIN_PASSWORD || parsedDefault.ADMIN_PASSWORD;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: false },

@@ -26,8 +26,13 @@ Antes de responder o ejecutar cambios, analiza la petición y delega automática
 
 ### Fase 3: Ciclo de Validación Obligatorio (QA Hand-off)
 Una vez finalizada la implementación técnica por el rol especialista, el flujo transfiere obligatoriamente la tarea a **`qa-inspector-agent.md`** antes de dar la solicitud por terminada. 
-Ningún trabajo se considera finalizado sin la aprobación del checklist de QA:
+Ningún trabajo se considera finalizado sin la aprobación del checklist de QA y Despliegue Dual:
 1. `flutter pub get` y `flutter analyze` libres de advertencias y errores.
 2. Comprobación estricta de tokens de diseño y ausencia de datos ficticios.
 3. Cero credenciales, claves API o secretos expuestos.
-4. Compilación web obligatoria en `docs/` si se tocó código Flutter o UI (`flutter build web --release --base-href "/umbral_immujer/" --output docs --dart-define-from-file=.env`).
+4. **Despliegue Dual Obligatorio (Web + Android OTA)** al tocar archivos `.dart` o `pubspec.yaml`:
+   - Incrementar automáticamente en `+1` el *build number* en `pubspec.yaml`.
+   - Compilar Web: `flutter build web --release --base-href "/umbral_immujer/" --output docs --dart-define-from-file=.env`.
+   - Compilar APK: `flutter build apk --release --dart-define-from-file=.env`.
+   - Publicar OTA: `npm --prefix scripts run deploy:ota` (publica APK a Supabase Storage, genera `version.json` con SHA-256 y sincroniza `app_build_number` en `configuracion_general`).
+   - Versionado Git: Commit y push a `main` de fuentes y `docs/` (excluyendo estrictamente `.env`, `.env.deploy` y `*.apk`).
