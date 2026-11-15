@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:umbral_immujer/core/widgets/remote_config_widgets.dart';
 import 'package:umbral_immujer/features/assistant/presentation/widgets/mia_assistant_widget.dart';
 import 'package:umbral_immujer/features/coordinator/data/coordinator_repository.dart';
 import 'package:umbral_immujer/features/coordinator/presentation/widgets/coordinator_courses_tab.dart';
@@ -138,7 +139,11 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  icon: const Icon(Icons.folder_rounded, size: 16),
+                  icon: const RemoteServerDrivenIcon(
+                    configKey: 'coordinator_reports_icon',
+                    fallback: Icons.folder_rounded,
+                    size: 16,
+                  ),
                   label: const Text(
                     'Centro de Reportes',
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
@@ -149,8 +154,9 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
             else
               IconButton(
                 tooltip: 'Centro de Reportes y Documentos Oficiales',
-                icon: const Icon(
-                  Icons.folder_rounded,
+                icon: const RemoteServerDrivenIcon(
+                  configKey: 'coordinator_reports_icon',
+                  fallback: Icons.folder_rounded,
                   color: AppTheme.primary,
                 ),
                 onPressed: () => context.go('/reports'),

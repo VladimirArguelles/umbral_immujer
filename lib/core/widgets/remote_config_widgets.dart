@@ -250,3 +250,59 @@ class RemoteConfigBanner extends StatelessWidget {
     );
   }
 }
+
+/// Icono reactivo gobernado remotamente por Supabase (Server-Driven UI).
+/// Permite alternar iconos dinámicamente en caliente sin recompilar la app móvil.
+class RemoteServerDrivenIcon extends StatelessWidget {
+  final String configKey;
+  final IconData fallback;
+  final Color? color;
+  final double? size;
+
+  const RemoteServerDrivenIcon({
+    super.key,
+    required this.configKey,
+    required this.fallback,
+    this.color,
+    this.size,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: RemoteConfigService.instance,
+      builder: (context, _) {
+        final raw = RemoteConfigService.instance.getRemoteString(configKey, '');
+        final icon = _resolveIcon(raw, fallback);
+        return Icon(icon, color: color, size: size);
+      },
+    );
+  }
+
+  static IconData _resolveIcon(String name, IconData fallback) {
+    switch (name.toLowerCase().trim()) {
+      case 'folder':
+      case 'carpeta':
+        return Icons.folder_rounded;
+      case 'visibility':
+      case 'ojo':
+      case 'eye':
+        return Icons.visibility_rounded;
+      case 'document':
+      case 'documento':
+      case 'report':
+        return Icons.description_rounded;
+      case 'school':
+      case 'estudiante':
+        return Icons.school_rounded;
+      case 'how_to_reg':
+      case 'inscripciones':
+        return Icons.how_to_reg_rounded;
+      case 'settings':
+      case 'configuracion':
+        return Icons.settings_rounded;
+      default:
+        return fallback;
+    }
+  }
+}
