@@ -25,12 +25,19 @@ import 'package:umbral_immujer/src/features/auth/data/auth_repository.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
 import 'package:umbral_immujer/src/features/auth/presentation/login_screen.dart';
 import 'package:umbral_immujer/src/features/auth/presentation/register_screen.dart';
+import 'package:umbral_immujer/src/features/auth/presentation/reset_password_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
   refreshListenable: _AuthStateNotifier(),
   redirect: (context, state) {
     final path = state.matchedLocation;
+
+    // Permitir acceso irrestricto al flujo de restablecimiento de contraseña
+    if (path == '/reset-password') {
+      return null;
+    }
+
     final session = SupabaseConfig.client.auth.currentSession;
     final isAuthenticated = session != null;
     final isProtected =
@@ -89,6 +96,7 @@ final GoRouter appRouter = GoRouter(
   routes: [
     GoRoute(path: '/', builder: (context, state) => const LandingPage()),
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+    GoRoute(path: '/reset-password', builder: (context, state) => const ResetPasswordScreen()),
     GoRoute(
       path: '/register',
       builder: (context, state) {
@@ -322,7 +330,11 @@ String _routeForCurrentRole() => _routeForRole(_currentUserRole());
 
 class _AuthStateNotifier extends ChangeNotifier {
   _AuthStateNotifier() {
-    _subscription = SupabaseConfig.client.auth.onAuthStateChange.listen((_) {
+    _subscription = SupabaseConfig.client.auth.onAuthStateChange.listen((data) {
+      if (data.event == AuthChangeEvent.passwordRecovery) {
+        AppLogger.info('Evento AuthChangeEvent.passwordRecovery detectado', tag: 'AUTH_ROUTER');
+        appRouter.go('/reset-password');
+      }
       notifyListeners();
     });
   }

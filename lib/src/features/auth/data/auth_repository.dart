@@ -667,12 +667,25 @@ class AuthRepository {
       }
     }
 
+    final String redirectUrl;
+    if (kIsWeb) {
+      final origin = Uri.base.origin;
+      if (origin.contains('github.io')) {
+        redirectUrl = '$origin/umbral_immujer/#/reset-password';
+      } else {
+        redirectUrl = '$origin/#/reset-password';
+      }
+    } else {
+      // Esquema personalizado para Deep Link en Android / Móvil
+      redirectUrl = 'com.example.umbral_immujer://reset-password';
+    }
+
     try {
       await _supabase.auth.resetPasswordForEmail(
         targetEmail,
-        redirectTo: kIsWeb ? null : 'https://vladimirarguelles.github.io/umbral_immujer/#/login',
+        redirectTo: redirectUrl,
       );
-      AppLogger.info('Correo de recuperación solicitado para $targetEmail', tag: 'AUTH_RESET');
+      AppLogger.info('Correo de recuperación solicitado para $targetEmail con redirect $redirectUrl', tag: 'AUTH_RESET');
       return targetEmail;
     } on AuthException catch (e) {
       AppLogger.warning('Fallo en Supabase resetPasswordForEmail: ${e.message}', tag: 'AUTH_RESET');
@@ -724,6 +737,27 @@ class AuthRepository {
       throw Exception(e.message);
     } catch (e, stackTrace) {
       AppLogger.error('Excepción al verificar OTP y actualizar contraseña', tag: 'AUTH_RESET_OTP', error: e, stackTrace: stackTrace);
+      rethrow;
+    }
+  }
+
+  /// Actualiza la contraseña del usuario actualmente autenticado (ej. durante flujo de recuperación por Deep Link).
+  Future<void> updateUserPassword(String newPassword) async {
+    final cleanPassword = newPassword.trim();
+    if (cleanPassword.length < 6) {
+      throw Exception('La nueva contraseña debe tener al menos 6 caracteres.');
+    }
+
+    try {
+      await _supabase.auth.updateUser(
+        UserAttributes(password: cleanPassword),
+      );
+      AppLogger.info('Contraseña actualizada con éxito', tag: 'AUTH_UPDATE_PASSWORD');
+    } on AuthException catch (e) {
+      AppLogger.warning('Error al actualizar contraseña: ${e.message}', tag: 'AUTH_UPDATE_PASSWORD');
+      throw Exception(e.message);
+    } catch (e, stackTrace) {
+      AppLogger.error('Excepción al actualizar contraseña', tag: 'AUTH_UPDATE_PASSWORD', error: e, stackTrace: stackTrace);
       rethrow;
     }
   }
