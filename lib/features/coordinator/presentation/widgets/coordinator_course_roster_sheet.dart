@@ -141,18 +141,36 @@ class _RosterStudentsTab extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Alumnos Registrados (${alumnosList.length})',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            Expanded(
+              child: Text(
+                'Alumnos Registrados (${alumnosList.length})',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.dynamicText,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
+            const SizedBox(width: 8),
             ElevatedButton.icon(
-              icon: const Icon(Icons.add, size: 16),
-              label: const Text('Añadir Alumno'),
+              icon: const Icon(Icons.add_rounded, size: 14),
+              label: const Text(
+                'Añadir Alumno',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
+                  horizontal: 8,
+                  vertical: 4,
                 ),
+                visualDensity: VisualDensity.compact,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                minimumSize: const Size(0, 32),
               ),
               onPressed: () => showCoordinatorAddStudentDialog(
                 parentContext,
@@ -262,18 +280,36 @@ class _RosterTemasTab extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Temas del Curso (${temasList.length})',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            Expanded(
+              child: Text(
+                'Temas del Curso (${temasList.length})',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.dynamicText,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
+            const SizedBox(width: 8),
             ElevatedButton.icon(
-              icon: const Icon(Icons.add, size: 16),
-              label: const Text('Añadir Tema'),
+              icon: const Icon(Icons.add_rounded, size: 14),
+              label: const Text(
+                'Añadir Tema',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
+                  horizontal: 8,
+                  vertical: 4,
                 ),
+                visualDensity: VisualDensity.compact,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                minimumSize: const Size(0, 32),
               ),
               onPressed: () => showCoordinatorAddTemaDialog(
                 parentContext,

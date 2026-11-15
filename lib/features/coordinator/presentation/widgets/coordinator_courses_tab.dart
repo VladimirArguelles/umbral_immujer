@@ -164,19 +164,35 @@ class _CoordinatorCoursesTabState extends State<CoordinatorCoursesTab> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Cursos en Sistema y Tiempo Real',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.dynamicText,
+                  Expanded(
+                    child: Text(
+                      'Cursos en Sistema y Tiempo Real',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.dynamicText,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  Text(
-                    '${cursos.length} cursos',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.dynamicTextMuted,
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceContainerHigh,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${cursos.length} cursos',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.dynamicTextMuted,
+                      ),
                     ),
                   ),
                 ],
