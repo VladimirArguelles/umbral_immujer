@@ -110,11 +110,26 @@ class OnlineUserPresenceService with WidgetsBindingObserver {
             unawaited(_trackUser(channel, userId));
           } else {
             _publishCount(null);
-            AppLogger.error(
-              'No se pudo conectar al canal de presencia.',
-              tag: 'USER_PRESENCE',
-              error: error ?? StateError('Estado del canal: $status'),
-            );
+            final errorStr = (error ?? '').toString();
+            final isTransient = status == RealtimeSubscribeStatus.closed ||
+                status == RealtimeSubscribeStatus.timedOut ||
+                errorStr.contains('1002') ||
+                errorStr.contains('1000') ||
+                errorStr.contains('InvalidJWTToken') ||
+                errorStr.contains('expired');
+            if (isTransient) {
+              AppLogger.warning(
+                'Canal de presencia desconectado o reconectando ($status): $error',
+                tag: 'USER_PRESENCE',
+                error: error,
+              );
+            } else {
+              AppLogger.error(
+                'No se pudo conectar al canal de presencia.',
+                tag: 'USER_PRESENCE',
+                error: error ?? StateError('Estado del canal: $status'),
+              );
+            }
           }
         });
   }
@@ -127,12 +142,26 @@ class OnlineUserPresenceService with WidgetsBindingObserver {
       }
     } catch (error, stackTrace) {
       _publishCount(null);
-      AppLogger.error(
-        'No se pudo registrar al usuario en línea.',
-        tag: 'USER_PRESENCE',
-        error: error,
-        stackTrace: stackTrace,
-      );
+      final errorStr = error.toString();
+      final isTransient = errorStr.contains('InvalidJWTToken') ||
+          errorStr.contains('expired') ||
+          errorStr.contains('1002') ||
+          errorStr.contains('1000');
+      if (isTransient) {
+        AppLogger.warning(
+          'Presencia en pausa (sesión expirada o socket reiniciando): $error',
+          tag: 'USER_PRESENCE',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      } else {
+        AppLogger.error(
+          'No se pudo registrar al usuario en línea.',
+          tag: 'USER_PRESENCE',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
     }
   }
 

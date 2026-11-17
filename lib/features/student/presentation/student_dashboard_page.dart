@@ -71,6 +71,8 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     final tabs = [
       StudentSummaryTab(
         studentName: _currentProfile.fullName,
+        studentRepository: _studentRepository,
+        isSuperAdmin: isSuperAdmin,
         onNavigate: (index) => setState(() => _currentIndex = index),
       ),
       StudentCoursesTab(

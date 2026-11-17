@@ -2,20 +2,39 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:umbral_immujer/features/student/data/student_repository.dart';
+import 'package:umbral_immujer/features/student/domain/student_models.dart';
+import 'package:umbral_immujer/features/student/presentation/widgets/student_notification_bell.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
+import 'package:umbral_immujer/src/core/utils/formatters.dart';
 
-class StudentSummaryTab extends StatelessWidget {
+class StudentSummaryTab extends StatefulWidget {
   const StudentSummaryTab({
     super.key,
     required this.studentName,
     required this.onNavigate,
+    this.studentRepository,
+    this.isSuperAdmin = false,
   });
 
   final String studentName;
   final ValueChanged<int> onNavigate;
+  final StudentRepository? studentRepository;
+  final bool isSuperAdmin;
+
+  @override
+  State<StudentSummaryTab> createState() => _StudentSummaryTabState();
+}
+
+class _StudentSummaryTabState extends State<StudentSummaryTab> {
+  List<StudentSurvey> _activeSurveys = [];
 
   @override
   Widget build(BuildContext context) {
+    final pendingSurveys = _activeSurveys
+        .where((s) => s.respondio != true || s.tieneCapturePendiente)
+        .toList();
+
     return ColoredBox(
       color: AppTheme.dynamicBackground,
       child: LayoutBuilder(
@@ -29,22 +48,52 @@ class StudentSummaryTab extends StatelessWidget {
               88,
             ),
             children: [
-              Text(
-                'Hola, $studentName',
-                style: GoogleFonts.plusJakartaSans(
-                  color: AppTheme.dynamicText,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Hola, ${widget.studentName}',
+                          style: GoogleFonts.plusJakartaSans(
+                            color: AppTheme.dynamicText,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Este es el resumen de tu experiencia formativa.',
+                          style: GoogleFonts.plusJakartaSans(
+                            color: AppTheme.dynamicTextMuted,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  StudentNotificationBell(
+                    studentRepository: widget.studentRepository,
+                    isSuperAdmin: widget.isSuperAdmin,
+                    onNavigateToSurveys: () => widget.onNavigate(3),
+                    onSurveysUpdated: (surveys) {
+                      if (mounted) {
+                        setState(() => _activeSurveys = surveys);
+                      }
+                    },
+                  ),
+                ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Este es el resumen de tu experiencia formativa.',
-                style: GoogleFonts.plusJakartaSans(
-                  color: AppTheme.dynamicTextMuted,
-                  fontSize: 13,
+              if (pendingSurveys.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _ActiveSurveyNotificationBanner(
+                  surveys: pendingSurveys,
+                  onRespond: () => widget.onNavigate(3),
                 ),
-              ),
+              ],
               const SizedBox(height: 18),
               const _FormationCarousel(),
               const SizedBox(height: 24),
@@ -77,7 +126,7 @@ class StudentSummaryTab extends StatelessWidget {
                 icon: Icons.menu_book_rounded,
                 accent: AppTheme.primary,
                 action: 'IR A MIS CURSOS',
-                onTap: () => onNavigate(1),
+                onTap: () => widget.onNavigate(1),
               ),
               const SizedBox(height: 12),
               _ModuleCard(
@@ -87,7 +136,7 @@ class StudentSummaryTab extends StatelessWidget {
                 icon: Icons.event_available_rounded,
                 accent: AppTheme.tertiary,
                 action: 'IR A MI ASISTENCIA',
-                onTap: () => onNavigate(2),
+                onTap: () => widget.onNavigate(2),
               ),
               const SizedBox(height: 12),
               _ModuleCard(
@@ -96,10 +145,10 @@ class StudentSummaryTab extends StatelessWidget {
                 icon: Icons.rate_review_rounded,
                 accent: AppTheme.secondary,
                 action: 'IR A ENCUESTAS',
-                onTap: () => onNavigate(3),
+                onTap: () => widget.onNavigate(3),
               ),
               const SizedBox(height: 18),
-              _OpportunityBanner(onTap: () => onNavigate(1)),
+              _OpportunityBanner(onTap: () => widget.onNavigate(1)),
             ],
           );
         },
@@ -107,6 +156,152 @@ class StudentSummaryTab extends StatelessWidget {
     );
   }
 }
+
+class _ActiveSurveyNotificationBanner extends StatelessWidget {
+  const _ActiveSurveyNotificationBanner({
+    required this.surveys,
+    required this.onRespond,
+  });
+
+  final List<StudentSurvey> surveys;
+  final VoidCallback onRespond;
+
+  @override
+  Widget build(BuildContext context) {
+    final survey = surveys.first;
+    final bool hasNotResponded = survey.respondio != true;
+    final totalPending = surveys.length;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.primary.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.primary.withValues(alpha: 0.4),
+          width: 1.2,
+        ),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.campaign_rounded,
+                  color: AppTheme.primary,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  totalPending > 1
+                      ? '¡TIENES $totalPending ENCUESTAS ACTIVAS!'
+                      : (hasNotResponded
+                          ? '¡NUEVA ENCUESTA ACTIVA!'
+                          : '¡COMPROBANTE DE PAGO PENDIENTE!'),
+                  style: GoogleFonts.plusJakartaSans(
+                    color: AppTheme.primary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'Insumos',
+                  style: TextStyle(
+                    color: AppTheme.primary,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            survey.cursoNombre,
+            style: GoogleFonts.plusJakartaSans(
+              color: AppTheme.dynamicText,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            hasNotResponded
+                ? 'El profesor ha publicado la encuesta para la compra de insumos. Confirma tu asistencia para calcular la cuota equitativa.'
+                : 'Confirmaste que asistirás. Recuerda subir tu comprobante de pago móvil para verificar tu aporte.',
+            style: GoogleFonts.plusJakartaSans(
+              color: AppTheme.dynamicTextMuted,
+              fontSize: 12,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Icon(
+                Icons.schedule_rounded,
+                size: 13,
+                color: AppTheme.dynamicTextMuted,
+              ),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(
+                  'Límite: ${Formatters.dateTime(survey.fechaLimite)}',
+                  style: GoogleFonts.plusJakartaSans(
+                    color: AppTheme.dynamicTextMuted,
+                    fontSize: 11.5,
+                  ),
+                ),
+              ),
+              TextButton.icon(
+                style: TextButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                icon: const Icon(Icons.arrow_forward_rounded, size: 14),
+                label: Text(
+                  hasNotResponded ? 'Responder' : 'Subir Pago',
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                onPressed: onRespond,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 
 class _FormationCarousel extends StatefulWidget {
   const _FormationCarousel();
