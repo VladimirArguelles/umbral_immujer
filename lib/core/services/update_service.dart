@@ -411,10 +411,12 @@ class UpdateService {
 
       const rootDashboards = {
         '/',
+        '/login',
         '/student',
         '/teacher',
         '/coordinator',
         '/superadmin',
+        '/inscripciones',
       };
       return rootDashboards.contains(location);
     } catch (_) {

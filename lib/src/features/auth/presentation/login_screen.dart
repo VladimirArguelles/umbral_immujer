@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:umbral_immujer/core/services/error_tracking_service.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
+import 'package:umbral_immujer/src/core/services/app_update_service.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/features/auth/data/auth_repository.dart';
 import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
@@ -30,6 +31,14 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _authRepo = AuthRepository(SupabaseConfig.client);
+    if (!AppUpdateService.instance.hasCheckedUpdate &&
+        !AppUpdateService.instance.isUpdateDialogDismissed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          AppUpdateService.instance.checkAndShowUpdateModal(context);
+        }
+      });
+    }
   }
 
   void _navigateToRoleHome(UserProfile profile) {

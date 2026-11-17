@@ -13,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../widgets/app_update_dialog.dart';
 import '../../../../core/services/update_service.dart';
+import '../../../../core/widgets/glassmorphic_update_dialog.dart';
 
 /// Información de la versión de la app y actualización disponible.
 class UpdateInfo {
@@ -74,25 +75,13 @@ class AppUpdateService {
     _isCheckingThisSession = false;
   }
 
-  /// Verifica si hay una actualización disponible y muestra el diálogo modal únicamente
-  /// una vez por sesión en la pantalla raíz principal (Dashboard inicial del rol),
-  /// evitando que reaparezca al navegar entre módulos o tras pulsar "Recordarme más tarde",
-  /// salvo que se fuerce explícitamente (`force: true`).
+  /// Verifica si hay una actualización disponible y muestra el diálogo modal.
+  /// Prioridad 1: Supabase configuracion_general (fuente de verdad oficial del backend).
+  /// Prioridad 2: Fallback a GitHub Releases si Supabase está offline o no detecta release.
   Future<void> checkAndShowUpdateModal(
     BuildContext context, {
     bool force = false,
   }) async {
-    // 1. Delegación prioritaria al servicio de GitHub Releases OTA con UI Glassmorphic
-    try {
-      await UpdateService.instance.checkAndShowUpdateModal(context, force: force);
-      if (UpdateService.instance.hasCheckedThisSession) {
-        return;
-      }
-    } catch (e) {
-      debugPrint('[AppUpdateService] Intento con GitHub Releases falló, usando fallback Supabase: $e');
-    }
-
-    // 2. Fallback secundario a Supabase configuracion_general
     if (!force && (_hasCheckedUpdate || _isUpdateDialogDismissed)) {
       return;
     }
@@ -109,18 +98,29 @@ class AppUpdateService {
     _isCheckingThisSession = true;
 
     try {
+      // 1. Verificación primaria en Supabase `configuracion_general`
       final info = await checkForUpdate();
       if (!context.mounted) return;
-      if (!force && !_isActiveRootDashboard(context)) return;
       if (!force && _isUpdateDialogDismissed) return;
 
       if (info.hasUpdate) {
         if (!context.mounted) return;
         await AppUpdateDialog.show(context, info);
+        return;
+      }
+
+      // 2. Fallback secundario a GitHub Releases si Supabase no reportó versión superior
+      try {
+        final releaseInfo = await UpdateService.instance.checkForUpdate();
+        if (releaseInfo.hasUpdate && context.mounted && (force || !_isUpdateDialogDismissed)) {
+          await GlassmorphicUpdateDialog.show(context, releaseInfo);
+        }
+      } catch (e) {
+        debugPrint('[AppUpdateService] Fallback de GitHub Releases omitido: $e');
       }
     } catch (e) {
       debugPrint(
-        '[AppUpdateService] Error al verificar actualización en dashboard: $e',
+        '[AppUpdateService] Error al verificar actualización: $e',
       );
     } finally {
       _isCheckingThisSession = false;
@@ -140,10 +140,12 @@ class AppUpdateService {
 
       const rootDashboards = {
         '/',
+        '/login',
         '/student',
         '/teacher',
         '/coordinator',
         '/superadmin',
+        '/inscripciones',
       };
       if (rootDashboards.contains(location)) return true;
 

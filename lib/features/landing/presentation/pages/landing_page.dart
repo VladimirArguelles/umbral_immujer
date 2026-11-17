@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:umbral_immujer/features/landing/presentation/widgets/landing_top_bar.dart';
 import 'package:umbral_immujer/features/landing/presentation/widgets/module_card.dart';
 import 'package:umbral_immujer/features/landing/presentation/widgets/particles_background.dart';
+import 'package:umbral_immujer/src/core/services/app_update_service.dart';
 import 'package:umbral_immujer/src/features/auth/presentation/auth_form_styles.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 
@@ -19,6 +20,19 @@ class LandingPage extends StatefulWidget {
 }
 
 class _LandingPageState extends State<LandingPage> {
+  @override
+  void initState() {
+    super.initState();
+    if (!AppUpdateService.instance.hasCheckedUpdate &&
+        !AppUpdateService.instance.isUpdateDialogDismissed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          AppUpdateService.instance.checkAndShowUpdateModal(context);
+        }
+      });
+    }
+  }
+
   void _openAuth(BuildContext context) {
     context.go('/login');
   }

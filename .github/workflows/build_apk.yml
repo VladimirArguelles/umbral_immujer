@@ -104,13 +104,20 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: 9b. Extract Version from pubspec.yaml
+        id: get_version
+        run: |
+          APP_VERSION=$(grep 'version:' pubspec.yaml | head -n1 | awk '{print $2}')
+          echo "version=$APP_VERSION" >> $GITHUB_OUTPUT
+          echo "Versión detectada: $APP_VERSION"
+
       - name: 10. Publish or Update Latest GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         with:
           tag_name: latest
-          name: "Versión Oficial UMBRAL"
-          body: "Compilación automática del APK de UMBRAL con las últimas correcciones."
+          name: "Versión Oficial UMBRAL v${{ steps.get_version.outputs.version }}"
+          body: "Compilación oficial de UMBRAL versión ${{ steps.get_version.outputs.version }} con las últimas correcciones."
           draft: false
           prerelease: false
           make_latest: true
