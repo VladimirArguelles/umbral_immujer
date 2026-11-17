@@ -78,19 +78,19 @@ class AppUpdateService {
   /// Verifica si hay una actualización disponible y muestra el diálogo modal.
   /// Prioridad 1: Supabase configuracion_general (fuente de verdad oficial del backend).
   /// Prioridad 2: Fallback a GitHub Releases si Supabase está offline o no detecta release.
-  Future<void> checkAndShowUpdateModal(
+  Future<bool> checkAndShowUpdateModal(
     BuildContext context, {
     bool force = false,
   }) async {
     if (!force && (_hasCheckedUpdate || _isUpdateDialogDismissed)) {
-      return;
+      return false;
     }
     if (_isCheckingThisSession) {
-      return;
+      return false;
     }
 
-    if (!context.mounted) return;
-    if (!force && !_isActiveRootDashboard(context)) return;
+    if (!context.mounted) return false;
+    if (!force && !_isActiveRootDashboard(context)) return false;
 
     if (!force) {
       _hasCheckedUpdate = true;
@@ -100,13 +100,13 @@ class AppUpdateService {
     try {
       // 1. Verificación primaria en Supabase `configuracion_general`
       final info = await checkForUpdate();
-      if (!context.mounted) return;
-      if (!force && _isUpdateDialogDismissed) return;
+      if (!context.mounted) return false;
+      if (!force && _isUpdateDialogDismissed) return false;
 
       if (info.hasUpdate) {
-        if (!context.mounted) return;
+        if (!context.mounted) return true;
         await AppUpdateDialog.show(context, info);
-        return;
+        return true;
       }
 
       // 2. Fallback secundario a GitHub Releases si Supabase no reportó versión superior
@@ -114,6 +114,7 @@ class AppUpdateService {
         final releaseInfo = await UpdateService.instance.checkForUpdate();
         if (releaseInfo.hasUpdate && context.mounted && (force || !_isUpdateDialogDismissed)) {
           await GlassmorphicUpdateDialog.show(context, releaseInfo);
+          return true;
         }
       } catch (e) {
         debugPrint('[AppUpdateService] Fallback de GitHub Releases omitido: $e');
@@ -125,6 +126,7 @@ class AppUpdateService {
     } finally {
       _isCheckingThisSession = false;
     }
+    return false;
   }
 
   bool _isActiveRootDashboard(BuildContext context) {

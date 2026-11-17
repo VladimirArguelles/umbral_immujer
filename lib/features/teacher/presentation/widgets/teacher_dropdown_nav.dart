@@ -112,12 +112,12 @@ class TeacherDropdownNav extends StatelessWidget {
               Icon(_tabIcons[currentIndex], size: 15, color: AppTheme.primary),
               const SizedBox(width: 4),
               ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 75),
+                constraints: const BoxConstraints(maxWidth: 92),
                 child: Text(
                   _tabTitles[currentIndex],
                   style: TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
                     color: AppTheme.dynamicText,
                   ),
                   overflow: TextOverflow.ellipsis,

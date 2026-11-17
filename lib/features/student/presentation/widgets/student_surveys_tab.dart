@@ -285,7 +285,7 @@ class _StudentSurveysTabState extends State<StudentSurveysTab> {
             await _encuestasDisponiblesFuture;
           },
           child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
             itemCount: activeSurveys.length,
             itemBuilder: (context, index) {
               final survey = activeSurveys[index];

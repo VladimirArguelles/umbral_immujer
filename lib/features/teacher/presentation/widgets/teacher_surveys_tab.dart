@@ -157,7 +157,7 @@ class _TeacherSurveysTabState extends State<TeacherSurveysTab> {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
       itemCount: _activeSurveys.length,
       itemBuilder: (context, index) {
         final survey = _activeSurveys[index];
@@ -234,7 +234,7 @@ class _TeacherSurveysTabState extends State<TeacherSurveysTab> {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
       itemCount: _historySurveys.length,
       itemBuilder: (context, index) {
         final survey = _historySurveys[index];

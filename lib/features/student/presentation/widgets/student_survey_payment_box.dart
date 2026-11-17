@@ -134,13 +134,21 @@ class StudentSurveyPaymentBox extends StatelessWidget {
                     ),
                   )
                 : const Icon(Icons.upload_file_rounded),
-            label: Text(
-              isUploading ? 'SUBIENDO CAPTURE...' : 'SUBIR CAPTURE DE PAGO',
+            label: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                isUploading ? 'SUBIENDO...' : 'SUBIR COMPROBANTE DE PAGO',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.3,
+                ),
+              ),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primary,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 12),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),

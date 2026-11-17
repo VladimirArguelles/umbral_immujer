@@ -172,7 +172,7 @@ class _HistorySurveyCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Insumos: ${Formatters.currency(survey.costoTotalInsumos)}',
+                        'Presupuesto: \$${survey.costoTotalInsumos.toStringAsFixed(2)} USD',
                         style: const TextStyle(fontSize: 12.5),
                       ),
                       Text(

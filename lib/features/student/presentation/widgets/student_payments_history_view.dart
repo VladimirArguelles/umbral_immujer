@@ -87,7 +87,7 @@ class StudentPaymentsHistoryView extends StatelessWidget {
         return RefreshIndicator(
           onRefresh: onRefresh,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
             children: [
               Row(
                 children: [

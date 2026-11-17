@@ -214,9 +214,10 @@ class _ConfirmationSection extends StatelessWidget {
                   : 'Indicaste que NO podrás asistir',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: 13,
+                fontSize: 12.5,
                 color: confirmColor,
               ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           if (!isClosed)
@@ -260,34 +261,42 @@ class _ContributionBreakdownCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
                 'Tu cuota estimada:',
-                style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               ),
-              Text(
-                hasAmount
-                    ? Formatters.currency(survey.cuotaACancelar)
-                    : 'Por calcular',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primary,
+              const SizedBox(width: 8),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      hasAmount
+                          ? Formatters.currency(survey.cuotaACancelar)
+                          : 'Por calcular',
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primary,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 6),
           Text(
-            'Costo total insumos: ${Formatters.currency(survey.costoTotalInsumos)} • Confirmadas: ${survey.totalConfirmados}',
-            style: TextStyle(fontSize: 12, color: AppTheme.dynamicTextMuted),
+            'Presupuesto: \$${survey.costoTotalInsumos.toStringAsFixed(2)} USD • Confirmadas: ${survey.totalConfirmados}',
+            style: TextStyle(fontSize: 11.5, color: AppTheme.dynamicTextMuted),
           ),
           if (survey.tasaBcvUsada != null && survey.tasaBcvUsada! > 0) ...[
             const SizedBox(height: 4),
             Text(
-              'Tasa BCV aplicada: Bs. ${survey.tasaBcvUsada!.toStringAsFixed(2)}',
-              style: TextStyle(fontSize: 12, color: AppTheme.dynamicTextMuted),
+              'Tasa BCV aplicada: Bs. ${survey.tasaBcvUsada!.toStringAsFixed(2)} / USD',
+              style: TextStyle(fontSize: 11.5, color: AppTheme.dynamicTextMuted),
             ),
           ],
         ],

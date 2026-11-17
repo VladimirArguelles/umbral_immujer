@@ -101,74 +101,116 @@ class TeacherActiveSurveyCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              const Icon(
-                Icons.event_available_rounded,
-                size: 14,
-                color: AppTheme.primary,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.event_available_rounded,
+                    size: 14,
+                    color: AppTheme.primary,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    'Práctica: $fechaClaseStr',
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 6),
-              Text(
-                'Práctica: $fechaClaseStr',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-              ),
-              const Spacer(),
-              const Icon(
-                Icons.timer_outlined,
-                size: 14,
-                color: AppTheme.secondary,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'Límite: ${Formatters.dateTime(survey.fechaLimite)}',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.timer_outlined,
+                    size: 14,
+                    color: AppTheme.secondary,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    'Límite: ${Formatters.dateTime(survey.fechaLimite)}',
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           const Text(
             'Monto del aporte individual a cancelar:',
-            style: TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant),
+            style: TextStyle(fontSize: 11.5, color: AppTheme.onSurfaceVariant),
           ),
           const SizedBox(height: 4),
-          Text(
-            survey.totalConfirmados > 0
-                ? 'Bs. ${(survey.montoIndividualCalculado * (survey.tasaBcvUsada ?? 1.0)).toStringAsFixed(2)} Bs.'
-                : 'Pendiente de cálculo',
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.mintNeon,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              survey.totalConfirmados > 0
+                  ? Formatters.currency(survey.montoIndividualCalculado)
+                  : 'Pendiente de cálculo',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.mintNeon,
+              ),
             ),
           ),
-          if (survey.totalConfirmados > 0)
-            Text(
-              '~ \$${survey.montoIndividualCalculado.toStringAsFixed(2)} USD por alumno',
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppTheme.successGreen,
-              ),
+          if (survey.totalConfirmados > 0) ...[
+            const SizedBox(height: 2),
+            Builder(
+              builder: (context) {
+                final double usdEquiv = (survey.tasaBcvUsada != null &&
+                        survey.tasaBcvUsada! > 0)
+                    ? (survey.montoIndividualCalculado / survey.tasaBcvUsada!)
+                    : (survey.totalConfirmados > 0
+                        ? survey.costoTotalInsumos / survey.totalConfirmados
+                        : 0.0);
+                return Text(
+                  '~ \$${usdEquiv.toStringAsFixed(2)} USD por alumno',
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    color: AppTheme.successGreen,
+                    fontWeight: FontWeight.w500,
+                  ),
+                );
+              },
             ),
-          const SizedBox(height: 10),
-          Row(
+          ],
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              const Icon(
-                Icons.assignment_outlined,
-                size: 14,
-                color: AppTheme.onSurfaceVariant,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.assignment_outlined,
+                    size: 14,
+                    color: AppTheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Presupuesto: \$${survey.costoTotalInsumos.toStringAsFixed(2)} USD',
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      color: AppTheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 4),
-              Text(
-                'Presupuesto: \$${survey.costoTotalInsumos.toStringAsFixed(2)} USD',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppTheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                 decoration: BoxDecoration(
                   color: AppTheme.primaryContainer.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
@@ -176,7 +218,7 @@ class TeacherActiveSurveyCard extends StatelessWidget {
                 child: Text(
                   '${survey.totalConfirmados} confirmados',
                   style: const TextStyle(
-                    fontSize: 11,
+                    fontSize: 10.5,
                     color: AppTheme.primary,
                     fontWeight: FontWeight.bold,
                   ),
@@ -326,24 +368,39 @@ class TeacherHistorySurveyCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text.rich(
-            TextSpan(
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppTheme.onSurfaceVariant,
-              ),
-              children: [
+          Builder(
+            builder: (context) {
+              final double usdEquiv = (survey.tasaBcvUsada != null &&
+                      survey.tasaBcvUsada! > 0)
+                  ? (survey.montoIndividualCalculado / survey.tasaBcvUsada!)
+                  : (survey.totalConfirmados > 0
+                      ? survey.costoTotalInsumos / survey.totalConfirmados
+                      : 0.0);
+              return Text.rich(
                 TextSpan(
-                  text:
-                      'Confirmados: ${survey.totalConfirmados} alumnos • Cuota final: \$',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.onSurfaceVariant,
+                  ),
+                  children: [
+                    TextSpan(
+                      text:
+                          'Confirmados: ${survey.totalConfirmados} alumnos • Cuota: ',
+                    ),
+                    TextSpan(
+                      text: Formatters.currency(survey.montoIndividualCalculado),
+                      style: const TextStyle(
+                        color: AppTheme.successGreen,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    TextSpan(
+                      text: ' (~ \$${usdEquiv.toStringAsFixed(2)} USD)',
+                    ),
+                  ],
                 ),
-                TextSpan(
-                  text: survey.montoIndividualCalculado.toStringAsFixed(2),
-                  style: const TextStyle(color: AppTheme.successGreen),
-                ),
-                const TextSpan(text: ' USD'),
-              ],
-            ),
+              );
+            },
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(

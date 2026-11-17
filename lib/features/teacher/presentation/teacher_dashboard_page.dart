@@ -103,6 +103,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
       },
       child: Scaffold(
         appBar: AppBar(
+          titleSpacing: 0,
           leading: (isSuperAdmin || _currentIndex != 0)
               ? IconButton(
                   icon: const Icon(Icons.arrow_back_rounded),
@@ -121,19 +122,20 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                 children: [
                   Flexible(
                     child: Text(
-                      'Módulo Docente',
+                      'Docente',
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.bold,
+                            fontSize: 13.5,
                           ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   if (isSuperAdmin) ...[
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
+                        horizontal: 5,
+                        vertical: 1.5,
                       ),
                       decoration: BoxDecoration(
                         color: AppTheme.primaryContainer.withValues(alpha: 0.35),
@@ -146,10 +148,10 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                       child: const Text(
                         'SUPER ADMIN',
                         style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 8.5,
                           fontWeight: FontWeight.w800,
                           color: AppTheme.primary,
-                          letterSpacing: 0.5,
+                          letterSpacing: 0.4,
                         ),
                       ),
                     ),
@@ -161,6 +163,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: AppTheme.onSurfaceVariant,
                       fontWeight: FontWeight.normal,
+                      fontSize: 11,
                     ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

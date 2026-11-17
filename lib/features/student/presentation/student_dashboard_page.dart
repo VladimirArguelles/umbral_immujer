@@ -95,6 +95,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
       },
       child: Scaffold(
         appBar: AppBar(
+          titleSpacing: 0,
           leading: (_currentIndex != 0 || isSuperAdmin)
               ? IconButton(
                   icon: const Icon(Icons.arrow_back_rounded),
@@ -106,18 +107,27 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
               : null,
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'UMBRAL • Mi Aula',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                'UMBRAL',
+                style: TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.2,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               Text(
                 _currentProfile.fullName,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 11,
                   color: AppTheme.dynamicTextMuted,
                   fontWeight: FontWeight.normal,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
