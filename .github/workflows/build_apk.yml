@@ -125,6 +125,28 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: 10b. Synchronize SHA-256 to Supabase
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        env:
+          SECRET_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SECRET_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SECRET_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
+          SHA256=$(sha256sum "$APK_PATH" | awk '{print $1}')
+          echo "SHA-256 generado por GitHub Actions: $SHA256"
+
+          FINAL_URL="${SECRET_SUPABASE_URL:-https://kkgacvhbcxgoxjpnkxmw.supabase.co}"
+          FINAL_KEY="${SECRET_SERVICE_ROLE:-${SECRET_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtrZ2FjdmhiY3hnb3hqcG5reG13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI2MDIxNjMsImV4cCI6MjEwODE3ODE2M30.Fj_VaXjO7sdlLB7BfJI-4R6iK9uLFi_oRmxUWKr2g4c}}"
+
+          curl -s -X POST "$FINAL_URL/rest/v1/configuracion_general" \
+            -H "apikey: $FINAL_KEY" \
+            -H "Authorization: Bearer $FINAL_KEY" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: resolution=merge-duplicates" \
+            -d "{\"clave\":\"app_apk_sha256\",\"valor\":\"\\\"$SHA256\\\"\",\"actualizado_en\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+          echo "Hash sincronizado exitosamente con Supabase configuracion_general."
+
       - name: 11. Clean Up Sensitive Build Files
         if: always()
         run: rm -f .env android/key.properties android/app/release-keystore.jks
