@@ -1,4 +1,4 @@
-import 'dart:io' show Directory, File, FileMode, FileSystemException;
+import 'dart:io' show Directory, File, FileMode, IOSink;
 
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
@@ -404,7 +404,41 @@ class AppUpdateService {
     }
   }
 
-  /// Descarga el APK con Dio al almacenamiento temporal y ejecuta inmediatamente la instalación nativa.
+  /// Sanitiza cualquier mensaje de error técnico para presentar información limpia al usuario.
+  static String sanitizeErrorMessage(dynamic error) {
+    final str = error.toString();
+    if (str.contains('HttpConnection closed') ||
+        str.contains('Connection closed') ||
+        str.contains('SocketException') ||
+        str.contains('connection abort') ||
+        str.contains('Broken pipe') ||
+        str.contains('Connection reset') ||
+        str.contains('HandshakeException') ||
+        str.contains('connectionTimeout') ||
+        str.contains('receiveTimeout')) {
+      return 'La descarga se interrumpió por inestabilidad en la conexión de red. Puedes reintentar la descarga o usar el enlace directo al navegador.';
+    }
+    if (str.contains('404')) {
+      return 'El paquete de actualización no se encuentra disponible temporalmente en el servidor.';
+    }
+    if (str.contains('Fallo de integridad criptográfica')) {
+      return 'La verificación de seguridad SHA-256 del paquete no coincidió. Se canceló la instalación por seguridad.';
+    }
+    if (str.contains('permissionDenied')) {
+      return 'Android denegó el permiso para instalar aplicaciones desconocidas. Autoriza a UMBRAL en Ajustes de Android.';
+    }
+    var clean = str
+        .replaceAll('Exception: ', '')
+        .replaceAll('StateError: ', '')
+        .trim();
+    clean = clean.replaceAll(RegExp(r'https?://[^\s,\)]+'), '[servidor]');
+    return clean.isNotEmpty
+        ? clean
+        : 'Error de conexión al descargar la actualización.';
+  }
+
+  /// Descarga el APK con Dio de forma reanudable (HTTP Range) con reintentos automáticos
+  /// al almacenamiento local y ejecuta inmediatamente la instalación nativa.
   Future<void> downloadAndInstallApk({
     required String apkUrl,
     required String latestVersion,
@@ -419,14 +453,22 @@ class AppUpdateService {
 
     final dio = Dio(
       BaseOptions(
-        connectTimeout: const Duration(seconds: 40),
-        receiveTimeout: const Duration(minutes: 8),
+        connectTimeout: const Duration(seconds: 45),
+        receiveTimeout: const Duration(minutes: 10),
+        sendTimeout: const Duration(seconds: 45),
         followRedirects: true,
         maxRedirects: 10,
+        headers: {
+          'User-Agent': 'UmbralImmujer/1.0 (Android; OTA)',
+          'Accept':
+              'application/vnd.android.package-archive, application/octet-stream, */*',
+        },
       ),
     );
 
     String? temporaryPath;
+    bool installLaunched = false;
+
     try {
       onProgress(0.05, 'Preparando almacenamiento...');
       final filePath = await getUpdateApkPath(latestVersion);
@@ -439,60 +481,174 @@ class AppUpdateService {
       await _cleanupOldApks(targetFile.parent, filePath);
 
       final temporaryFile = File(temporaryPath);
-      if (await temporaryFile.exists()) await temporaryFile.delete();
 
-      onProgress(0.1, 'Descargando paquete de actualización...');
+      // Determinar URLs candidatas: Primaria + Fallback automático si aplica
+      final List<String> candidateUrls = [apkUrl];
+      const fallbackGitHub =
+          'https://github.com/VladimirArguelles/umbral_immujer/releases/download/latest/app-release.apk';
+      const fallbackSupabase =
+          'https://kkgacvhbcxgoxjpnkxmw.supabase.co/storage/v1/object/public/app-updates/app-release.apk';
 
-      var receivedBytes = 0;
-      var expectedBytes = 0;
-      final response = await dio.download(
-        apkUrl,
-        temporaryPath,
-        onReceiveProgress: (received, total) {
-          receivedBytes = received;
-          expectedBytes = total;
-          if (total > 0) {
-            final progress = (received / total).clamp(0.0, 1.0);
-            final mbReceived = (received / (1024 * 1024)).toStringAsFixed(1);
-            final mbTotal = (total / (1024 * 1024)).toStringAsFixed(1);
-            onProgress(
-              progress,
-              'Descargando: $mbReceived MB / $mbTotal MB (${(progress * 100).toInt()}%)',
-            );
-          } else {
-            final mbReceived = (received / (1024 * 1024)).toStringAsFixed(1);
-            onProgress(0.5, 'Descargando: $mbReceived MB...');
-          }
-        },
-      );
-
-      final contentType = response.headers.value('content-type');
-      if (contentType != null &&
-          contentType.toLowerCase().contains('text/html')) {
-        throw StateError(
-          'El servidor entregó una página HTML en lugar del APK (Content-Type: $contentType).',
-        );
+      if (apkUrl.contains('github.com') ||
+          apkUrl.contains('githubusercontent.com')) {
+        if (!candidateUrls.contains(fallbackSupabase)) {
+          candidateUrls.add(fallbackSupabase);
+        }
+      } else {
+        if (!candidateUrls.contains(fallbackGitHub)) {
+          candidateUrls.add(fallbackGitHub);
+        }
       }
 
-      final downloadedFile = File(temporaryPath);
-      if (!await downloadedFile.exists()) {
+      bool downloadSuccess = false;
+      dynamic lastDownloadError;
+
+      for (int urlIdx = 0; urlIdx < candidateUrls.length && !downloadSuccess; urlIdx++) {
+        final currentUrl = candidateUrls[urlIdx];
+        const int maxRetriesPerUrl = 5;
+
+        for (int attempt = 1; attempt <= maxRetriesPerUrl; attempt++) {
+          IOSink? sink;
+          try {
+            int existingBytes = await temporaryFile.exists()
+                ? await temporaryFile.length()
+                : 0;
+
+            final Map<String, String> requestHeaders = {
+              'User-Agent': 'UmbralImmujer/1.0 (Android; OTA)',
+              'Accept':
+                  'application/vnd.android.package-archive, application/octet-stream, */*',
+            };
+
+            if (existingBytes > 0) {
+              requestHeaders['Range'] = 'bytes=$existingBytes-';
+            }
+
+            final response = await dio.get<ResponseBody>(
+              currentUrl,
+              options: Options(
+                responseType: ResponseType.stream,
+                headers: requestHeaders,
+                validateStatus: (status) =>
+                    status != null && (status >= 200 && status < 300),
+              ),
+            );
+
+            final statusCode = response.statusCode ?? 200;
+            final contentType =
+                response.headers.value('content-type')?.toLowerCase() ?? '';
+            if (contentType.contains('text/html')) {
+              throw StateError(
+                'El servidor entregó una página HTML en lugar del APK ($contentType).',
+              );
+            }
+
+            int totalBytes = 0;
+            if (statusCode == 206) {
+              final contentRange = response.headers.value('content-range');
+              if (contentRange != null && contentRange.contains('/')) {
+                totalBytes =
+                    int.tryParse(contentRange.split('/').last.trim()) ?? 0;
+              }
+              if (totalBytes <= 0) {
+                final chunkLen = int.tryParse(
+                        response.headers.value('content-length') ?? '0') ??
+                    0;
+                totalBytes = existingBytes + chunkLen;
+              }
+              sink = temporaryFile.openWrite(mode: FileMode.append);
+            } else {
+              existingBytes = 0;
+              totalBytes = int.tryParse(
+                      response.headers.value('content-length') ?? '0') ??
+                  0;
+              sink = temporaryFile.openWrite(mode: FileMode.write);
+            }
+
+            int receivedBytes = existingBytes;
+            final stream = response.data?.stream;
+            if (stream == null) {
+              throw StateError('El servidor no entregó un flujo de datos.');
+            }
+
+            await for (final chunk in stream) {
+              sink.add(chunk);
+              receivedBytes += chunk.length;
+              if (totalBytes > 0) {
+                final progress =
+                    (receivedBytes / totalBytes).clamp(0.05, 0.95);
+                final mbReceived =
+                    (receivedBytes / (1024 * 1024)).toStringAsFixed(1);
+                final mbTotal = (totalBytes / (1024 * 1024)).toStringAsFixed(1);
+                onProgress(
+                  progress,
+                  'Descargando: $mbReceived MB / $mbTotal MB (${(progress * 100).toInt()}%)',
+                );
+              } else {
+                final mbReceived =
+                    (receivedBytes / (1024 * 1024)).toStringAsFixed(1);
+                onProgress(0.5, 'Descargando: $mbReceived MB...');
+              }
+            }
+
+            await sink.flush();
+            await sink.close();
+            sink = null;
+
+            final finalLength = await temporaryFile.length();
+            if (totalBytes > 0 && finalLength < totalBytes) {
+              throw StateError(
+                'Descarga incompleta: $finalLength de $totalBytes bytes.',
+              );
+            }
+
+            downloadSuccess = true;
+            break;
+          } catch (e) {
+            try {
+              await sink?.flush();
+              await sink?.close();
+            } catch (_) {}
+            sink = null;
+            lastDownloadError = e;
+
+            debugPrint(
+              '[AppUpdateService] Intento $attempt/$maxRetriesPerUrl falló con URL ($currentUrl): $e',
+            );
+
+            if (attempt < maxRetriesPerUrl) {
+              final backoffSec = attempt * 2;
+              final savedMb = await temporaryFile.exists()
+                  ? (await temporaryFile.length() / (1024 * 1024))
+                      .toStringAsFixed(1)
+                  : '0.0';
+              onProgress(
+                0.5,
+                'Conexión inestable ($savedMb MB guardados). Reanudando en ${backoffSec}s (intento $attempt de $maxRetriesPerUrl)...',
+              );
+              await Future.delayed(Duration(seconds: backoffSec));
+            }
+          }
+        }
+      }
+
+      if (!downloadSuccess) {
+        throw Exception(sanitizeErrorMessage(lastDownloadError));
+      }
+
+      if (!await temporaryFile.exists()) {
         throw StateError(
           'El archivo APK descargado no se guardó en el dispositivo.',
         );
       }
-      final fileLength = await downloadedFile.length();
-      if (fileLength < 1024 * 1024) {
+      final fileLength = await temporaryFile.length();
+      if (fileLength < 5 * 1024 * 1024) {
         throw StateError(
-          'El archivo descargado parece incompleto: solo contiene $fileLength bytes.',
-        );
-      }
-      if (expectedBytes > 0 && receivedBytes != expectedBytes) {
-        throw StateError(
-          'La descarga quedó incompleta: se recibieron $receivedBytes de $expectedBytes bytes.',
+          'El archivo descargado está incompleto ($fileLength bytes).',
         );
       }
 
-      final fileHandle = await downloadedFile.open(mode: FileMode.read);
+      final fileHandle = await temporaryFile.open(mode: FileMode.read);
       late final List<int> signature;
       try {
         signature = await fileHandle.read(4);
@@ -504,36 +660,39 @@ class AppUpdateService {
           signature[1] != 0x4b ||
           signature[2] != 0x03 ||
           signature[3] != 0x04) {
+        if (await temporaryFile.exists()) await temporaryFile.delete();
         throw StateError(
           'La descarga no es un APK/ZIP válido. Verifica que app_apk_url apunte al archivo APK.',
         );
       }
 
-      // Verificación de integridad criptográfica SHA-256 contra tampering/inyección
+      // Verificación de integridad criptográfica SHA-256
       if (expectedSha256 != null && expectedSha256.trim().isNotEmpty) {
-        onProgress(0.95, 'Verificando firma de integridad SHA-256...');
-        final digest = await sha256.bind(downloadedFile.openRead()).first;
+        onProgress(0.96, 'Verificando firma de integridad SHA-256...');
+        final digest = await sha256.bind(temporaryFile.openRead()).first;
         final actualHash = digest.toString().toLowerCase();
         final cleanExpected = expectedSha256.trim().toLowerCase();
 
         if (actualHash != cleanExpected) {
-          if (await downloadedFile.exists()) await downloadedFile.delete();
+          if (await temporaryFile.exists()) await temporaryFile.delete();
           throw StateError(
             'Fallo de integridad criptográfica: El hash SHA-256 del APK ($actualHash) no coincide con el registrado en el servidor ($cleanExpected). La instalación ha sido cancelada por seguridad.',
           );
         }
-        debugPrint('[AppUpdateService] Verificación SHA-256 completada con éxito: $actualHash');
+        debugPrint(
+          '[AppUpdateService] Verificación SHA-256 completada con éxito: $actualHash',
+        );
       }
 
       if (await targetFile.exists()) await targetFile.delete();
       try {
-        await downloadedFile.rename(filePath);
+        await temporaryFile.rename(filePath);
       } catch (renameErr) {
         debugPrint(
           '[AppUpdateService] rename atómico no soportado ($renameErr), usando copy + delete...',
         );
-        await downloadedFile.copy(filePath);
-        await downloadedFile.delete();
+        await temporaryFile.copy(filePath);
+        await temporaryFile.delete();
       }
 
       onProgress(
@@ -549,6 +708,7 @@ class AppUpdateService {
       debugPrint(
         '[AppUpdateService] Resultado de instalación APK: ${result.type} - ${result.message}',
       );
+      installLaunched = true;
 
       if (result.type != ResultType.done) {
         if (result.type == ResultType.permissionDenied) {
@@ -570,33 +730,21 @@ class AppUpdateService {
           );
         }
       }
-    } on DioException catch (e) {
-      final detail = e.response != null
-          ? 'Código HTTP ${e.response?.statusCode}: ${e.response?.statusMessage ?? e.message}'
-          : (e.message ?? e.error?.toString() ?? 'Error de conexión');
-      debugPrint('[AppUpdateService] Error HTTP/Dio al descargar APK: $detail');
-      throw Exception(
-        'Fallo en la descarga del paquete de actualización ($detail)',
-      );
     } catch (e) {
       debugPrint(
         '[AppUpdateService] Error durante la descarga/instalación: $e',
       );
       rethrow;
     } finally {
-      if (temporaryPath != null) {
+      dio.close(force: true);
+      if (installLaunched && temporaryPath != null) {
         final temporaryFile = File(temporaryPath);
         if (await temporaryFile.exists()) {
           try {
             await temporaryFile.delete();
-          } on FileSystemException catch (error) {
-            debugPrint(
-              '[AppUpdateService] No se pudo eliminar el archivo temporal de descarga: $error',
-            );
-          }
+          } catch (_) {}
         }
       }
-      dio.close(force: true);
     }
   }
 

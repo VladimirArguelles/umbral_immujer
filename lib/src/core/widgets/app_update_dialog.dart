@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -76,24 +75,7 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
       }
     } catch (e) {
       if (mounted) {
-        String msg = 'No se pudo completar la instalación.';
-        if (e is DioException) {
-          if (e.response?.statusCode == 404) {
-            msg = 'El archivo de actualización no se encuentra disponible en el servidor (HTTP 404).';
-          } else if (e.type == DioExceptionType.connectionTimeout ||
-              e.type == DioExceptionType.receiveTimeout) {
-            msg = 'Tiempo de conexión agotado al descargar la actualización. Revisa tu conexión.';
-          } else {
-            final detail = e.message ?? e.error?.toString() ?? 'Error de red';
-            msg =
-                'Error de conexión al descargar el paquete (${e.response?.statusCode ?? detail}).';
-          }
-        } else {
-          msg = e.toString().replaceAll('Exception: ', '').trim();
-          if (msg.isEmpty) {
-            msg = 'Error durante la instalación: $e';
-          }
-        }
+        final msg = AppUpdateService.sanitizeErrorMessage(e);
         setState(() {
           _isDownloading = false;
           _errorMessage = msg;

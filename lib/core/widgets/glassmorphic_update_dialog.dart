@@ -1,5 +1,4 @@
 import 'dart:ui';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -83,23 +82,7 @@ class _GlassmorphicUpdateDialogState extends State<GlassmorphicUpdateDialog> {
       }
     } catch (e) {
       if (mounted) {
-        String msg = 'No se pudo completar la instalación.';
-        if (e is DioException) {
-          if (e.response?.statusCode == 404) {
-            msg = 'El archivo APK no está disponible en GitHub Releases (HTTP 404).';
-          } else if (e.type == DioExceptionType.connectionTimeout ||
-              e.type == DioExceptionType.receiveTimeout) {
-            msg = 'Tiempo agotado al conectar con GitHub. Verifica tu conexión a internet.';
-          } else {
-            msg = 'Error de red al descargar el paquete (${e.response?.statusCode ?? e.message}).';
-          }
-        } else {
-          msg = e.toString().replaceAll('Exception: ', '').trim();
-          if (msg.isEmpty) {
-            msg = 'Error durante la instalación: $e';
-          }
-        }
-
+        final msg = UpdateService.sanitizeErrorMessage(e);
         setState(() {
           _isDownloading = false;
           _errorMessage = msg;
