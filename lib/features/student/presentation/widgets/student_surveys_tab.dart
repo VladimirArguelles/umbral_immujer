@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:umbral_immujer/core/services/error_tracking_service.dart';
 import 'package:umbral_immujer/features/student/data/student_repository.dart';
 import 'package:umbral_immujer/features/student/domain/student_models.dart';
 import 'package:umbral_immujer/features/student/presentation/widgets/student_active_survey_card.dart';
@@ -72,7 +74,21 @@ class _StudentSurveysTabState extends State<StudentSurveysTab> {
         ),
       );
       setState(_refreshAll);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      unawaited(
+        ErrorTrackingService.instance.reportException(
+          error: e,
+          stackTrace: stackTrace,
+          module: 'Encuestas y Aportes',
+          severity: 'error',
+          metadata: {
+            'action': 'respond_survey',
+            'survey_id': surveyId,
+            'will_attend': willAttend,
+            'is_super_admin': widget.isSuperAdmin,
+          },
+        ),
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -115,7 +131,20 @@ class _StudentSurveysTabState extends State<StudentSurveysTab> {
         ),
       );
       setState(_refreshAll);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      unawaited(
+        ErrorTrackingService.instance.reportException(
+          error: e,
+          stackTrace: stackTrace,
+          module: 'Encuestas y Aportes',
+          severity: 'error',
+          metadata: {
+            'action': 'upload_receipt',
+            'survey_id': surveyId,
+            'is_super_admin': widget.isSuperAdmin,
+          },
+        ),
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

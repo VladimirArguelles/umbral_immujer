@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:umbral_immujer/core/services/error_tracking_service.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/features/auth/data/auth_repository.dart';
@@ -198,7 +200,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
         };
         context.go(path);
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      unawaited(
+        ErrorTrackingService.instance.reportException(
+          error: e,
+          stackTrace: stackTrace,
+          module: 'Autenticación / Registro',
+          severity: 'error',
+          metadata: {
+            'cedula': _cedulaController.text.trim(),
+            'email': _emailController.text.trim(),
+            'selected_role': _selectedRole.name,
+          },
+        ),
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

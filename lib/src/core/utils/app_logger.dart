@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
+import 'package:umbral_immujer/core/services/error_tracking_service.dart';
 
 /// Servicio centralizado de logging para UMBRAL IMMUJER.
 /// Proporciona trazabilidad estructurada de eventos, advertencias y errores
@@ -42,7 +44,7 @@ class AppLogger {
     );
   }
 
-  /// Registra errores críticos del sistema con stack trace
+  /// Registra errores críticos del sistema con stack trace y telemetría a public.system_exceptions
   static void error(
     String message, {
     String tag = 'ERROR',
@@ -67,6 +69,22 @@ class AppLogger {
         debugPrint(stackTrace.toString());
       }
     }
+
+    // Persistencia asíncrona hacia public.system_exceptions (Consola LIVE)
+    try {
+      unawaited(
+        ErrorTrackingService.instance.reportException(
+          error: error ?? message,
+          stackTrace: stackTrace,
+          module: tag,
+          severity: 'error',
+          metadata: {
+            'context_message': message,
+            'logger_tag': tag,
+          },
+        ),
+      );
+    } catch (_) {}
   }
 
   /// Registra trazas de depuración (solo activo en entorno de desarrollo)

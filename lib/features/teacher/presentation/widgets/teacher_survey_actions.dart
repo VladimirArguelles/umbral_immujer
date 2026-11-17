@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:umbral_immujer/core/services/error_tracking_service.dart';
 import 'package:umbral_immujer/features/teacher/data/teacher_repository.dart';
 import 'package:umbral_immujer/features/teacher/domain/teacher_models.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
@@ -227,7 +229,19 @@ void confirmCloseTeacherSurvey({
                 );
               }
               onCompleted();
-            } catch (e) {
+            } catch (e, stackTrace) {
+              unawaited(
+                ErrorTrackingService.instance.reportException(
+                  error: e,
+                  stackTrace: stackTrace,
+                  module: 'Profesor / Encuestas',
+                  severity: 'error',
+                  metadata: {
+                    'action': 'finalize_survey',
+                    'survey_id': survey.id,
+                  },
+                ),
+              );
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -298,7 +312,19 @@ void confirmDeleteTeacherSurvey({
                 );
               }
               onCompleted();
-            } catch (e) {
+            } catch (e, stackTrace) {
+              unawaited(
+                ErrorTrackingService.instance.reportException(
+                  error: e,
+                  stackTrace: stackTrace,
+                  module: 'Profesor / Encuestas',
+                  severity: 'error',
+                  metadata: {
+                    'action': 'delete_survey',
+                    'survey_id': survey.id,
+                  },
+                ),
+              );
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(

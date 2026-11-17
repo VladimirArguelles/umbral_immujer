@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:umbral_immujer/core/services/error_tracking_service.dart';
 
 import '../domain/teacher_models.dart';
 import 'attendance_offline_service.dart';
@@ -259,35 +261,51 @@ class TeacherRepository {
     String? pagoMovilTelefono,
     String? pagoMovilBanco,
   }) async {
-    final uid = currentUserId;
+    try {
+      final uid = currentUserId;
 
-    // Obtener la tasa BCV oficial con Fecha Valor para congelarla en la encuesta
-    final rateInfo = await getLatestBcvRateInfo();
-    final tasaBcv = rateInfo.tasa;
+      // Obtener la tasa BCV oficial con Fecha Valor para congelarla en la encuesta
+      final rateInfo = await getLatestBcvRateInfo();
+      final tasaBcv = rateInfo.tasa;
 
-    final insertPayload = <String, dynamic>{
-      'curso_id': courseId,
-      'fecha_clase': classDate,
-      'costo_total_insumos': totalSupplyCost,
-      'tasa_bcv_usada': tasaBcv,
-      'fecha_limite': deadline.toIso8601String(),
-      'creada_por': uid,
-      'estado': 'activa',
-      'monto_individual_calculado': 0.00,
-      'total_confirmados': 0,
-    };
+      final insertPayload = <String, dynamic>{
+        'curso_id': courseId,
+        'fecha_clase': classDate,
+        'costo_total_insumos': totalSupplyCost,
+        'tasa_bcv_usada': tasaBcv,
+        'fecha_limite': deadline.toIso8601String(),
+        'creada_por': uid,
+        'estado': 'activa',
+        'monto_individual_calculado': 0.00,
+        'total_confirmados': 0,
+      };
 
-    if (pagoMovilCedula != null && pagoMovilCedula.trim().isNotEmpty) {
-      insertPayload['pago_movil_cedula'] = pagoMovilCedula.trim();
+      if (pagoMovilCedula != null && pagoMovilCedula.trim().isNotEmpty) {
+        insertPayload['pago_movil_cedula'] = pagoMovilCedula.trim();
+      }
+      if (pagoMovilTelefono != null && pagoMovilTelefono.trim().isNotEmpty) {
+        insertPayload['pago_movil_telefono'] = pagoMovilTelefono.trim();
+      }
+      if (pagoMovilBanco != null && pagoMovilBanco.trim().isNotEmpty) {
+        insertPayload['pago_movil_banco'] = pagoMovilBanco.trim();
+      }
+
+      await _supabase.from('encuestas_participacion').insert(insertPayload);
+    } catch (e, stackTrace) {
+      unawaited(
+        ErrorTrackingService.instance.reportException(
+          error: e,
+          stackTrace: stackTrace,
+          module: 'teacher_repository:createSurvey',
+          severity: 'error',
+          metadata: {
+            'course_id': courseId,
+            'total_supply_cost': totalSupplyCost,
+          },
+        ),
+      );
+      rethrow;
     }
-    if (pagoMovilTelefono != null && pagoMovilTelefono.trim().isNotEmpty) {
-      insertPayload['pago_movil_telefono'] = pagoMovilTelefono.trim();
-    }
-    if (pagoMovilBanco != null && pagoMovilBanco.trim().isNotEmpty) {
-      insertPayload['pago_movil_banco'] = pagoMovilBanco.trim();
-    }
-
-    await _supabase.from('encuestas_participacion').insert(insertPayload);
   }
 
   /// Actualizar el monto del aporte en USD fijado por el profesor y recalcular cuota en Bs
@@ -295,18 +313,43 @@ class TeacherRepository {
     required String surveyId,
     required double totalSupplyCost,
   }) async {
-    final rateInfo = await getLatestBcvRateInfo();
-    final tasaBcv = rateInfo.tasa;
-
-    await _supabase.from('encuestas_participacion').update({
-      'costo_total_insumos': totalSupplyCost,
-      'tasa_bcv_usada': tasaBcv,
-      'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', surveyId);
-
     try {
-      await _supabase.rpc('recalcular_monto_encuesta', params: {'p_encuesta_id': surveyId});
-    } catch (_) {}
+      final rateInfo = await getLatestBcvRateInfo();
+      final tasaBcv = rateInfo.tasa;
+
+      await _supabase.from('encuestas_participacion').update({
+        'costo_total_insumos': totalSupplyCost,
+        'tasa_bcv_usada': tasaBcv,
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', surveyId);
+
+      try {
+        await _supabase.rpc('recalcular_monto_encuesta', params: {'p_encuesta_id': surveyId});
+      } catch (rpcErr, rpcStack) {
+        unawaited(
+          ErrorTrackingService.instance.reportException(
+            error: rpcErr,
+            stackTrace: rpcStack,
+            module: 'teacher_repository:recalcular_monto_encuesta',
+            severity: 'warning',
+          ),
+        );
+      }
+    } catch (e, stackTrace) {
+      unawaited(
+        ErrorTrackingService.instance.reportException(
+          error: e,
+          stackTrace: stackTrace,
+          module: 'teacher_repository:updateSurveySupplyCost',
+          severity: 'error',
+          metadata: {
+            'survey_id': surveyId,
+            'total_supply_cost': totalSupplyCost,
+          },
+        ),
+      );
+      rethrow;
+    }
   }
 
   /// Obtiene encuestas del docente (activas o historial)
@@ -377,45 +420,83 @@ class TeacherRepository {
     String? pagoMovilTelefono,
     String? pagoMovilBanco,
   }) async {
-    final rateInfo = await getLatestBcvRateInfo();
-    final tasaBcv = rateInfo.tasa;
-
-    final updatePayload = <String, dynamic>{
-      'costo_total_insumos': totalSupplyCost,
-      'fecha_clase': classDate,
-      'fecha_limite': deadline.toIso8601String(),
-      'tasa_bcv_usada': tasaBcv,
-      'updated_at': DateTime.now().toIso8601String(),
-    };
-
-    if (pagoMovilCedula != null) updatePayload['pago_movil_cedula'] = pagoMovilCedula.trim();
-    if (pagoMovilTelefono != null) updatePayload['pago_movil_telefono'] = pagoMovilTelefono.trim();
-    if (pagoMovilBanco != null) updatePayload['pago_movil_banco'] = pagoMovilBanco.trim();
-
-    await _supabase.from('encuestas_participacion').update(updatePayload).eq('id', surveyId);
-
     try {
-      await _supabase.rpc('recalcular_monto_encuesta', params: {'p_encuesta_id': surveyId});
-    } catch (_) {}
+      final rateInfo = await getLatestBcvRateInfo();
+      final tasaBcv = rateInfo.tasa;
+
+      final updatePayload = <String, dynamic>{
+        'costo_total_insumos': totalSupplyCost,
+        'fecha_clase': classDate,
+        'fecha_limite': deadline.toIso8601String(),
+        'tasa_bcv_usada': tasaBcv,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      if (pagoMovilCedula != null) updatePayload['pago_movil_cedula'] = pagoMovilCedula.trim();
+      if (pagoMovilTelefono != null) updatePayload['pago_movil_telefono'] = pagoMovilTelefono.trim();
+      if (pagoMovilBanco != null) updatePayload['pago_movil_banco'] = pagoMovilBanco.trim();
+
+      await _supabase.from('encuestas_participacion').update(updatePayload).eq('id', surveyId);
+
+      try {
+        await _supabase.rpc('recalcular_monto_encuesta', params: {'p_encuesta_id': surveyId});
+      } catch (rpcErr, rpcStack) {
+        unawaited(
+          ErrorTrackingService.instance.reportException(
+            error: rpcErr,
+            stackTrace: rpcStack,
+            module: 'teacher_repository:recalcular_monto_encuesta',
+            severity: 'warning',
+          ),
+        );
+      }
+    } catch (e, stackTrace) {
+      unawaited(
+        ErrorTrackingService.instance.reportException(
+          error: e,
+          stackTrace: stackTrace,
+          module: 'teacher_repository:updateSurveyDetails',
+          severity: 'error',
+          metadata: {
+            'survey_id': surveyId,
+            'total_supply_cost': totalSupplyCost,
+          },
+        ),
+      );
+      rethrow;
+    }
   }
 
   /// Elimina una encuesta de participación y sus respuestas asociadas
   Future<void> deleteSurvey(String surveyId) async {
     try {
-      await _supabase
-          .from('respuestas_encuesta')
+      try {
+        await _supabase
+            .from('respuestas_encuesta')
+            .delete()
+            .eq('encuesta_id', surveyId);
+      } catch (_) {}
+
+      final deleted = await _supabase
+          .from('encuestas_participacion')
           .delete()
-          .eq('encuesta_id', surveyId);
-    } catch (_) {}
+          .eq('id', surveyId)
+          .select('id');
 
-    final deleted = await _supabase
-        .from('encuestas_participacion')
-        .delete()
-        .eq('id', surveyId)
-        .select('id');
-
-    if ((deleted as List).isEmpty) {
-      throw Exception('No se pudo eliminar la encuesta de la base de datos (0 registros afectados).');
+      if ((deleted as List).isEmpty) {
+        throw Exception('No se pudo eliminar la encuesta de la base de datos (0 registros afectados).');
+      }
+    } catch (e, stackTrace) {
+      unawaited(
+        ErrorTrackingService.instance.reportException(
+          error: e,
+          stackTrace: stackTrace,
+          module: 'teacher_repository:deleteSurvey',
+          severity: 'error',
+          metadata: {'survey_id': surveyId},
+        ),
+      );
+      rethrow;
     }
   }
 

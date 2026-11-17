@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:umbral_immujer/core/services/error_tracking_service.dart';
 
 import '../domain/student_models.dart';
 
@@ -739,34 +741,60 @@ class StudentRepository {
     required bool willAttend,
     bool isSuperAdmin = false,
   }) async {
-    final alumno = await getAlumnoRecord(isSuperAdmin: isSuperAdmin);
-    if (alumno == null) {
-      throw Exception('No se encontró el registro del alumno.');
-    }
-
-    // Verificar si la encuesta no ha vencido
-    final enc = await _supabase
-        .from('encuestas_participacion')
-        .select('fecha_limite')
-        .eq('id', surveyId)
-        .single();
-    final limite = DateTime.parse(enc['fecha_limite'] as String);
-    if (DateTime.now().isAfter(limite)) {
-      throw Exception(
-        'El plazo límite para responder a esta encuesta ha expirado.',
-      );
-    }
-
-    await _supabase.from('respuestas_encuesta').upsert({
-      'encuesta_id': surveyId,
-      'alumno_id': alumno['id'],
-      'asistira': willAttend,
-      'estado_pago': 'pendiente',
-    }, onConflict: 'encuesta_id, alumno_id');
-
     try {
-      await _supabase.rpc('recalcular_monto_encuesta', params: {'p_encuesta_id': surveyId});
-    } catch (_) {}
+      final alumno = await getAlumnoRecord(isSuperAdmin: isSuperAdmin);
+      if (alumno == null) {
+        throw Exception('No se encontró el registro del alumno.');
+      }
+
+      // Verificar si la encuesta no ha vencido
+      final enc = await _supabase
+          .from('encuestas_participacion')
+          .select('fecha_limite')
+          .eq('id', surveyId)
+          .single();
+      final limite = DateTime.parse(enc['fecha_limite'] as String);
+      if (DateTime.now().isAfter(limite)) {
+        throw Exception(
+          'El plazo límite para responder a esta encuesta ha expirado.',
+        );
+      }
+
+      await _supabase.from('respuestas_encuesta').upsert({
+        'encuesta_id': surveyId,
+        'alumno_id': alumno['id'],
+        'asistira': willAttend,
+        'estado_pago': 'pendiente',
+      }, onConflict: 'encuesta_id, alumno_id');
+
+      try {
+        await _supabase.rpc('recalcular_monto_encuesta', params: {'p_encuesta_id': surveyId});
+      } catch (rpcErr, rpcStack) {
+        unawaited(
+          ErrorTrackingService.instance.reportException(
+            error: rpcErr,
+            stackTrace: rpcStack,
+            module: 'student_repository:recalcular_monto_encuesta',
+            severity: 'warning',
+          ),
+        );
+      }
+    } catch (e, stackTrace) {
+      unawaited(
+        ErrorTrackingService.instance.reportException(
+          error: e,
+          stackTrace: stackTrace,
+          module: 'student_repository:respondToSurvey',
+          severity: 'error',
+          metadata: {
+            'survey_id': surveyId,
+            'will_attend': willAttend,
+            'is_super_admin': isSuperAdmin,
+          },
+        ),
+      );
+      rethrow;
+    }
   }
 
   /// Subir imagen de comprobante a Supabase Storage y registrar URL
@@ -777,46 +805,62 @@ class StudentRepository {
     String fileExtension = 'jpg',
     bool isSuperAdmin = false,
   }) async {
-    final alumno = await getAlumnoRecord(isSuperAdmin: isSuperAdmin);
-    if (alumno == null) throw Exception('Alumno no identificado.');
+    try {
+      final alumno = await getAlumnoRecord(isSuperAdmin: isSuperAdmin);
+      if (alumno == null) throw Exception('Alumno no identificado.');
 
-    final fileName =
-        '${surveyId}_${alumno['id']}_${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
-    final filePath = 'comprobantes/$fileName';
+      final fileName =
+          '${surveyId}_${alumno['id']}_${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
+      final filePath = 'comprobantes/$fileName';
 
-    // Subir a Storage (Compatible con Web vía bytes o móvil vía File)
-    if (imageBytes != null) {
-      await _supabase.storage.from('comprobantes').uploadBinary(
-            filePath,
-            imageBytes,
-            fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
-          );
-    } else if (imageFile != null) {
-      await _supabase.storage.from('comprobantes').upload(
-            filePath,
-            imageFile,
-            fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
-          );
-    } else {
-      throw Exception('No se proporcionó imagen de comprobante.');
+      // Subir a Storage (Compatible con Web vía bytes o móvil vía File)
+      if (imageBytes != null) {
+        await _supabase.storage.from('comprobantes').uploadBinary(
+              filePath,
+              imageBytes,
+              fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+            );
+      } else if (imageFile != null) {
+        await _supabase.storage.from('comprobantes').upload(
+              filePath,
+              imageFile,
+              fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+            );
+      } else {
+        throw Exception('No se proporcionó imagen de comprobante.');
+      }
+
+      final publicUrl = _supabase.storage
+          .from('comprobantes')
+          .getPublicUrl(filePath);
+
+      // Actualizar registro en respuestas_encuesta
+      await _supabase
+          .from('respuestas_encuesta')
+          .update({
+            'comprobante_url': publicUrl,
+            'comprobante_subido_at': DateTime.now().toIso8601String(),
+            'estado_pago': 'pendiente',
+          })
+          .eq('encuesta_id', surveyId)
+          .eq('alumno_id', alumno['id']);
+
+      return publicUrl;
+    } catch (e, stackTrace) {
+      unawaited(
+        ErrorTrackingService.instance.reportException(
+          error: e,
+          stackTrace: stackTrace,
+          module: 'student_repository:uploadPaymentProof',
+          severity: 'error',
+          metadata: {
+            'survey_id': surveyId,
+            'is_super_admin': isSuperAdmin,
+          },
+        ),
+      );
+      rethrow;
     }
-
-    final publicUrl = _supabase.storage
-        .from('comprobantes')
-        .getPublicUrl(filePath);
-
-    // Actualizar registro en respuestas_encuesta
-    await _supabase
-        .from('respuestas_encuesta')
-        .update({
-          'comprobante_url': publicUrl,
-          'comprobante_subido_at': DateTime.now().toIso8601String(),
-          'estado_pago': 'pendiente',
-        })
-        .eq('encuesta_id', surveyId)
-        .eq('alumno_id', alumno['id']);
-
-    return publicUrl;
   }
 
   /// Stream en tiempo real de alumnos pendientes de capture en una encuesta

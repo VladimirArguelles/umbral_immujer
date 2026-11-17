@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:umbral_immujer/core/services/error_tracking_service.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/features/auth/data/auth_repository.dart';
@@ -55,7 +57,18 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         _navigateToRoleHome(profile);
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      unawaited(
+        ErrorTrackingService.instance.reportException(
+          error: e,
+          stackTrace: stackTrace,
+          module: 'Autenticación / Login',
+          severity: 'error',
+          metadata: {
+            'email': _emailController.text.trim(),
+          },
+        ),
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

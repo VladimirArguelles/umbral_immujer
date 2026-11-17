@@ -53,7 +53,6 @@ class ErrorTrackingService {
   ErrorTrackingService._();
   static final ErrorTrackingService instance = ErrorTrackingService._();
 
-  bool _isReporting = false;
   DateTime? _lastNotifTime;
   String? _lastNotifSignature;
 
@@ -124,8 +123,9 @@ class ErrorTrackingService {
     } catch (_) {}
 
     // 2. Persistencia en Supabase `system_exceptions` con protección anti-bucle
-    if (_isReporting) return;
-    _isReporting = true;
+    if (errorString.contains('system_exceptions') || errorString.contains('notificaciones')) {
+      return; // Prevenir bucles de recursión en la propia infraestructura de telemetría
+    }
 
     try {
       final supabase = SupabaseConfig.client;
@@ -173,28 +173,28 @@ class ErrorTrackingService {
             ? 'Desbordamiento o fallo visual detectado en $sourceLoc'
             : (errorString.length > 250 ? '${errorString.substring(0, 250)}...' : errorString);
 
-        await supabase.from('notificaciones').insert({
-          'usuario_origen_id': userId,
-          'rol_destino': 'super_admin',
-          'titulo': notifTitle,
-          'mensaje': notifMessage,
-          'tipo': 'incidencia_operacion',
-          'datos': {
-            'modulo': fullRoute,
-            'ruta_completa': fullRoute,
-            'pantalla': currentRoute,
-            'ubicacion_codigo': sourceLoc,
-            'donde_esta_el_problema': 'Falla en $currentRoute • Código: $sourceLoc',
-            'que_debe_revisar': '$errorString\nUbicación: $sourceLoc\nPantalla: $currentRoute',
-            'severidad': resolvedSeverity,
-          },
-          'leido': false,
-        });
+        try {
+          await supabase.from('notificaciones').insert({
+            'usuario_origen_id': userId,
+            'rol_destino': 'super_admin',
+            'titulo': notifTitle,
+            'mensaje': notifMessage,
+            'tipo': 'incidencia_operacion',
+            'datos': {
+              'modulo': fullRoute,
+              'ruta_completa': fullRoute,
+              'pantalla': currentRoute,
+              'ubicacion_codigo': sourceLoc,
+              'donde_esta_el_problema': 'Falla en $currentRoute • Código: $sourceLoc',
+              'que_debe_revisar': '$errorString\nUbicación: $sourceLoc\nPantalla: $currentRoute',
+              'severidad': resolvedSeverity,
+            },
+            'leido': false,
+          });
+        } catch (_) {}
       }
     } catch (e) {
-      debugPrint('[ErrorTrackingService] Falla al persistir en Supabase o notificar: $e');
-    } finally {
-      _isReporting = false;
+      debugPrint('[ErrorTrackingService] Falla al persistir en Supabase system_exceptions: $e');
     }
   }
 
