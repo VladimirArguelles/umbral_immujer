@@ -32,6 +32,7 @@ migrate_working_dir/
 .pub/
 build/
 *.apk
+!docs/*.apk
 /coverage/
 
 # Symbolication related
