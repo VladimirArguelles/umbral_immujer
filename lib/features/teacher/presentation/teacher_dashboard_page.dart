@@ -5,6 +5,7 @@ import 'package:umbral_immujer/features/profile/presentation/profile_header_acti
 import 'package:umbral_immujer/features/teacher/data/teacher_repository.dart';
 import 'package:umbral_immujer/features/teacher/presentation/widgets/teacher_attendance_tab.dart';
 import 'package:umbral_immujer/features/teacher/presentation/widgets/teacher_dropdown_nav.dart';
+import 'package:umbral_immujer/features/teacher/presentation/widgets/teacher_notification_bell.dart';
 import 'package:umbral_immujer/features/teacher/presentation/widgets/teacher_revenue_audit_tab.dart';
 import 'package:umbral_immujer/features/teacher/presentation/widgets/teacher_students_tab.dart';
 import 'package:umbral_immujer/features/teacher/presentation/widgets/teacher_summary_tab.dart';
@@ -73,6 +74,8 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
       TeacherSummaryTab(
         teacherName: _currentProfile.fullName,
         isSuperAdmin: isSuperAdmin,
+        teacherRepository: _teacherRepository,
+        profile: _currentProfile,
         onNavigate: (idx) => setState(() => _currentIndex = idx),
       ),
       TeacherAttendanceTab(
@@ -178,6 +181,12 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
               onSelectTab: (idx) => setState(() => _currentIndex = idx),
               onProfileUpdated: (updated) =>
                   setState(() => _currentProfile = updated),
+            ),
+            TeacherNotificationBell(
+              teacherRepository: _teacherRepository,
+              isSuperAdmin: isSuperAdmin,
+              profile: _currentProfile,
+              onNavigateTab: (idx) => setState(() => _currentIndex = idx),
             ),
             const ThemeModeToggleButton(),
             UserProfileAvatarButton(

@@ -3,6 +3,7 @@ import 'package:umbral_immujer/features/teacher/data/teacher_repository.dart';
 import 'package:umbral_immujer/features/teacher/domain/teacher_models.dart';
 import 'package:umbral_immujer/features/teacher/presentation/widgets/teacher_payment_dialogs.dart';
 import 'package:umbral_immujer/features/teacher/presentation/widgets/teacher_survey_actions.dart';
+import 'package:umbral_immujer/features/teacher/presentation/widgets/teacher_survey_breakdown_sheet.dart';
 import 'package:umbral_immujer/features/teacher/presentation/widgets/teacher_survey_cards.dart';
 import 'package:umbral_immujer/features/teacher/presentation/widgets/teacher_survey_form_sheet.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
@@ -163,9 +164,21 @@ class _TeacherSurveysTabState extends State<TeacherSurveysTab> {
         final survey = _activeSurveys[index];
         return TeacherActiveSurveyCard(
           survey: survey,
+          onViewBreakdown: () => showTeacherSurveyBreakdownModal(
+            context: context,
+            teacherRepository: widget.teacherRepository,
+            surveyId: survey.id,
+            surveyTitle: survey.cursoNombre,
+          ),
           onManage: () => showTeacherSurveyActionsSheet(
             context: context,
             survey: survey,
+            onViewBreakdown: () => showTeacherSurveyBreakdownModal(
+              context: context,
+              teacherRepository: widget.teacherRepository,
+              surveyId: survey.id,
+              surveyTitle: survey.cursoNombre,
+            ),
             onEdit: () => _openEditSurvey(survey),
             onAuditPayments: () => showTeacherSurveyPaymentsAuditDialog(
               context: context,

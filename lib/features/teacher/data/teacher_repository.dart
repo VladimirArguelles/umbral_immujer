@@ -682,4 +682,287 @@ class TeacherRepository {
   Future<bool> syncPendingOfflineAttendance() {
     return AttendanceOfflineService.instance.syncPendingQueue(_supabase);
   }
+
+  /// Obtiene las notificaciones del profesor (respuestas de encuestas y pagos subidos)
+  Future<List<TeacherNotificationItem>> getTeacherNotifications({
+    required bool isSuperAdmin,
+    String? profesorId,
+  }) async {
+    try {
+      List<String>? courseIds;
+      if (!isSuperAdmin) {
+        final courses = await getMyCourses(isSuperAdmin: false);
+        if (courses.isEmpty) return [];
+        courseIds = courses.map((c) => c.id).toList();
+      }
+
+      final raw = await _supabase
+          .from('respuestas_encuesta')
+          .select('''
+            id,
+            encuesta_id,
+            alumno_id,
+            asistira,
+            estado_pago,
+            comprobante_url,
+            comprobante_subido_at,
+            monto_asignado,
+            created_at,
+            updated_at,
+            alumnos:alumno_id (
+              id,
+              nombre_completo,
+              cedula
+            ),
+            encuestas_participacion:encuesta_id (
+              id,
+              curso_id,
+              fecha_clase,
+              cursos:curso_id (
+                id,
+                nombre,
+                profesor_id
+              )
+            )
+          ''')
+          .order('created_at', ascending: false)
+          .limit(100);
+
+      final List<TeacherNotificationItem> items = [];
+
+      for (final r in (raw as List)) {
+        final enc = r['encuestas_participacion'] as Map<String, dynamic>?;
+        if (enc == null) continue;
+        final curso = enc['cursos'] as Map<String, dynamic>?;
+        final cId = enc['curso_id']?.toString() ?? '';
+
+        if (!isSuperAdmin && courseIds != null && !courseIds.contains(cId)) {
+          continue;
+        }
+
+        final al = r['alumnos'] as Map<String, dynamic>?;
+        final alNombre = al?['nombre_completo']?.toString() ?? 'Alumno';
+        final alCedula = al?['cedula']?.toString() ?? '';
+        final cursoNombre = curso?['nombre']?.toString() ?? 'Curso';
+        final surveyId = enc['id']?.toString() ?? '';
+        final respId = r['id']?.toString() ?? '';
+
+        // 1. Notificación de respuesta si asistira != null
+        if (r['asistira'] != null) {
+          final willAttend = r['asistira'] == true;
+          final respCreatedAt =
+              DateTime.tryParse(r['created_at']?.toString() ?? '') ??
+                  DateTime.now();
+          items.add(
+            TeacherNotificationItem(
+              id: 'resp_$respId',
+              surveyId: surveyId,
+              cursoId: cId,
+              cursoNombre: cursoNombre,
+              alumnoId: r['alumno_id']?.toString() ?? '',
+              alumnoNombre: alNombre,
+              alumnoCedula: alCedula,
+              type: willAttend
+                  ? TeacherNotificationType.surveyResponseAffirmative
+                  : TeacherNotificationType.surveyResponseNegative,
+              timestamp: respCreatedAt,
+            ),
+          );
+        }
+
+        // 2. Notificación de pago si tiene comprobante
+        final compUrl = r['comprobante_url']?.toString();
+        if (compUrl != null && compUrl.trim().isNotEmpty) {
+          final payDateStr =
+              r['comprobante_subido_at'] ?? r['updated_at'] ?? r['created_at'];
+          final payTimestamp =
+              DateTime.tryParse(payDateStr?.toString() ?? '') ?? DateTime.now();
+          items.add(
+            TeacherNotificationItem(
+              id: 'pay_$respId',
+              surveyId: surveyId,
+              cursoId: cId,
+              cursoNombre: cursoNombre,
+              alumnoId: r['alumno_id']?.toString() ?? '',
+              alumnoNombre: alNombre,
+              alumnoCedula: alCedula,
+              type: TeacherNotificationType.paymentUploaded,
+              monto: (r['monto_asignado'] as num?)?.toDouble(),
+              comprobanteUrl: compUrl,
+              timestamp: payTimestamp,
+            ),
+          );
+        }
+      }
+
+      // Ordenar cronológicamente descendente
+      items.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      return items;
+    } catch (e, stackTrace) {
+      unawaited(
+        ErrorTrackingService.instance.reportException(
+          error: e,
+          stackTrace: stackTrace,
+          module: 'teacher_repository:getTeacherNotifications',
+          severity: 'warning',
+        ),
+      );
+      return [];
+    }
+  }
+
+  /// Obtiene el desglose completo de una encuesta: confirmados, negativos y alumnos pendientes por responder
+  Future<SurveyResponseBreakdown> getSurveyDetailedBreakdown(
+    String surveyId,
+  ) async {
+    // 1. Obtener datos de la encuesta y curso
+    final surveyData = await _supabase
+        .from('encuestas_participacion')
+        .select('''
+          id,
+          curso_id,
+          fecha_clase,
+          fecha_limite,
+          costo_total_insumos,
+          tasa_bcv_usada,
+          monto_individual_calculado,
+          cursos:curso_id (
+            id,
+            nombre
+          )
+        ''')
+        .eq('id', surveyId)
+        .single();
+
+    final cursoId = surveyData['curso_id'] as String;
+    final cursoMap = surveyData['cursos'] as Map<String, dynamic>?;
+    final cursoNombre = cursoMap?['nombre']?.toString() ?? 'Curso';
+
+    // 2. Obtener alumnos activos inscritos en el curso
+    final inscritosRaw = await _supabase
+        .from('inscripciones')
+        .select('''
+          alumno_id,
+          estado,
+          deleted_at,
+          alumnos:alumno_id (
+            id,
+            nombre_completo,
+            cedula,
+            telefono
+          )
+        ''')
+        .eq('curso_id', cursoId)
+        .isFilter('deleted_at', null);
+
+    final List<Map<String, dynamic>> alumnosInscritos = [];
+    for (final item in (inscritosRaw as List)) {
+      if (item['estado'] == 'retirado') continue;
+      final al = item['alumnos'] as Map<String, dynamic>?;
+      if (al != null) {
+        alumnosInscritos.add(al);
+      }
+    }
+
+    // 3. Obtener respuestas de la encuesta
+    final respuestasRaw = await _supabase
+        .from('respuestas_encuesta')
+        .select('''
+          id,
+          alumno_id,
+          asistira,
+          estado_pago,
+          comprobante_url,
+          created_at,
+          alumnos:alumno_id (
+            id,
+            nombre_completo,
+            cedula,
+            telefono
+          )
+        ''')
+        .eq('encuesta_id', surveyId);
+
+    final List<SurveyStudentResponseItem> afirmativos = [];
+    final List<SurveyStudentResponseItem> negativos = [];
+    final List<SurveyStudentResponseItem> pendientes = [];
+    final Set<String> procesados = {};
+
+    for (final r in (respuestasRaw as List)) {
+      final aId = r['alumno_id']?.toString() ?? '';
+      procesados.add(aId);
+      final al = r['alumnos'] as Map<String, dynamic>?;
+      final nombre = al?['nombre_completo']?.toString() ?? 'Alumno';
+      final cedula = al?['cedula']?.toString() ?? '';
+      final telf = al?['telefono']?.toString();
+      final willAttend = r['asistira'] as bool?;
+      final stItem = SurveyStudentResponseItem(
+        alumnoId: aId,
+        nombreCompleto: nombre,
+        cedula: cedula,
+        telefono: telf,
+        asistira: willAttend,
+        estadoPago: r['estado_pago'] as String?,
+        comprobanteUrl: r['comprobante_url'] as String?,
+        respondioAt: DateTime.tryParse(r['created_at']?.toString() ?? ''),
+      );
+
+      if (willAttend == true) {
+        afirmativos.add(stItem);
+      } else if (willAttend == false) {
+        negativos.add(stItem);
+      } else {
+        pendientes.add(stItem);
+      }
+    }
+
+    // Alumnos inscritos que aún NO tienen respuesta registrada
+    for (final al in alumnosInscritos) {
+      final aId = al['id']?.toString() ?? '';
+      if (!procesados.contains(aId)) {
+        pendientes.add(
+          SurveyStudentResponseItem(
+            alumnoId: aId,
+            nombreCompleto: al['nombre_completo']?.toString() ?? 'Alumno',
+            cedula: al['cedula']?.toString() ?? '',
+            telefono: al['telefono']?.toString(),
+            asistira: null,
+            estadoPago: null,
+            comprobanteUrl: null,
+            respondioAt: null,
+          ),
+        );
+      }
+    }
+
+    // Ordenar alfabéticamente
+    afirmativos.sort((a, b) => a.nombreCompleto.compareTo(b.nombreCompleto));
+    negativos.sort((a, b) => a.nombreCompleto.compareTo(b.nombreCompleto));
+    pendientes.sort((a, b) => a.nombreCompleto.compareTo(b.nombreCompleto));
+
+    final totalInscritos =
+        alumnosInscritos.length >
+                (afirmativos.length + negativos.length + pendientes.length)
+            ? alumnosInscritos.length
+            : (afirmativos.length + negativos.length + pendientes.length);
+
+    return SurveyResponseBreakdown(
+      surveyId: surveyId,
+      cursoId: cursoId,
+      cursoNombre: cursoNombre,
+      fechaClase: surveyData['fecha_clase']?.toString() ?? '',
+      fechaLimite: DateTime.tryParse(
+        surveyData['fecha_limite']?.toString() ?? '',
+      ),
+      costoTotalInsumos:
+          (surveyData['costo_total_insumos'] as num?)?.toDouble() ?? 0.0,
+      montoIndividualCalculado:
+          (surveyData['monto_individual_calculado'] as num?)?.toDouble() ?? 0.0,
+      tasaBcvUsada: (surveyData['tasa_bcv_usada'] as num?)?.toDouble(),
+      totalInscritos: totalInscritos,
+      alumnosAfirmativos: afirmativos,
+      alumnosNegativos: negativos,
+      alumnosPendientes: pendientes,
+    );
+  }
 }

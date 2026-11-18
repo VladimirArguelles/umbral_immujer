@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:umbral_immujer/features/student/data/student_repository.dart';
 import 'package:umbral_immujer/features/student/domain/student_models.dart';
@@ -90,6 +91,41 @@ class _StudentNotificationBellState extends State<StudentNotificationBell> {
     }
   }
 
+  Future<Set<String>> _getSeenKeys() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final uid = SupabaseConfig.client.auth.currentUser?.id ?? 'student_guest';
+      final list = prefs.getStringList('seen_student_survey_notifications_$uid') ?? [];
+      return list.toSet();
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Future<void> _markAllAsSeen([List<StudentSurvey>? listToMark]) async {
+    final targets = listToMark ?? _surveys;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final uid = SupabaseConfig.client.auth.currentUser?.id ?? 'student_guest';
+      final seen = (prefs.getStringList('seen_student_survey_notifications_$uid') ?? []).toSet();
+      for (final s in targets) {
+        if (s.respondio != true) {
+          seen.add('survey_${s.id}');
+        }
+        if (s.tieneCapturePendiente) {
+          seen.add('voucher_${s.id}');
+        }
+      }
+      await prefs.setStringList('seen_student_survey_notifications_$uid', seen.toList());
+    } catch (_) {}
+
+    if (mounted) {
+      setState(() {
+        _pendingCount = 0;
+      });
+    }
+  }
+
   Future<void> _loadSurveys({bool isRealtimeTrigger = false}) async {
     final repo = widget.studentRepository;
     if (repo == null) {
@@ -101,9 +137,12 @@ class _StudentNotificationBellState extends State<StudentNotificationBell> {
         isSuperAdmin: widget.isSuperAdmin,
       );
 
-      final pending = list
-          .where((s) => s.respondio != true || s.tieneCapturePendiente)
-          .length;
+      final seenKeys = await _getSeenKeys();
+      final pending = list.where((s) {
+        final bool surveyUnseen = s.respondio != true && !seenKeys.contains('survey_${s.id}');
+        final bool voucherUnseen = s.tieneCapturePendiente && !seenKeys.contains('voucher_${s.id}');
+        return surveyUnseen || voucherUnseen;
+      }).length;
 
       if (!mounted) return;
 
@@ -221,6 +260,34 @@ class _StudentNotificationBellState extends State<StudentNotificationBell> {
                         ],
                       ),
                     ),
+                    TextButton.icon(
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      icon: const Icon(
+                        Icons.done_all_rounded,
+                        size: 16,
+                        color: AppTheme.mintNeon,
+                      ),
+                      label: const Text(
+                        'Marcar vistas',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppTheme.mintNeon,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      onPressed: () {
+                        _markAllAsSeen(_surveys);
+                        Navigator.of(bottomSheetContext).pop();
+                      },
+                    ),
+                    const SizedBox(width: 4),
                     IconButton(
                       icon: const Icon(Icons.close_rounded, size: 20),
                       color: AppTheme.dynamicTextMuted,
@@ -411,6 +478,7 @@ class _StudentNotificationBellState extends State<StudentNotificationBell> {
                                     ),
                                   ),
                                   onPressed: () {
+                                    _markAllAsSeen(_surveys);
                                     Navigator.of(bottomSheetContext).pop();
                                     widget.onNavigateToSurveys();
                                   },
@@ -446,7 +514,10 @@ class _StudentNotificationBellState extends State<StudentNotificationBell> {
             : 'Notificaciones de encuestas',
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => _showNotificationsSheet(context),
+          onTap: () {
+            _markAllAsSeen(_surveys);
+            _showNotificationsSheet(context);
+          },
           child: Container(
             width: 44,
             height: 44,

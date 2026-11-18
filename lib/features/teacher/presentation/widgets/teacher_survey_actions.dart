@@ -9,6 +9,7 @@ import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 void showTeacherSurveyActionsSheet({
   required BuildContext context,
   required TeacherSurvey survey,
+  VoidCallback? onViewBreakdown,
   required VoidCallback onEdit,
   required VoidCallback onAuditPayments,
   required VoidCallback onClose,
@@ -84,6 +85,21 @@ void showTeacherSurveyActionsSheet({
             ],
           ),
           const SizedBox(height: 20),
+          if (onViewBreakdown != null) ...[
+            _ActionTile(
+              icon: Icons.bar_chart_rounded,
+              iconColor: AppTheme.mintNeon,
+              borderColor: AppTheme.outlineVariant,
+              title: 'Desglose de Respuestas y Progreso',
+              subtitle:
+                  'Comprueba quiénes confirmaron (Sí), quiénes no asistirán y los que faltan por responder.',
+              onTap: () {
+                Navigator.pop(ctx);
+                onViewBreakdown();
+              },
+            ),
+            const SizedBox(height: 12),
+          ],
           _ActionTile(
             icon: Icons.edit_note_rounded,
             iconColor: AppTheme.mintNeon,

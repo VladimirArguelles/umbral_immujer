@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:umbral_immujer/features/teacher/data/teacher_repository.dart';
+import 'package:umbral_immujer/features/teacher/presentation/widgets/teacher_notification_bell.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/core/widgets/formation_image_carousel.dart';
+import 'package:umbral_immujer/src/features/auth/domain/user_profile.dart';
 
 /// Home summary tab for the Teacher module with carousel and module shortcuts.
 class TeacherSummaryTab extends StatelessWidget {
@@ -11,11 +14,15 @@ class TeacherSummaryTab extends StatelessWidget {
     required this.teacherName,
     required this.isSuperAdmin,
     required this.onNavigate,
+    this.teacherRepository,
+    this.profile,
   });
 
   final String teacherName;
   final bool isSuperAdmin;
   final ValueChanged<int> onNavigate;
+  final TeacherRepository? teacherRepository;
+  final UserProfile? profile;
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +72,15 @@ class TeacherSummaryTab extends StatelessWidget {
                   ],
                 ),
               ),
+              if (teacherRepository != null) ...[
+                const SizedBox(width: 12),
+                TeacherNotificationBell(
+                  teacherRepository: teacherRepository!,
+                  isSuperAdmin: isSuperAdmin,
+                  profile: profile,
+                  onNavigateTab: onNavigate,
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 16),

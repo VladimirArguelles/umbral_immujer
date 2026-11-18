@@ -10,11 +10,13 @@ class TeacherActiveSurveyCard extends StatelessWidget {
     required this.survey,
     required this.onManage,
     required this.onDelete,
+    this.onViewBreakdown,
   });
 
   final TeacherSurvey survey;
   final VoidCallback onManage;
   final VoidCallback onDelete;
+  final VoidCallback? onViewBreakdown;
 
   @override
   Widget build(BuildContext context) {
@@ -247,6 +249,33 @@ class TeacherActiveSurveyCard extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ],
+          if (onViewBreakdown != null) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.mintNeon,
+                  side: BorderSide(
+                    color: AppTheme.mintNeon.withValues(alpha: 0.5),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(Icons.bar_chart_rounded, size: 18),
+                label: const Text(
+                  'Ver Respuestas y Alumnos Pendientes',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                onPressed: onViewBreakdown,
+              ),
             ),
           ],
           const SizedBox(height: 16),

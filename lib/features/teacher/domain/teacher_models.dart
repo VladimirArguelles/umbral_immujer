@@ -234,3 +234,138 @@ class TeacherSurvey {
     );
   }
 }
+
+/// Tipos de notificación para docentes
+enum TeacherNotificationType {
+  surveyResponseAffirmative,
+  surveyResponseNegative,
+  paymentUploaded,
+}
+
+/// Item de notificación para la bandeja de profesores
+class TeacherNotificationItem {
+  final String id;
+  final String surveyId;
+  final String cursoId;
+  final String cursoNombre;
+  final String alumnoId;
+  final String alumnoNombre;
+  final String alumnoCedula;
+  final TeacherNotificationType type;
+  final double? monto;
+  final String? comprobanteUrl;
+  final DateTime timestamp;
+  final bool leido;
+
+  const TeacherNotificationItem({
+    required this.id,
+    required this.surveyId,
+    required this.cursoId,
+    required this.cursoNombre,
+    required this.alumnoId,
+    required this.alumnoNombre,
+    required this.alumnoCedula,
+    required this.type,
+    this.monto,
+    this.comprobanteUrl,
+    required this.timestamp,
+    this.leido = false,
+  });
+
+  bool get isPayment => type == TeacherNotificationType.paymentUploaded;
+  bool get isAffirmative =>
+      type == TeacherNotificationType.surveyResponseAffirmative;
+  bool get isNegative =>
+      type == TeacherNotificationType.surveyResponseNegative;
+
+  String get title {
+    switch (type) {
+      case TeacherNotificationType.surveyResponseAffirmative:
+        return 'Respuesta: Asistirá a la práctica';
+      case TeacherNotificationType.surveyResponseNegative:
+        return 'Respuesta: No podrá asistir';
+      case TeacherNotificationType.paymentUploaded:
+        return 'Comprobante de pago recibido';
+    }
+  }
+
+  String get description {
+    switch (type) {
+      case TeacherNotificationType.surveyResponseAffirmative:
+        return '$alumnoNombre confirmó su participación en "$cursoNombre".';
+      case TeacherNotificationType.surveyResponseNegative:
+        return '$alumnoNombre indicó que no asistirá a la práctica de "$cursoNombre".';
+      case TeacherNotificationType.paymentUploaded:
+        return '$alumnoNombre subió el comprobante de pago para "$cursoNombre".';
+    }
+  }
+}
+
+/// Información del alumno para auditoría de respuestas de encuestas
+class SurveyStudentResponseItem {
+  final String alumnoId;
+  final String nombreCompleto;
+  final String cedula;
+  final String? telefono;
+  final bool? asistira;
+  final String? estadoPago;
+  final String? comprobanteUrl;
+  final DateTime? respondioAt;
+
+  const SurveyStudentResponseItem({
+    required this.alumnoId,
+    required this.nombreCompleto,
+    required this.cedula,
+    this.telefono,
+    this.asistira,
+    this.estadoPago,
+    this.comprobanteUrl,
+    this.respondioAt,
+  });
+
+  bool get haCancelado =>
+      (comprobanteUrl != null && comprobanteUrl!.isNotEmpty) ||
+      estadoPago == 'verificado';
+}
+
+/// Desglose consolidado de respuestas y alumnos pendientes por responder una encuesta
+class SurveyResponseBreakdown {
+  final String surveyId;
+  final String cursoId;
+  final String cursoNombre;
+  final String fechaClase;
+  final DateTime? fechaLimite;
+  final double costoTotalInsumos;
+  final double montoIndividualCalculado;
+  final double? tasaBcvUsada;
+  final int totalInscritos;
+  final List<SurveyStudentResponseItem> alumnosAfirmativos;
+  final List<SurveyStudentResponseItem> alumnosNegativos;
+  final List<SurveyStudentResponseItem> alumnosPendientes;
+
+  const SurveyResponseBreakdown({
+    required this.surveyId,
+    required this.cursoId,
+    required this.cursoNombre,
+    required this.fechaClase,
+    this.fechaLimite,
+    required this.costoTotalInsumos,
+    required this.montoIndividualCalculado,
+    this.tasaBcvUsada,
+    required this.totalInscritos,
+    required this.alumnosAfirmativos,
+    required this.alumnosNegativos,
+    required this.alumnosPendientes,
+  });
+
+  int get totalRespondieron =>
+      alumnosAfirmativos.length + alumnosNegativos.length;
+  int get totalPendientes => alumnosPendientes.length;
+  double get progresoRespondieron =>
+      totalInscritos > 0 ? (totalRespondieron / totalInscritos).clamp(0.0, 1.0) : 0.0;
+  double get porcentajePendientes =>
+      totalInscritos > 0 ? (totalPendientes / totalInscritos) * 100 : 0.0;
+  double get porcentajeRespondieron =>
+      totalInscritos > 0 ? (totalRespondieron / totalInscritos) * 100 : 0.0;
+}
+

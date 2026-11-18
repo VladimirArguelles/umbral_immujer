@@ -16,6 +16,15 @@ class Formatters {
   static String dateTime(DateTime date) => _dateTimeFormat.format(date);
   static String isoDate(DateTime date) => _isoDateFormat.format(date);
 
+  static String timeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inSeconds < 60) return 'Hace un momento';
+    if (diff.inMinutes < 60) return 'Hace ${diff.inMinutes} min';
+    if (diff.inHours < 24) return 'Hace ${diff.inHours} h';
+    if (diff.inDays < 7) return 'Hace ${diff.inDays} d';
+    return _dateTimeFormat.format(dt);
+  }
+
   static DateTime? parseIsoDate(String? str) {
     if (str == null || str.isEmpty) return null;
     return DateTime.tryParse(str);

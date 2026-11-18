@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:umbral_immujer/features/teacher/data/teacher_repository.dart';
 import 'package:umbral_immujer/features/teacher/domain/teacher_models.dart';
 import 'package:umbral_immujer/features/teacher/presentation/widgets/teacher_payment_dialogs.dart';
+import 'package:umbral_immujer/features/teacher/presentation/widgets/teacher_revenue_collection_widget.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
 import 'package:umbral_immujer/src/core/utils/formatters.dart';
 import 'package:umbral_immujer/src/core/widgets/skeleton_loader.dart';
@@ -134,6 +135,10 @@ class _TeacherRevenueAuditTabState extends State<TeacherRevenueAuditTab> {
             },
           ),
         ),
+        if (!_isLoading && _recaudacion.isNotEmpty)
+          TeacherRevenueCollectionSummaryCard(
+            recaudacion: _recaudacion,
+          ),
         Expanded(
           child: _isLoading
               ? const SurveysSkeleton()
