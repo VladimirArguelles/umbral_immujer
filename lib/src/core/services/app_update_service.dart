@@ -467,20 +467,33 @@ class AppUpdateService {
     );
 
     String? temporaryPath;
+    String? filePath;
     bool installLaunched = false;
 
     try {
       onProgress(0.05, 'Preparando almacenamiento...');
-      final filePath = await getUpdateApkPath(latestVersion);
+      filePath = await getUpdateApkPath(latestVersion);
       temporaryPath = '$filePath.part';
 
       final targetFile = File(filePath);
       await targetFile.parent.create(recursive: true);
 
-      // Limpiar versiones anteriores huérfanas de umbral_update_*.apk
-      await _cleanupOldApks(targetFile.parent, filePath);
+      // Limpieza exhaustiva de archivos residuales previos para evitar reintentos sobre archivos corruptos
+      if (await targetFile.exists()) {
+        try {
+          await targetFile.delete();
+        } catch (_) {}
+      }
 
       final temporaryFile = File(temporaryPath);
+      if (await temporaryFile.exists()) {
+        try {
+          await temporaryFile.delete();
+        } catch (_) {}
+      }
+
+      // Limpiar versiones anteriores huérfanas de umbral_update_*.apk
+      await _cleanupOldApks(targetFile.parent, filePath);
 
       // Determinar URLs candidatas: Primaria + Fallback automático si aplica
       final List<String> candidateUrls = [apkUrl];
@@ -642,9 +655,10 @@ class AppUpdateService {
         );
       }
       final fileLength = await temporaryFile.length();
-      if (fileLength < 5 * 1024 * 1024) {
+      if (fileLength < 10 * 1024 * 1024) {
+        if (await temporaryFile.exists()) await temporaryFile.delete();
         throw StateError(
-          'El archivo descargado está incompleto ($fileLength bytes).',
+          'El paquete de actualización parece incompleto o corrupto ($fileLength bytes, menor al mínimo requerido de 10MB).',
         );
       }
 
@@ -670,11 +684,37 @@ class AppUpdateService {
       if (expectedSha256 != null && expectedSha256.trim().isNotEmpty) {
         onProgress(0.96, 'Verificando firma de integridad SHA-256...');
         final digest = await sha256.bind(temporaryFile.openRead()).first;
-        final actualHash = digest.toString().toLowerCase();
-        final cleanExpected = expectedSha256.trim().toLowerCase();
+        final actualHash = digest.toString().toLowerCase().trim();
+        final cleanExpected =
+            expectedSha256.replaceAll('"', '').trim().toLowerCase();
 
         if (actualHash != cleanExpected) {
+          // Registrar en public.system_exceptions con module: 'app_update'
+          try {
+            await Supabase.instance.client.from('system_exceptions').insert({
+              'severity': 'error',
+              'module': 'app_update',
+              'error_message':
+                  'Discrepancia en verificación SHA-256 de actualización OTA',
+              'stack_trace': StackTrace.current.toString(),
+              'metadata': {
+                'expected_hash': cleanExpected,
+                'actual_hash': actualHash,
+                'download_url': apkUrl,
+                'file_size_bytes': fileLength,
+                'version_target': latestVersion,
+                'platform': defaultTargetPlatform.name,
+              },
+            });
+          } catch (telemetryErr) {
+            debugPrint(
+              '[AppUpdateService] No se pudo registrar en system_exceptions: $telemetryErr',
+            );
+          }
+
           if (await temporaryFile.exists()) await temporaryFile.delete();
+          if (await targetFile.exists()) await targetFile.delete();
+
           throw StateError(
             'Fallo de integridad criptográfica: El hash SHA-256 del APK ($actualHash) no coincide con el registrado en el servidor ($cleanExpected). La instalación ha sido cancelada por seguridad.',
           );
@@ -734,6 +774,22 @@ class AppUpdateService {
       debugPrint(
         '[AppUpdateService] Error durante la descarga/instalación: $e',
       );
+      if (temporaryPath != null) {
+        final temporaryFile = File(temporaryPath);
+        if (await temporaryFile.exists()) {
+          try {
+            await temporaryFile.delete();
+          } catch (_) {}
+        }
+      }
+      if (filePath != null) {
+        final targetFile = File(filePath);
+        if (!installLaunched && await targetFile.exists()) {
+          try {
+            await targetFile.delete();
+          } catch (_) {}
+        }
+      }
       rethrow;
     } finally {
       dio.close(force: true);

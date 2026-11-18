@@ -5,6 +5,10 @@ on:
     branches:
       - main
       - master
+    paths-ignore:
+      - 'docs/**'
+      - 'README.md'
+      - '.agents/**'
   workflow_dispatch:
 
 jobs:
@@ -132,20 +136,31 @@ jobs:
           SECRET_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SECRET_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
+          set -e
           APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
           SHA256=$(sha256sum "$APK_PATH" | awk '{print $1}')
           echo "SHA-256 generado por GitHub Actions: $SHA256"
 
+          APP_VERSION=$(grep 'version:' pubspec.yaml | head -n1 | awk '{print $2}' | cut -d'+' -f1)
+          BUILD_NUM=$(grep 'version:' pubspec.yaml | head -n1 | awk '{print $2}' | cut -d'+' -f2)
+          APK_URL="https://github.com/VladimirArguelles/umbral_immujer/releases/download/latest/app-release.apk"
+
           FINAL_URL="${SECRET_SUPABASE_URL:-https://kkgacvhbcxgoxjpnkxmw.supabase.co}"
           FINAL_KEY="${SECRET_SERVICE_ROLE:-${SECRET_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtrZ2FjdmhiY3hnb3hqcG5reG13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI2MDIxNjMsImV4cCI6MjEwODE3ODE2M30.Fj_VaXjO7sdlLB7BfJI-4R6iK9uLFi_oRmxUWKr2g4c}}"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
-          curl -s -X POST "$FINAL_URL/rest/v1/configuracion_general" \
+          curl -fsSL -X POST "$FINAL_URL/rest/v1/configuracion_general" \
             -H "apikey: $FINAL_KEY" \
             -H "Authorization: Bearer $FINAL_KEY" \
             -H "Content-Type: application/json" \
             -H "Prefer: resolution=merge-duplicates" \
-            -d "{\"clave\":\"app_apk_sha256\",\"valor\":\"\\\"$SHA256\\\"\",\"actualizado_en\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
-          echo "Hash sincronizado exitosamente con Supabase configuracion_general."
+            -d "[
+              {\"clave\":\"app_apk_sha256\",\"valor\":\"$SHA256\",\"actualizado_en\":\"$NOW\"},
+              {\"clave\":\"app_apk_url\",\"valor\":\"$APK_URL\",\"actualizado_en\":\"$NOW\"},
+              {\"clave\":\"app_version_latest\",\"valor\":\"$APP_VERSION\",\"actualizado_en\":\"$NOW\"},
+              {\"clave\":\"app_build_number\",\"valor\":$BUILD_NUM,\"actualizado_en\":\"$NOW\"}
+            ]"
+          echo "Hash SHA-256 y metadatos sincronizados exitosamente con Supabase configuracion_general."
 
       - name: 11. Clean Up Sensitive Build Files
         if: always()

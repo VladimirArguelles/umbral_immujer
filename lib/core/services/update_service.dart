@@ -9,6 +9,7 @@ import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../widgets/glassmorphic_update_dialog.dart';
@@ -493,20 +494,33 @@ class UpdateService {
     );
 
     String? tempFilePath;
+    String? targetFilePath;
     bool installLaunched = false;
 
     try {
       onProgress(0.05, 'Preparando almacenamiento...');
-      final targetFilePath = await getApkDestinationPath(latestVersion);
+      targetFilePath = await getApkDestinationPath(latestVersion);
       tempFilePath = '$targetFilePath.part';
 
       final targetFile = File(targetFilePath);
       await targetFile.parent.create(recursive: true);
 
-      // Limpiar versiones huérfanas previas
-      await _cleanupOldApks(targetFile.parent, targetFilePath);
+      // Limpieza exhaustiva de archivos residuales previos para evitar reintentos sobre archivos corruptos
+      if (await targetFile.exists()) {
+        try {
+          await targetFile.delete();
+        } catch (_) {}
+      }
 
       final tempFile = File(tempFilePath);
+      if (await tempFile.exists()) {
+        try {
+          await tempFile.delete();
+        } catch (_) {}
+      }
+
+      // Limpiar versiones huérfanas previas
+      await _cleanupOldApks(targetFile.parent, targetFilePath);
 
       // Determinar URLs candidatas: Primaria + Fallback automático si aplica
       final List<String> candidateUrls = [apkUrl];
@@ -667,9 +681,10 @@ class UpdateService {
         );
       }
       final fileLength = await tempFile.length();
-      if (fileLength < 5 * 1024 * 1024) {
+      if (fileLength < 10 * 1024 * 1024) {
+        if (await tempFile.exists()) await tempFile.delete();
         throw StateError(
-          'El paquete de actualización parece incompleto o corrupto ($fileLength bytes).',
+          'El paquete de actualización parece incompleto o corrupto ($fileLength bytes, menor al mínimo requerido de 10MB).',
         );
       }
 
@@ -697,11 +712,37 @@ class UpdateService {
       if (expectedSha256 != null && expectedSha256.trim().isNotEmpty) {
         onProgress(0.96, 'Verificando firma de integridad SHA-256...');
         final digest = await sha256.bind(tempFile.openRead()).first;
-        final actualHash = digest.toString().toLowerCase();
-        final cleanExpected = expectedSha256.trim().toLowerCase();
+        final actualHash = digest.toString().toLowerCase().trim();
+        final cleanExpected =
+            expectedSha256.replaceAll('"', '').trim().toLowerCase();
 
         if (actualHash != cleanExpected) {
+          // Registrar en public.system_exceptions con module: 'app_update'
+          try {
+            await Supabase.instance.client.from('system_exceptions').insert({
+              'severity': 'error',
+              'module': 'app_update',
+              'error_message':
+                  'Discrepancia en verificación SHA-256 de actualización OTA (UpdateService)',
+              'stack_trace': StackTrace.current.toString(),
+              'metadata': {
+                'expected_hash': cleanExpected,
+                'actual_hash': actualHash,
+                'download_url': apkUrl,
+                'file_size_bytes': fileLength,
+                'version_target': latestVersion,
+                'platform': defaultTargetPlatform.name,
+              },
+            });
+          } catch (telemetryErr) {
+            debugPrint(
+              '[UpdateService] No se pudo registrar en system_exceptions: $telemetryErr',
+            );
+          }
+
           if (await tempFile.exists()) await tempFile.delete();
+          if (await targetFile.exists()) await targetFile.delete();
+
           throw StateError(
             'Fallo de integridad criptográfica: El hash SHA-256 del APK ($actualHash) no coincide con el registrado en el servidor ($cleanExpected). La instalación ha sido cancelada por seguridad.',
           );
@@ -763,6 +804,22 @@ class UpdateService {
       }
     } catch (e) {
       debugPrint('[UpdateService] Error en descarga/instalación: $e');
+      if (tempFilePath != null) {
+        final temp = File(tempFilePath);
+        if (await temp.exists()) {
+          try {
+            await temp.delete();
+          } catch (_) {}
+        }
+      }
+      if (targetFilePath != null) {
+        final target = File(targetFilePath);
+        if (!installLaunched && await target.exists()) {
+          try {
+            await target.delete();
+          } catch (_) {}
+        }
+      }
       rethrow;
     } finally {
       dio.close(force: true);
