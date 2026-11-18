@@ -92,38 +92,22 @@ async function deployOTA() {
 
     if (uploadError) {
       console.warn(`Advertencia al subir APK a Storage: ${uploadError.message}`);
-      console.log(`Usando distribución canónica vía GitHub Releases. Verificando SHA-256 del binario remoto...`);
+      console.log(`Subiendo APK directamente a GitHub Releases [tag: latest] mediante GitHub CLI...`);
+      const { execSync } = require('child_process');
       try {
-        const https = require('https');
-        const remoteSha = await new Promise((resolve) => {
-          const req = https.get(apkPublicUrl, (res) => {
-            if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-              https.get(res.headers.location, (res2) => {
-                const hash = crypto.createHash('sha256');
-                res2.on('data', chunk => hash.update(chunk));
-                res2.on('end', () => resolve(hash.digest('hex')));
-                res2.on('error', () => resolve(null));
-              }).on('error', () => resolve(null));
-            } else {
-              resolve(null);
-            }
-          });
-          req.on('error', () => resolve(null));
-        });
-        if (remoteSha) {
-          apkSha256 = remoteSha;
-          console.log(`Hash SHA-256 canónico obtenido desde GitHub Releases: ${apkSha256}`);
-        }
-      } catch (_) {
-        console.warn('No se pudo verificar el hash remoto directamente.');
+        execSync(`gh release upload latest "${apkPath}" --clobber`, { stdio: 'inherit' });
+        console.log(`APK subido exitosamente a GitHub Releases.`);
+      } catch (ghErr) {
+        console.error(`Error al subir APK con GitHub CLI: ${ghErr.message}`);
       }
+      apkPublicUrl = `https://github.com/VladimirArguelles/umbral_immujer/releases/download/latest/app-release.apk`;
     } else {
       const { data: publicUrlData } = supabase.storage
         .from(bucketName)
         .getPublicUrl('app-release.apk');
       if (publicUrlData && publicUrlData.publicUrl) {
         apkPublicUrl = publicUrlData.publicUrl;
-        console.log(`APK disponible en: ${apkPublicUrl}`);
+        console.log(`APK disponible en Supabase Storage: ${apkPublicUrl}`);
       }
     }
   } else {

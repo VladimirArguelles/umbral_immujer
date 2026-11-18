@@ -51,10 +51,19 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
     });
 
     try {
+      // Re-consultar la información más reciente de la actualización por si cambiaron hash o URL
+      UpdateInfo targetInfo = widget.updateInfo;
+      try {
+        final freshInfo = await AppUpdateService.instance.checkForUpdate();
+        if (freshInfo.hasUpdate) {
+          targetInfo = freshInfo;
+        }
+      } catch (_) {}
+
       await AppUpdateService.instance.downloadAndInstallApk(
-        apkUrl: widget.updateInfo.apkUrl,
-        latestVersion: widget.updateInfo.latestVersion,
-        expectedSha256: widget.updateInfo.apkSha256,
+        apkUrl: targetInfo.apkUrl,
+        latestVersion: targetInfo.latestVersion,
+        expectedSha256: targetInfo.apkSha256,
         onProgress: (progress, status) {
           if (mounted) {
             setState(() {
