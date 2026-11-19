@@ -149,7 +149,7 @@ jobs:
           FINAL_KEY="${SECRET_SERVICE_ROLE:-${SECRET_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtrZ2FjdmhiY3hnb3hqcG5reG13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI2MDIxNjMsImV4cCI6MjEwODE3ODE2M30.Fj_VaXjO7sdlLB7BfJI-4R6iK9uLFi_oRmxUWKr2g4c}}"
           NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
-          curl -fsSL -X POST "$FINAL_URL/rest/v1/configuracion_general" \
+          curl -fsSL -X POST "$FINAL_URL/rest/v1/configuracion_general?on_conflict=clave" \
             -H "apikey: $FINAL_KEY" \
             -H "Authorization: Bearer $FINAL_KEY" \
             -H "Content-Type: application/json" \
