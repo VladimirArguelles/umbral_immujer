@@ -226,6 +226,7 @@ class _TeacherNotificationBellState extends State<TeacherNotificationBell> {
                     ),
                   ),
                 ),
+                // Encabezado Principal
                 Row(
                   children: [
                     Container(
@@ -237,65 +238,82 @@ class _TeacherNotificationBellState extends State<TeacherNotificationBell> {
                       child: const Icon(
                         Icons.notifications_active_rounded,
                         color: AppTheme.primary,
-                        size: 22,
+                        size: 20,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Notificaciones Docentes',
-                            style: GoogleFonts.plusJakartaSans(
-                              color: AppTheme.dynamicText,
-                              fontSize: 17,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          Text(
-                            'Respuestas de encuestas y pagos recibidos',
-                            style: GoogleFonts.plusJakartaSans(
-                              color: AppTheme.dynamicTextMuted,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        'Notificaciones Docentes',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: AppTheme.dynamicText,
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    TextButton.icon(
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      icon: const Icon(
-                        Icons.done_all_rounded,
-                        size: 16,
-                        color: AppTheme.mintNeon,
-                      ),
-                      label: const Text(
-                        'Marcar vistas',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: AppTheme.mintNeon,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      onPressed: () {
-                        _markAllAsSeen(_notifications);
-                        Navigator.of(bottomSheetContext).pop();
-                      },
-                    ),
-                    const SizedBox(width: 4),
                     IconButton(
                       icon: const Icon(Icons.close_rounded, size: 20),
                       color: AppTheme.dynamicTextMuted,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                       onPressed: () => Navigator.of(bottomSheetContext).pop(),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                // Subtítulo y Acción "Marcar vistas"
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Respuestas de encuestas y pagos recibidos',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: AppTheme.dynamicTextMuted,
+                          fontSize: 12,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (_notifications.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      InkWell(
+                        onTap: () {
+                          _markAllAsSeen(_notifications);
+                          Navigator.of(bottomSheetContext).pop();
+                        },
+                        borderRadius: BorderRadius.circular(6),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 3,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.done_all_rounded,
+                                size: 14,
+                                color: AppTheme.mintNeon,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'Marcar vistas',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppTheme.mintNeon,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 18),
@@ -575,8 +593,10 @@ class _TeacherNotificationCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+          Wrap(
+            alignment: WrapAlignment.end,
+            spacing: 8,
+            runSpacing: 6,
             children: [
               if (item.isPayment)
                 OutlinedButton.icon(
@@ -603,7 +623,6 @@ class _TeacherNotificationCard extends StatelessWidget {
                     ),
                   ),
                 ),
-              const SizedBox(width: 8),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primary,

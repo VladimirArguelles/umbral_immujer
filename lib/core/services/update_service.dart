@@ -4,6 +4,7 @@ import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show MethodChannel;
 import 'package:go_router/go_router.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -64,6 +65,35 @@ class GitHubReleaseInfo {
 class UpdateService {
   UpdateService._();
   static final UpdateService instance = UpdateService._();
+
+  static const MethodChannel _installChannel =
+      MethodChannel('com.example.umbral_immujer/install_permission');
+
+  /// Comprueba si la aplicación tiene permiso para solicitar instalación de paquetes.
+  Future<bool> canRequestPackageInstalls() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return true;
+    try {
+      final bool? allowed =
+          await _installChannel.invokeMethod<bool>('canRequestPackageInstalls');
+      return allowed ?? true;
+    } catch (e) {
+      debugPrint('[UpdateService] Error al verificar canRequestPackageInstalls: $e');
+      return true;
+    }
+  }
+
+  /// Redirige al usuario a la pantalla de Ajustes para autorizar instalación de fuentes desconocidas.
+  Future<bool> openInstallPermissionSettings() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return false;
+    try {
+      final bool? opened = await _installChannel
+          .invokeMethod<bool>('openInstallPermissionSettings');
+      return opened ?? false;
+    } catch (e) {
+      debugPrint('[UpdateService] Error al abrir openInstallPermissionSettings: $e');
+      return false;
+    }
+  }
 
   static const String defaultOwner = 'VladimirArguelles';
   static const String defaultRepo = 'umbral_immujer';
@@ -767,6 +797,17 @@ class UpdateService {
       onProgress(1.0, 'Descarga completada. Lanzando instalador nativo...');
 
       // Ejecutar OpenFilex para disparar el PackageInstaller de Android
+      final canInstall = await canRequestPackageInstalls();
+      if (!canInstall) {
+        onProgress(
+          1.0,
+          'Permiso requerido para instalar aplicaciones desconocidas.',
+        );
+        throw Exception(
+          'Android requiere que autorices a UMBRAL para "Instalar aplicaciones desconocidas" en los Ajustes del sistema.',
+        );
+      }
+
       final result = await OpenFilex.open(
         targetFilePath,
         type: 'application/vnd.android.package-archive',

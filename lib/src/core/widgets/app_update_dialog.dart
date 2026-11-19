@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:open_filex/open_filex.dart';
 
 import '../services/app_update_service.dart';
 import '../theme/app_theme.dart';
@@ -36,16 +37,59 @@ class AppUpdateDialog extends StatefulWidget {
   State<AppUpdateDialog> createState() => _AppUpdateDialogState();
 }
 
-class _AppUpdateDialogState extends State<AppUpdateDialog> {
+class _AppUpdateDialogState extends State<AppUpdateDialog>
+    with WidgetsBindingObserver {
   bool _isDownloading = false;
   double _progress = 0.0;
   String _statusText = '';
   String? _errorMessage;
+  bool _needsInstallPermission = false;
+  String? _downloadedApkPath;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        _needsInstallPermission &&
+        _downloadedApkPath != null) {
+      _checkPermissionAndInstall();
+    }
+  }
+
+  Future<void> _checkPermissionAndInstall() async {
+    final canInstall =
+        await AppUpdateService.instance.canRequestPackageInstalls();
+    if (canInstall && _downloadedApkPath != null && mounted) {
+      setState(() {
+        _needsInstallPermission = false;
+        _statusText = 'Permiso concedido. Abriendo instalador nativo...';
+      });
+      await OpenFilex.open(
+        _downloadedApkPath!,
+        type: 'application/vnd.android.package-archive',
+      );
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+    }
+  }
 
   Future<void> _startUpdate() async {
     setState(() {
       _isDownloading = true;
       _errorMessage = null;
+      _needsInstallPermission = false;
       _progress = 0.0;
       _statusText = 'Iniciando descarga...';
     });
@@ -83,6 +127,20 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
         Navigator.of(context, rootNavigator: true).pop();
       }
     } catch (e) {
+      if (e is InstallPermissionRequiredException) {
+        if (mounted) {
+          setState(() {
+            _isDownloading = false;
+            _needsInstallPermission = true;
+            _downloadedApkPath = e.apkPath;
+            _errorMessage = null;
+            _statusText =
+                'Permiso requerido para autorizar instalación de la aplicación.';
+          });
+          await AppUpdateService.instance.openInstallPermissionSettings();
+        }
+        return;
+      }
       if (mounted) {
         final msg = AppUpdateService.sanitizeErrorMessage(e);
         setState(() {
@@ -280,6 +338,113 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
                   ),
                 ],
 
+                // Banner de Permiso Requerido para Instalar Fuentes Desconocidas
+                if (_needsInstallPermission) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.warningOrange.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppTheme.warningOrange.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.security_rounded,
+                              size: 18,
+                              color: AppTheme.warningOrange,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Permiso de Instalación Requerido',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.warningOrange,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'El paquete fue descargado correctamente. Para continuar, activa el permiso "Instalar aplicaciones desconocidas" para UMBRAL en Ajustes de Android.',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11.5,
+                            color: AppTheme.dynamicTextMuted,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                    horizontal: 8,
+                                  ),
+                                  side: const BorderSide(
+                                    color: AppTheme.warningOrange,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                onPressed: () => AppUpdateService.instance
+                                    .openInstallPermissionSettings(),
+                                icon: const Icon(
+                                  Icons.settings_rounded,
+                                  size: 15,
+                                  color: AppTheme.warningOrange,
+                                ),
+                                label: const Text(
+                                  'Abrir Ajustes',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    color: AppTheme.warningOrange,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: FilledButton.icon(
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: AppTheme.mintNeon,
+                                  foregroundColor: Colors.black,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                    horizontal: 8,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                onPressed: _checkPermissionAndInstall,
+                                icon: const Icon(Icons.check_rounded, size: 15),
+                                label: const Text(
+                                  'Ya lo activé',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
                 // Mensaje de Error si la descarga falla
                 if (_errorMessage != null) ...[
                   const SizedBox(height: 12),
@@ -332,7 +497,9 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
                 // Botón Principal de Actualización
                 FilledButton.icon(
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
+                    backgroundColor: _needsInstallPermission
+                        ? AppTheme.warningOrange
+                        : AppTheme.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
@@ -340,7 +507,11 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
                     ),
                     elevation: 1,
                   ),
-                  onPressed: _isDownloading ? null : _startUpdate,
+                  onPressed: _isDownloading
+                      ? null
+                      : (_needsInstallPermission
+                          ? _checkPermissionAndInstall
+                          : _startUpdate),
                   icon: _isDownloading
                       ? const SizedBox(
                           width: 18,
@@ -352,13 +523,20 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
                             ),
                           ),
                         )
-                      : const Icon(Symbols.download, size: 20),
+                      : Icon(
+                          _needsInstallPermission
+                              ? Icons.install_mobile_rounded
+                              : Symbols.download,
+                          size: 20,
+                        ),
                   label: Text(
                     _isDownloading
                         ? 'Descargando...'
-                        : _errorMessage != null
-                        ? 'Reintentar Actualización'
-                        : 'Actualizar Ahora (APK)',
+                        : _needsInstallPermission
+                            ? 'Abrir Instalador de Android'
+                            : _errorMessage != null
+                                ? 'Reintentar Actualización'
+                                : 'Actualizar Ahora (APK)',
                     style: GoogleFonts.plusJakartaSans(
                       fontWeight: FontWeight.w800,
                       fontSize: 13.5,

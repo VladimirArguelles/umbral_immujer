@@ -198,10 +198,10 @@ class _TeacherSurveyBreakdownContentState
 
               // Cabecera del modal
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: AppTheme.primary.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
@@ -209,10 +209,10 @@ class _TeacherSurveyBreakdownContentState
                     child: const Icon(
                       Icons.poll_rounded,
                       color: AppTheme.primary,
-                      size: 24,
+                      size: 20,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,15 +221,17 @@ class _TeacherSurveyBreakdownContentState
                           'Detalle de Respuestas',
                           style: GoogleFonts.plusJakartaSans(
                             color: AppTheme.dynamicText,
-                            fontSize: 17,
+                            fontSize: 16,
                             fontWeight: FontWeight.w800,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         Text(
                           '${breakdown.cursoNombre} • Práctica: $fechaClaseStr',
                           style: GoogleFonts.plusJakartaSans(
                             color: AppTheme.dynamicTextMuted,
-                            fontSize: 12.5,
+                            fontSize: 12,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -240,6 +242,8 @@ class _TeacherSurveyBreakdownContentState
                   IconButton(
                     icon: const Icon(Icons.close_rounded, size: 20),
                     color: AppTheme.dynamicTextMuted,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -257,6 +261,8 @@ class _TeacherSurveyBreakdownContentState
               // Filtros de navegación rápida
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.only(right: 12),
                 child: Row(
                   children: [
                     _FilterChip(
@@ -285,6 +291,7 @@ class _TeacherSurveyBreakdownContentState
                       badgeColor: AppTheme.warningOrange,
                       onTap: () => setState(() => _selectedFilter = 3),
                     ),
+                    const SizedBox(width: 8),
                   ],
                 ),
               ),
@@ -355,26 +362,33 @@ class _SurveyProgressBarCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.trending_up_rounded,
-                    color: AppTheme.mintNeon,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Progreso de Respuestas',
-                    style: GoogleFonts.plusJakartaSans(
-                      color: AppTheme.dynamicText,
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w700,
+              Expanded(
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.trending_up_rounded,
+                      color: AppTheme.mintNeon,
+                      size: 18,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        'Progreso de Respuestas',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: AppTheme.dynamicText,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(
                   color: (pendientes > 0
                           ? AppTheme.errorRed
@@ -383,7 +397,7 @@ class _SurveyProgressBarCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  '$respondieron / $total Respondieron',
+                  '$respondieron/$total Respuestas',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
@@ -429,41 +443,59 @@ class _SurveyProgressBarCard extends StatelessWidget {
 
           // Callout de alumnos pendientes
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: AppTheme.errorRed,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        'Pendientes por responder: $pendientes alumnos (${breakdown.porcentajePendientes.toStringAsFixed(0)}%)',
-                        style: GoogleFonts.plusJakartaSans(
-                          color: AppTheme.dynamicTextMuted,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: AppTheme.errorRed,
+                  shape: BoxShape.circle,
                 ),
               ),
-              if (pendientes > 0)
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text.rich(
+                  TextSpan(
+                    style: GoogleFonts.plusJakartaSans(
+                      color: AppTheme.dynamicTextMuted,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    children: [
+                      const TextSpan(text: 'Pendientes: '),
+                      TextSpan(
+                        text: '$pendientes de $total alumnos',
+                        style: TextStyle(
+                          color: pendientes > 0
+                              ? AppTheme.errorRed
+                              : AppTheme.mintNeon,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      TextSpan(
+                        text:
+                            ' (${breakdown.porcentajePendientes.toStringAsFixed(0)}%)',
+                      ),
+                    ],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (pendientes > 0) ...[
+                const SizedBox(width: 6),
                 InkWell(
                   borderRadius: BorderRadius.circular(6),
                   onTap: onCopyPending,
-                  child: Padding(
+                  child: Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(6),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -486,6 +518,7 @@ class _SurveyProgressBarCard extends StatelessWidget {
                     ),
                   ),
                 ),
+              ],
             ],
           ),
         ],

@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter/services.dart' show MethodChannel;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -48,10 +49,69 @@ class UpdateInfo {
       : latestVersion;
 }
 
+/// Excepción arrojada cuando Android requiere que el usuario autorice la instalación de fuentes desconocidas.
+class InstallPermissionRequiredException implements Exception {
+  final String apkPath;
+  final String message;
+  const InstallPermissionRequiredException({
+    required this.apkPath,
+    this.message =
+        'Se requiere autorizar la instalación de aplicaciones desconocidas en los Ajustes de Android.',
+  });
+  @override
+  String toString() => message;
+}
+
 /// Servicio que gestiona la detección de nuevas versiones y actualización In-App del APK.
 class AppUpdateService {
   AppUpdateService._();
   static final AppUpdateService instance = AppUpdateService._();
+
+  static const MethodChannel _installChannel =
+      MethodChannel('com.example.umbral_immujer/install_permission');
+
+  /// Comprueba si la aplicación tiene permiso para solicitar instalación de paquetes.
+  Future<bool> canRequestPackageInstalls() async {
+    if (kIsWeb || !isAndroidPlatform) return true;
+    try {
+      final bool? allowed =
+          await _installChannel.invokeMethod<bool>('canRequestPackageInstalls');
+      return allowed ?? true;
+    } catch (e) {
+      debugPrint(
+        '[AppUpdateService] Error al verificar canRequestPackageInstalls: $e',
+      );
+      return true;
+    }
+  }
+
+  /// Redirige al usuario a la pantalla de Ajustes para autorizar instalación de fuentes desconocidas.
+  Future<bool> openInstallPermissionSettings() async {
+    if (kIsWeb || !isAndroidPlatform) return false;
+    try {
+      final bool? opened = await _installChannel
+          .invokeMethod<bool>('openInstallPermissionSettings');
+      return opened ?? false;
+    } catch (e) {
+      debugPrint(
+        '[AppUpdateService] Error al abrir openInstallPermissionSettings: $e',
+      );
+      return false;
+    }
+  }
+
+  /// Intenta abrir el instalador nativo sobre el archivo descargado.
+  Future<void> launchApkInstaller(String filePath) async {
+    final canInstall = await canRequestPackageInstalls();
+    if (!canInstall) {
+      await openInstallPermissionSettings();
+      return;
+    }
+    await OpenFilex.open(
+      filePath,
+      type: 'application/vnd.android.package-archive',
+    );
+  }
 
   static const String defaultReleaseUrl =
       'https://github.com/VladimirArguelles/umbral_immujer/releases/latest';
@@ -424,8 +484,10 @@ class AppUpdateService {
     if (str.contains('Fallo de integridad criptográfica')) {
       return 'La verificación de seguridad SHA-256 del paquete no coincidió. Se canceló la instalación por seguridad.';
     }
-    if (str.contains('permissionDenied')) {
-      return 'Android denegó el permiso para instalar aplicaciones desconocidas. Autoriza a UMBRAL en Ajustes de Android.';
+    if (str.contains('permissionDenied') ||
+        str.contains('desconocidas') ||
+        str.contains('Permiso')) {
+      return 'Android requiere que autorices a UMBRAL para "Instalar aplicaciones desconocidas" en Ajustes de Android.';
     }
     var clean = str
         .replaceAll('Exception: ', '')
@@ -735,6 +797,20 @@ class AppUpdateService {
         await temporaryFile.delete();
       }
 
+      // 1. Comprobar si Android cuenta con permiso para instalar paquetes desconocidos
+      final canInstall = await canRequestPackageInstalls();
+      if (!canInstall) {
+        onProgress(
+          1.0,
+          'Permiso requerido para instalar aplicaciones desconocidas.',
+        );
+        throw InstallPermissionRequiredException(
+          apkPath: filePath,
+          message:
+              'Android requiere que autorices a UMBRAL para "Instalar aplicaciones desconocidas" en los Ajustes del sistema.',
+        );
+      }
+
       onProgress(
         1.0,
         'Descarga completa. Lanzando instalador nativo de Android...',
@@ -752,9 +828,11 @@ class AppUpdateService {
 
       if (result.type != ResultType.done) {
         if (result.type == ResultType.permissionDenied) {
-          throw Exception(
-            'El sistema Android denegó el permiso para instalar aplicaciones desconocidas. '
-            'Por favor autoriza a UMBRAL en Ajustes > Instalar aplicaciones desconocidas.',
+          throw InstallPermissionRequiredException(
+            apkPath: filePath,
+            message:
+                'El sistema Android denegó el permiso para instalar aplicaciones desconocidas. '
+                'Por favor autoriza a UMBRAL en Ajustes > Instalar aplicaciones desconocidas.',
           );
         } else if (result.type == ResultType.noAppToOpen) {
           throw Exception(
@@ -784,7 +862,9 @@ class AppUpdateService {
       }
       if (filePath != null) {
         final targetFile = File(filePath);
-        if (!installLaunched && await targetFile.exists()) {
+        if (!installLaunched &&
+            await targetFile.exists() &&
+            e is! InstallPermissionRequiredException) {
           try {
             await targetFile.delete();
           } catch (_) {}
