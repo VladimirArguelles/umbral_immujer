@@ -257,26 +257,26 @@ class TeacherRevenueCollectionSummaryCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.person_search_rounded,
-                            color: AppTheme.warningOrange,
-                            size: 17,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Alumnos pendientes por cancelar (${faltanPorCancelar.length})',
-                            style: GoogleFonts.plusJakartaSans(
-                              color: AppTheme.dynamicText,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
+                      const Icon(
+                        Icons.person_search_rounded,
+                        color: AppTheme.warningOrange,
+                        size: 17,
                       ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Alumnos pendientes por cancelar (${faltanPorCancelar.length})',
+                          style: GoogleFonts.plusJakartaSans(
+                            color: AppTheme.dynamicText,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       InkWell(
                         borderRadius: BorderRadius.circular(6),
                         onTap: () =>
@@ -287,6 +287,7 @@ class TeacherRevenueCollectionSummaryCard extends StatelessWidget {
                             vertical: 3,
                           ),
                           child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               const Icon(
                                 Icons.copy_rounded,
@@ -430,7 +431,7 @@ class _MetricBox extends StatelessWidget {
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
                   ),
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
