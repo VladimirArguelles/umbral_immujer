@@ -64,6 +64,8 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
       setState(() => _currentIndex = 0);
     } else if (_currentProfile.role == UserRole.superAdmin) {
       context.go('/superadmin');
+    } else {
+      context.go('/');
     }
   }
 
@@ -107,15 +109,13 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
       child: Scaffold(
         appBar: AppBar(
           titleSpacing: 0,
-          leading: (isSuperAdmin || _currentIndex != 0)
-              ? IconButton(
-                  icon: const Icon(Icons.arrow_back_rounded),
-                  tooltip: _currentIndex != 0
-                      ? 'Regresar al inicio del módulo'
-                      : 'Volver a Super Admin',
-                  onPressed: _handleBackNavigation,
-                )
-              : null,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded),
+            tooltip: _currentIndex != 0
+                ? 'Regresar al inicio del módulo'
+                : (isSuperAdmin ? 'Volver a Super Admin' : 'Volver al inicio'),
+            onPressed: _handleBackNavigation,
+          ),
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,

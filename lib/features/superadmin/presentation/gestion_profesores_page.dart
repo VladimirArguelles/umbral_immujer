@@ -505,8 +505,18 @@ class _GestionProfesoresPageState extends State<GestionProfesoresPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.dynamicBackground,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/superadmin');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.dynamicBackground,
       appBar: AppBar(
         backgroundColor: AppTheme.dynamicCard,
         elevation: 0,
@@ -833,6 +843,7 @@ class _GestionProfesoresPageState extends State<GestionProfesoresPage> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

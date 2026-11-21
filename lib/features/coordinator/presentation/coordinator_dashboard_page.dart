@@ -58,6 +58,8 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
       setState(() => _currentIndex = 0);
     } else if (widget.profile.role == UserRole.superAdmin) {
       context.go('/superadmin');
+    } else {
+      context.go('/');
     }
   }
 
@@ -77,22 +79,20 @@ class _CoordinatorDashboardPageState extends State<CoordinatorDashboardPage> {
         Responsive.isTablet(context) || Responsive.isDesktop(context);
 
     return PopScope(
-      canPop: _currentIndex == 0 && !isSuperAdmin,
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         _handleBackNavigation();
       },
       child: Scaffold(
         appBar: AppBar(
-          leading: (_currentIndex != 0 || isSuperAdmin)
-              ? IconButton(
-                  icon: const Icon(Icons.arrow_back_rounded),
-                  tooltip: _currentIndex != 0
-                      ? 'Regresar al inicio de Coordinación'
-                      : 'Volver a Super Admin',
-                  onPressed: _handleBackNavigation,
-                )
-              : null,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded),
+            tooltip: _currentIndex != 0
+                ? 'Regresar al inicio de Coordinación'
+                : (isSuperAdmin ? 'Volver a Super Admin' : 'Volver a la pantalla principal'),
+            onPressed: _handleBackNavigation,
+          ),
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,

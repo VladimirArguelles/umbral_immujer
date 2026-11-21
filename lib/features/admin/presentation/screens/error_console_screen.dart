@@ -199,8 +199,18 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen> {
     final filtered = _filteredExceptions;
     final totalCount = _exceptions.length;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/superadmin');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E293B),
         elevation: 0,
@@ -288,8 +298,9 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildFilterBar(int total, int filteredCount) {
     return Container(

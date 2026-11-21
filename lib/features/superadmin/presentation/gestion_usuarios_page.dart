@@ -500,8 +500,18 @@ class _GestionUsuariosPageState extends State<GestionUsuariosPage> {
     final totalOperadores = _usuarios.where((u) => (u['rol'] ?? '').toString().toLowerCase() == 'operador_inscripcion').length;
     final totalAlumnos = _usuarios.where((u) => ['alumno', 'student'].contains((u['rol'] ?? '').toString().toLowerCase())).length;
 
-    return Scaffold(
-      backgroundColor: AppTheme.background,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/superadmin');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.background,
       appBar: AppBar(
         backgroundColor: AppTheme.surfaceContainerLow,
         elevation: 0,
@@ -867,8 +877,9 @@ class _GestionUsuariosPageState extends State<GestionUsuariosPage> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildStatBadge(String title, String count, Color color, IconData icon) {
     return Container(

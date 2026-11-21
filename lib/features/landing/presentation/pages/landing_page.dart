@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:umbral_immujer/features/landing/presentation/widgets/landing_top_bar.dart';
@@ -20,6 +21,8 @@ class LandingPage extends StatefulWidget {
 }
 
 class _LandingPageState extends State<LandingPage> {
+  DateTime? _lastBackPressTime;
+
   @override
   void initState() {
     super.initState();
@@ -165,82 +168,110 @@ class _LandingPageState extends State<LandingPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-      body: ParticlesBackground(
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 720),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // El encabezado ofrece acceso directo al inicio de sesión.
-                      LandingTopBar(onLoginPressed: () => _openAuth(context)),
-                      const SizedBox(height: 16),
-                      _buildWelcomeCard(),
-                      const SizedBox(height: 24),
-                      const _FormationCarousel(),
-                      const SizedBox(height: 24),
-                      Text(
-                        'Selecciona tu módulo',
-                        style: GoogleFonts.plusJakartaSans(
-                          color: AppTheme.onSurface,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        final now = DateTime.now();
+        if (_lastBackPressTime == null ||
+            now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+          _lastBackPressTime = now;
+          ScaffoldMessenger.of(context).removeCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                'Presiona de nuevo para salir de la aplicación',
+                style: TextStyle(color: Colors.white, fontSize: 13),
+              ),
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: AppTheme.surfaceContainerHighest,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
+          return;
+        }
+        SystemNavigator.pop();
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.background,
+        body: ParticlesBackground(
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 720),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // El encabezado ofrece acceso directo al inicio de sesión.
+                        LandingTopBar(onLoginPressed: () => _openAuth(context)),
+                        const SizedBox(height: 16),
+                        _buildWelcomeCard(),
+                        const SizedBox(height: 24),
+                        const _FormationCarousel(),
+                        const SizedBox(height: 24),
+                        Text(
+                          'Selecciona tu módulo',
+                          style: GoogleFonts.plusJakartaSans(
+                            color: AppTheme.onSurface,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 14),
-                      ModuleCard(
-                        title: 'Alumnos',
-                        description: 'Cursos, asistencia, encuestas y pagos.',
-                        icon: Icons.school_rounded,
-                        onTap: () => _showModuleOptions(
-                          context,
+                        const SizedBox(height: 14),
+                        ModuleCard(
                           title: 'Alumnos',
-                          role: 'alumno',
+                          description: 'Cursos, asistencia, encuestas y pagos.',
                           icon: Icons.school_rounded,
-                          description:
-                              'Solo alumnos previamente inscritos pueden registrarse.',
+                          onTap: () => _showModuleOptions(
+                            context,
+                            title: 'Alumnos',
+                            role: 'alumno',
+                            icon: Icons.school_rounded,
+                            description:
+                                'Solo alumnos previamente inscritos pueden registrarse.',
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      ModuleCard(
-                        title: 'Profesores',
-                        description:
-                            'Listado de alumnos, asistencia y evaluaciones.',
-                        icon: Icons.menu_book_rounded,
-                        onTap: () => _showModuleOptions(
-                          context,
+                        const SizedBox(height: 12),
+                        ModuleCard(
                           title: 'Profesores',
-                          role: 'profesor',
+                          description:
+                              'Listado de alumnos, asistencia y evaluaciones.',
                           icon: Icons.menu_book_rounded,
-                          description:
-                              'Solo profesores autorizados en nómina docente.',
+                          onTap: () => _showModuleOptions(
+                            context,
+                            title: 'Profesores',
+                            role: 'profesor',
+                            icon: Icons.menu_book_rounded,
+                            description:
+                                'Solo profesores autorizados en nómina docente.',
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      ModuleCard(
-                        title: 'Coordinador',
-                        description: 'Cursos, alumnos, pagos y auditoría.',
-                        icon: Icons.admin_panel_settings_rounded,
-                        onTap: () => _showModuleOptions(
-                          context,
+                        const SizedBox(height: 12),
+                        ModuleCard(
                           title: 'Coordinador',
-                          role: 'coordinador',
+                          description: 'Cursos, alumnos, pagos y auditoría.',
                           icon: Icons.admin_panel_settings_rounded,
-                          description:
-                              'Gestión institucional y supervisión de UMBRAL.',
+                          onTap: () => _showModuleOptions(
+                            context,
+                            title: 'Coordinador',
+                            role: 'coordinador',
+                            icon: Icons.admin_panel_settings_rounded,
+                            description:
+                                'Gestión institucional y supervisión de UMBRAL.',
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 24),
-                      _buildAuthFooter(context),
-                      const SizedBox(height: 20),
-                    ],
+                        const SizedBox(height: 24),
+                        _buildAuthFooter(context),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
                   ),
                 ),
               ),

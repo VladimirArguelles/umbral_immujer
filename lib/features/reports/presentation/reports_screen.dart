@@ -442,8 +442,18 @@ class _ReportsScreenState extends State<ReportsScreen> {
   // ===========================================================================
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.dynamicBackground,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        } else {
+          context.go('/coordinator');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.dynamicBackground,
       appBar: AppBar(
         backgroundColor: AppTheme.dynamicCard,
         elevation: 0,
@@ -498,8 +508,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildFilterAndControlPanel() {
     return Container(

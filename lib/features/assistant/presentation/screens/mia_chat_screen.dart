@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:umbral_immujer/features/assistant/data/assistant_repository.dart';
@@ -158,6 +159,23 @@ class _MiaChatScreenState extends State<MiaChatScreen> {
     }
   }
 
+  void _handleBack() {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      final role = widget.profile?.role;
+      final target = switch (role) {
+        UserRole.superAdmin => '/superadmin',
+        UserRole.coordinador => '/coordinator',
+        UserRole.profesor => '/teacher',
+        UserRole.alumno => '/student',
+        UserRole.operadorInscripcion => '/inscripciones',
+        _ => '/',
+      };
+      context.go(target);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = AppTheme.isDark;
@@ -167,33 +185,39 @@ class _MiaChatScreenState extends State<MiaChatScreen> {
     final textMain = AppColors.dynamicText;
     final textMuted = AppColors.dynamicTextMuted;
 
-    return Scaffold(
-      backgroundColor: bg,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(64),
-        child: Container(
-          decoration: BoxDecoration(
-            color: cardBg.withValues(alpha: 0.95),
-            border: Border(bottom: BorderSide(color: border, width: 1)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.arrow_back_rounded, color: textMain),
-                    tooltip: 'Volver al módulo',
-                    onPressed: () => Navigator.of(context).maybePop(),
-                  ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBack();
+      },
+      child: Scaffold(
+        backgroundColor: bg,
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(64),
+          child: Container(
+            decoration: BoxDecoration(
+              color: cardBg.withValues(alpha: 0.95),
+              border: Border(bottom: BorderSide(color: border, width: 1)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.arrow_back_rounded, color: textMain),
+                      tooltip: 'Volver al módulo',
+                      onPressed: _handleBack,
+                    ),
                   const SizedBox(width: 4),
                   // Avatar de Mía con glow institucional
                   Stack(
@@ -455,8 +479,9 @@ class _MiaChatScreenState extends State<MiaChatScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildMessageBubble({
     required ChatMessage message,

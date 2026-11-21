@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:umbral_immujer/features/inscripciones/presentation/widgets/inscripciones_admin_panel_widget.dart';
 import 'package:umbral_immujer/features/superadmin/data/supabase_general_settings_repository.dart';
@@ -231,15 +232,25 @@ class _ConfiguracionGeneralScreenState
     final modifiedKeys = _getModifiedKeys();
     final modifiedCount = modifiedKeys.length;
 
-    return Theme(
-      data: AppTheme.lightTheme.copyWith(
-        scaffoldBackgroundColor: GeneralSettingsTokens.bg,
-        colorScheme: const ColorScheme.dark(
-          primary: GeneralSettingsTokens.primary,
-          surface: GeneralSettingsTokens.card,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/superadmin');
+        }
+      },
+      child: Theme(
+        data: AppTheme.lightTheme.copyWith(
+          scaffoldBackgroundColor: GeneralSettingsTokens.bg,
+          colorScheme: const ColorScheme.dark(
+            primary: GeneralSettingsTokens.primary,
+            surface: GeneralSettingsTokens.card,
+          ),
         ),
-      ),
-      child: Scaffold(
+        child: Scaffold(
         backgroundColor: GeneralSettingsTokens.bg,
         appBar: GeneralSettingsAppBar(
           isBusy: _isLoading || _isSaving,
@@ -262,8 +273,9 @@ class _ConfiguracionGeneralScreenState
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildErrorState() {
     return Center(

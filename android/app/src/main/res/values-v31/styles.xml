@@ -4,7 +4,7 @@
     <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
         <item name="android:windowBackground">@drawable/launch_background</item>
         <item name="android:windowSplashScreenBackground">@color/boot_background</item>
-        <item name="android:windowSplashScreenAnimatedIcon">@drawable/logo_umbral_boot</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/icono_umbral_boot</item>
     </style>
     <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>

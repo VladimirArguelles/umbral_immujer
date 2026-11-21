@@ -247,8 +247,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       UserRole.operadorInscripcion => 'Acceso de Operador',
     };
 
-    return Scaffold(
-      backgroundColor: AppTheme.background,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        context.go('/');
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -671,6 +677,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

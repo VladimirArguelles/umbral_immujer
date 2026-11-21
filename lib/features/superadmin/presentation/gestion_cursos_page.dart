@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -941,11 +942,32 @@ onReorder: (oldIndex, newIndex) {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.dynamicBackground,
-      appBar: AppBar(
-        backgroundColor: AppTheme.dynamicCard,
-        elevation: 0,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/superadmin');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.dynamicBackground,
+        appBar: AppBar(
+          backgroundColor: AppTheme.dynamicCard,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded),
+            tooltip: 'Volver a Super Admin',
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/superadmin');
+              }
+            },
+          ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1331,6 +1353,7 @@ onReorder: (oldIndex, newIndex) {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

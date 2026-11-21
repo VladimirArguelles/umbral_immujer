@@ -128,23 +128,30 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: AppTheme.lightTheme.copyWith(
-        scaffoldBackgroundColor: SuperAdminTokens.bg,
-      ),
-      child: Scaffold(
-        backgroundColor: SuperAdminTokens.bg,
-        body: LayoutBuilder(
-          builder: (context, constraints) {
-            final isDesktop = constraints.maxWidth >= 1024;
-            final isTablet =
-                constraints.maxWidth >= 600 && constraints.maxWidth < 1024;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        context.go('/');
+      },
+      child: Theme(
+        data: AppTheme.lightTheme.copyWith(
+          scaffoldBackgroundColor: SuperAdminTokens.bg,
+        ),
+        child: Scaffold(
+          backgroundColor: SuperAdminTokens.bg,
+          body: LayoutBuilder(
+            builder: (context, constraints) {
+              final isDesktop = constraints.maxWidth >= 1024;
+              final isTablet =
+                  constraints.maxWidth >= 600 && constraints.maxWidth < 1024;
 
-            if (isDesktop) {
-              return SizedBox.expand(child: _buildDesktopLayout(constraints));
-            }
-            return _buildMobileLayout(isTablet: isTablet);
-          },
+              if (isDesktop) {
+                return SizedBox.expand(child: _buildDesktopLayout(constraints));
+              }
+              return _buildMobileLayout(isTablet: isTablet);
+            },
+          ),
         ),
       ),
     );

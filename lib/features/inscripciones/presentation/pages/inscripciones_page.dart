@@ -409,25 +409,37 @@ class _InscripcionesPageState extends State<InscripcionesPage> {
     }).toList();
   }
 
+  void _handleBackNavigation() {
+    final isOperador = widget.profile.role == UserRole.operadorInscripcion;
+    if (isOperador) {
+      context.go('/');
+    } else {
+      context.go(_homeRouteForRole(widget.profile.role));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isOperador = widget.profile.role == UserRole.operadorInscripcion;
     final isSuperAdmin = widget.profile.role == UserRole.superAdmin;
     final isWide = MediaQuery.sizeOf(context).width >= 980;
 
-    return Scaffold(
-      backgroundColor: AppTheme.dynamicBackground,
-      appBar: AppBar(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBackNavigation();
+      },
+      child: Scaffold(
         backgroundColor: AppTheme.dynamicBackground,
-        elevation: 0,
-        leading: isOperador
-            ? null
-            : IconButton(
-                tooltip: 'Volver al panel',
-                icon: const Icon(Symbols.arrow_back),
-                onPressed: () =>
-                    context.go(_homeRouteForRole(widget.profile.role)),
-              ),
+        appBar: AppBar(
+          backgroundColor: AppTheme.dynamicBackground,
+          elevation: 0,
+          leading: IconButton(
+            tooltip: isOperador ? 'Volver al inicio' : 'Volver al panel',
+            icon: const Icon(Symbols.arrow_back),
+            onPressed: _handleBackNavigation,
+          ),
         title: Row(
           children: [
             const Icon(Symbols.how_to_reg, color: AppTheme.primary, size: 22),
@@ -497,8 +509,9 @@ class _InscripcionesPageState extends State<InscripcionesPage> {
                         ],
                       ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildBlockedAccessView(String reason) {
     return Center(
