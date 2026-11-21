@@ -62,6 +62,7 @@ class AvailableTeacher {
   final String? telefono;
   final String? correo;
   final String? cursoActual;
+  final String? avatarUrl;
 
   AvailableTeacher({
     required this.id,
@@ -70,6 +71,7 @@ class AvailableTeacher {
     this.telefono,
     this.correo,
     this.cursoActual,
+    this.avatarUrl,
   });
 }
 

@@ -151,7 +151,7 @@ class CoordinatorRepository {
   Future<List<AvailableTeacher>> getRegisteredTeachers() async {
     final profs = await _supabase
         .from('perfiles')
-        .select('id, nombre_completo, cedula, telefono, correo')
+        .select('id, nombre_completo, cedula, telefono, correo, avatar_url')
         .inFilter('rol', ['profesor', 'teacher']);
 
     final List<AvailableTeacher> list = [];
@@ -172,6 +172,7 @@ class CoordinatorRepository {
           telefono: p['telefono'] as String?,
           correo: p['correo'] as String?,
           cursoActual: cursoActual?['nombre'] as String?,
+          avatarUrl: p['avatar_url'] as String?,
         ),
       );
     }
@@ -399,7 +400,8 @@ class CoordinatorRepository {
             id,
             nombre_completo,
             cedula,
-            telefono
+            telefono,
+            avatar_url
           )
         ''')
         .eq('curso_id', courseId)

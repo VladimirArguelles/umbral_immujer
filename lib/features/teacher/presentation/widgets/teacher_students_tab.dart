@@ -5,6 +5,7 @@ import 'package:umbral_immujer/features/teacher/presentation/widgets/teacher_add
 import 'package:umbral_immujer/features/teacher/presentation/widgets/teacher_manage_student_sheet.dart';
 import 'package:umbral_immujer/features/teacher/presentation/widgets/teacher_topics_dialog.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
+import 'package:umbral_immujer/src/core/widgets/app_user_avatar.dart';
 import 'package:umbral_immujer/src/core/widgets/skeleton_loader.dart';
 
 /// Students roster, retired-trash history, and syllabus-topics management tab.
@@ -259,13 +260,13 @@ class _StudentEnrollmentTile extends StatelessWidget {
           inTrash ? AppTheme.surfaceContainerHigh : AppTheme.surfaceContainerLow,
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor:
-              inTrash ? AppTheme.onSurfaceVariant : AppTheme.primary,
-          child: Icon(
-            inTrash ? Icons.delete_outline : Icons.person,
-            color: AppTheme.onSurface,
-          ),
+        leading: AppUserAvatar(
+          imageUrl: enrollment.avatarUrl,
+          name: enrollment.nombreCompleto,
+          radius: 20,
+          backgroundColor: inTrash ? AppTheme.onSurfaceVariant.withValues(alpha: 0.2) : AppTheme.primary.withValues(alpha: 0.15),
+          foregroundColor: inTrash ? AppTheme.onSurfaceVariant : AppTheme.primary,
+          fallbackIcon: inTrash ? Icons.delete_outline : null,
         ),
         title: Text(
           enrollment.nombreCompleto,

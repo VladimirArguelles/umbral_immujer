@@ -100,6 +100,7 @@ class ArchivedStudentEnrollment {
   final String cedula;
   final String estado; // 'activo' | 'retirado'
   final DateTime? deletedAt;
+  final String? avatarUrl;
 
   ArchivedStudentEnrollment({
     required this.inscripcionId,
@@ -108,6 +109,7 @@ class ArchivedStudentEnrollment {
     required this.cedula,
     required this.estado,
     this.deletedAt,
+    this.avatarUrl,
   });
 
   bool get estaEliminado => deletedAt != null || estado == 'retirado';

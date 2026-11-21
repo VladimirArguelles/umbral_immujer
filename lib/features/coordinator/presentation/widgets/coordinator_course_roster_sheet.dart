@@ -4,6 +4,7 @@ import 'package:umbral_immujer/features/coordinator/data/coordinator_repository.
 import 'package:umbral_immujer/features/coordinator/domain/coordinator_models.dart';
 import 'package:umbral_immujer/features/coordinator/presentation/widgets/coordinator_roster_dialogs.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
+import 'package:umbral_immujer/src/core/widgets/app_user_avatar.dart';
 
 /// Opens the bottom sheet to manage students and syllabus topics for [course].
 Future<void> showCoordinatorCourseRosterSheet(
@@ -197,11 +198,16 @@ class _RosterStudentsTab extends StatelessWidget {
                     final nombre = al?['nombre_completo'] ?? 'Sin nombre';
                     final cedula = al?['cedula'] ?? '';
                     final telefono = al?['telefono'] ?? '';
+                    final avatarUrl = (al?['avatar_url'] as String?)?.trim();
 
                     return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: AppTheme.primaryContainer,
-                        child: Text(nombre.isNotEmpty ? nombre[0] : 'A'),
+                      leading: AppUserAvatar(
+                        imageUrl: avatarUrl,
+                        name: nombre,
+                        radius: 20,
+                        backgroundColor: AppTheme.primaryContainer.withAlpha(50),
+                        foregroundColor: AppTheme.primary,
+                        fontSize: 14,
                       ),
                       title: Text(
                         nombre,

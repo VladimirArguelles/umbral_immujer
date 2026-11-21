@@ -5,6 +5,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
+import 'package:umbral_immujer/src/core/widgets/app_user_avatar.dart';
 import 'package:umbral_immujer/src/core/widgets/skeleton_loader.dart';
 
 class GestionAlumnosPage extends StatefulWidget {
@@ -54,7 +55,7 @@ class _GestionAlumnosPageState extends State<GestionAlumnosPage> {
 
       final alumnosResponse = await _supabase
           .from('alumnos')
-          .select('id, nombre_completo, cedula, telefono, correo, curso, user_id, created_at')
+          .select('id, nombre_completo, cedula, telefono, correo, curso, user_id, created_at, avatar_url')
           .order('nombre_completo');
 
       if (mounted) {
@@ -609,6 +610,7 @@ class _GestionAlumnosPageState extends State<GestionAlumnosPage> {
                               final telefono = al['telefono'] ?? 'Sin Teléfono';
                               final correo = al['correo'] ?? 'Sin Correo';
                               final curso = al['curso'] ?? 'Sin Curso Asignado';
+                              final avatarUrl = (al['avatar_url'] as String?)?.trim();
 
                               return Card(
                                 elevation: 0,
@@ -621,14 +623,15 @@ class _GestionAlumnosPageState extends State<GestionAlumnosPage> {
                                   padding: const EdgeInsets.all(14),
                                   child: Row(
                                     children: [
-                                      CircleAvatar(
+                                      AppUserAvatar(
+                                        imageUrl: avatarUrl,
+                                        name: nombre,
+                                        radius: 22,
                                         backgroundColor: AppTheme.primaryContainer.withAlpha(50),
                                         foregroundColor: AppTheme.primary,
-                                        radius: 22,
-                                        child: Text(
-                                          nombre.isNotEmpty ? nombre[0].toUpperCase() : 'A',
-                                          style: const TextStyle(fontWeight: FontWeight.bold),
-                                        ),
+                                        border: Border.all(color: AppTheme.primary.withAlpha(60), width: 1),
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                       const SizedBox(width: 14),
                                       Expanded(

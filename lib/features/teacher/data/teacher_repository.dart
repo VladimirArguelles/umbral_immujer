@@ -513,7 +513,8 @@ class TeacherRepository {
           asistira,
           alumnos:alumno_id (
             nombre_completo,
-            cedula
+            cedula,
+            avatar_url
           )
         ''')
         .eq('encuesta_id', surveyId)
@@ -589,7 +590,8 @@ class TeacherRepository {
           deleted_at,
           alumnos:alumno_id (
             nombre_completo,
-            cedula
+            cedula,
+            avatar_url
           )
         ''')
         .eq('curso_id', courseId)
@@ -606,6 +608,7 @@ class TeacherRepository {
         deletedAt: item['deleted_at'] != null
             ? DateTime.tryParse(item['deleted_at'] as String)
             : null,
+        avatarUrl: al?['avatar_url'] as String?,
       );
     }).toList();
   }

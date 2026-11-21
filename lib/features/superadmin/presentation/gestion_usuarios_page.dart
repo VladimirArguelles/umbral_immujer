@@ -5,6 +5,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
+import 'package:umbral_immujer/src/core/widgets/app_user_avatar.dart';
 import 'package:umbral_immujer/src/core/widgets/skeleton_loader.dart';
 
 class GestionUsuariosPage extends StatefulWidget {
@@ -337,6 +338,7 @@ class _GestionUsuariosPageState extends State<GestionUsuariosPage> {
     final email = user['email'] ?? 'Sin correo';
     final nombre = user['nombre_completo'] ?? 'Usuario';
     final userId = (user['user_id'] ?? user['id']) as String?;
+    final avatarUrl = (user['avatar_url'] as String?)?.trim();
     final isCurrentUser = userId == _currentUserId;
 
     await showModalBottomSheet(
@@ -358,14 +360,15 @@ class _GestionUsuariosPageState extends State<GestionUsuariosPage> {
                 children: [
                   Row(
                     children: [
-                      CircleAvatar(
+                      AppUserAvatar(
+                        imageUrl: avatarUrl,
+                        name: nombre,
+                        radius: 26,
                         backgroundColor: roleColor.withAlpha(35),
                         foregroundColor: roleColor,
-                        radius: 24,
-                        child: Text(
-                          nombre.isNotEmpty ? nombre[0].toUpperCase() : 'U',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                        ),
+                        border: Border.all(color: roleColor.withAlpha(80), width: 1.5),
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                       const SizedBox(width: 14),
                       Column(
@@ -724,6 +727,7 @@ class _GestionUsuariosPageState extends State<GestionUsuariosPage> {
                               final roleColor = _getRoleColor(user['rol'] as String?);
                               final roleLabel = _getRoleLabel(user['rol'] as String?);
                               final userId = (user['user_id'] ?? user['id']) as String?;
+                              final avatarUrl = (user['avatar_url'] as String?)?.trim();
                               final isCurrentUser = userId == _currentUserId;
 
                               return Card(
@@ -740,14 +744,15 @@ class _GestionUsuariosPageState extends State<GestionUsuariosPage> {
                                     padding: const EdgeInsets.all(14),
                                     child: Row(
                                       children: [
-                                        CircleAvatar(
+                                        AppUserAvatar(
+                                          imageUrl: avatarUrl,
+                                          name: nombre,
+                                          radius: 22,
                                           backgroundColor: roleColor.withAlpha(35),
                                           foregroundColor: roleColor,
-                                          radius: 22,
-                                          child: Text(
-                                            nombre.isNotEmpty ? nombre[0].toUpperCase() : 'U',
-                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                          ),
+                                          border: Border.all(color: roleColor.withAlpha(60), width: 1),
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                         const SizedBox(width: 14),
                                         Expanded(

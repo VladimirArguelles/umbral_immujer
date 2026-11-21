@@ -5,6 +5,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:umbral_immujer/src/core/config/supabase_config.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
+import 'package:umbral_immujer/src/core/widgets/app_user_avatar.dart';
 import 'package:umbral_immujer/src/core/widgets/skeleton_loader.dart';
 
 class GestionProfesoresPage extends StatefulWidget {
@@ -57,7 +58,7 @@ class _GestionProfesoresPageState extends State<GestionProfesoresPage> {
       // 2. Obtener profesores de la tabla perfiles
       final profResponse = await _supabase
           .from('perfiles')
-          .select('id, nombre_completo, cedula, telefono, correo, email, rol, user_id, created_at')
+          .select('id, nombre_completo, cedula, telefono, correo, email, rol, user_id, created_at, avatar_url')
           .inFilter('rol', ['profesor', 'teacher'])
           .order('nombre_completo');
 
@@ -705,6 +706,7 @@ class _GestionProfesoresPageState extends State<GestionProfesoresPage> {
                               final telefono = prof['telefono'] ?? 'Sin Teléfono';
                               final correo = prof['correo'] ?? prof['email'] ?? 'Sin Correo';
                               final cursosAsignados = (prof['cursos_asignados'] as List?)?.cast<String>() ?? [];
+                              final avatarUrl = (prof['avatar_url'] as String?)?.trim();
 
                               return Card(
                                 elevation: 0,
@@ -717,14 +719,15 @@ class _GestionProfesoresPageState extends State<GestionProfesoresPage> {
                                   padding: const EdgeInsets.all(14),
                                   child: Row(
                                     children: [
-                                      CircleAvatar(
+                                      AppUserAvatar(
+                                        imageUrl: avatarUrl,
+                                        name: nombre,
+                                        radius: 22,
                                         backgroundColor: AppTheme.tertiary.withAlpha(40),
                                         foregroundColor: AppTheme.tertiary,
-                                        radius: 22,
-                                        child: Text(
-                                          nombre.isNotEmpty ? nombre[0].toUpperCase() : 'P',
-                                          style: const TextStyle(fontWeight: FontWeight.bold),
-                                        ),
+                                        border: Border.all(color: AppTheme.tertiary.withAlpha(80), width: 1),
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                       const SizedBox(width: 14),
                                       Expanded(

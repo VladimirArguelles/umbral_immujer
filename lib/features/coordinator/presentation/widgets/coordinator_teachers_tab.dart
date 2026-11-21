@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:umbral_immujer/features/coordinator/data/coordinator_repository.dart';
 import 'package:umbral_immujer/features/coordinator/domain/coordinator_models.dart';
 import 'package:umbral_immujer/src/core/theme/app_theme.dart';
+import 'package:umbral_immujer/src/core/widgets/app_user_avatar.dart';
 import 'package:umbral_immujer/src/core/widgets/skeleton_loader.dart';
 
 /// Directory tab listing registered teachers and their assigned courses.
@@ -62,9 +63,13 @@ class _CoordinatorTeachersTabState extends State<CoordinatorTeachersTab> {
               return Card(
                 margin: const EdgeInsets.only(bottom: 10),
                 child: ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: AppTheme.primary,
-                    child: Icon(Icons.school, color: AppTheme.onPrimary),
+                  leading: AppUserAvatar(
+                    imageUrl: p.avatarUrl,
+                    name: p.nombreCompleto,
+                    radius: 20,
+                    backgroundColor: AppTheme.primary.withValues(alpha: 0.15),
+                    foregroundColor: AppTheme.primary,
+                    fallbackIcon: Icons.school,
                   ),
                   title: Text(
                     p.nombreCompleto,
