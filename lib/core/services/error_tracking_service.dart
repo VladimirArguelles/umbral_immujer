@@ -98,6 +98,34 @@ class ErrorTrackingService {
     return 'código_fuente';
   }
 
+  /// Determina si un error corresponde a una desconexión o falla de red transitoria
+  /// (SocketException, Failed host lookup, AuthRetryableFetchException con statusCode null, etc.)
+  static bool isTransientNetworkError(dynamic error) {
+    if (error == null) return false;
+    final errStr = error.toString().toLowerCase();
+
+    final typeName = error.runtimeType.toString();
+    if (typeName.contains('SocketException') ||
+        typeName.contains('AuthRetryableFetchException')) {
+      return true;
+    }
+
+    return errStr.contains('socketexception') ||
+        errStr.contains('failed host lookup') ||
+        errStr.contains('authretryablefetchexception') ||
+        errStr.contains('statuscode: null') ||
+        errStr.contains('statuscode: 0') ||
+        errStr.contains('network is unreachable') ||
+        errStr.contains('connection refused') ||
+        errStr.contains('connection closed') ||
+        errStr.contains('connection reset') ||
+        errStr.contains('networkrequestfailed') ||
+        errStr.contains('clientexception with socketexception') ||
+        errStr.contains('software caused connection abort') ||
+        errStr.contains('os error: network is unreachable') ||
+        errStr.contains('handshakeexception');
+  }
+
   /// Registra una excepción capturada manualmente o por interceptores
   Future<void> reportException({
     required dynamic error,
@@ -122,7 +150,13 @@ class ErrorTrackingService {
       );
     } catch (_) {}
 
-    // 2. Persistencia en Supabase `system_exceptions` con protección anti-bucle
+    // 2. Prevenir ruido en telemetría y panel de Auditoría IA:
+    // Los fallos transitorios de desconexión o conectividad a internet no son incidencias críticas del sistema
+    if (isTransientNetworkError(error)) {
+      return;
+    }
+
+    // 3. Persistencia en Supabase `system_exceptions` con protección anti-bucle
     if (errorString.contains('system_exceptions') || errorString.contains('notificaciones')) {
       return; // Prevenir bucles de recursión en la propia infraestructura de telemetría
     }
@@ -288,6 +322,9 @@ class ErrorTrackingService {
 
   /// Normaliza la severidad garantizando los valores CHECK de PostgreSQL
   String _normalizeSeverity(String raw, dynamic error) {
+    if (isTransientNetworkError(error)) {
+      return 'warning';
+    }
     final lower = raw.toLowerCase().trim();
     if (lower == 'critical' || lower == 'warning' || lower == 'error') {
       return lower;
