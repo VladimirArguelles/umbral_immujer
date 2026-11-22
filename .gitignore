@@ -32,7 +32,8 @@ migrate_working_dir/
 .pub/
 build/
 *.apk
-!docs/*.apk
+**/*.apk
+docs/*.apk
 /coverage/
 
 # Symbolication related
@@ -66,6 +67,9 @@ scripts/node_modules/
 # Firma digital Android
 android/key.properties
 android/app/*.jks
+android/app/*.b64
+android/app/*.keystore
+android/app/release-keystore.*
 
 # Copias temporales o de respaldo de la firma Android
 android/key.properties~

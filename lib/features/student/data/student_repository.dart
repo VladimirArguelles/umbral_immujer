@@ -72,11 +72,14 @@ class StudentRepository {
         final telefono = perfilesRes?['telefono'];
         final correo = perfilesRes?['correo'] ?? email;
 
+        final safeUid = uid.replaceAll(RegExp(r'[^a-zA-Z0-9\-]'), '');
+        final safeCorreo = (correo ?? '').replaceAll(RegExp(r'[^a-zA-Z0-9@._\-]'), '');
+
         // Intentar buscar si ya existe con esa cédula o correo
         final existing = await _supabase
             .from('alumnos')
             .select()
-            .or('user_id.eq.$uid,correo.eq.$correo')
+            .or('user_id.eq.$safeUid,correo.eq.$safeCorreo')
             .limit(1)
             .maybeSingle();
 

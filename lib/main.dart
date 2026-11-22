@@ -46,7 +46,9 @@ Future<void> main() async {
   };
 
   FlutterError.onError = (details) {
-    FlutterError.presentError(details);
+    if (kDebugMode) {
+      FlutterError.presentError(details);
+    }
     ErrorTrackingService.instance.captureWidgetError(details);
   };
 

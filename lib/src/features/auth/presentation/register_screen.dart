@@ -611,10 +611,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                         ),
                         validator: (val) {
-                          if (val == null || val.trim().length < 6) {
-                            return 'Mínimo 6 caracteres';
+                          if (val == null || val.trim().isEmpty) {
+                            return 'Ingresa una contraseña';
                           }
-                          return null;
+                          return AuthRepository.validatePasswordStrength(val);
                         },
                       ),
                       const SizedBox(height: 24),

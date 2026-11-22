@@ -120,8 +120,9 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
       setState(() => _errorMessage = 'Por favor ingresa el código recibido en tu correo.');
       return;
     }
-    if (newPassword.length < 6) {
-      setState(() => _errorMessage = 'La nueva contraseña debe tener al menos 6 caracteres.');
+    final passwordErr = AuthRepository.validatePasswordStrength(newPassword);
+    if (passwordErr != null) {
+      setState(() => _errorMessage = passwordErr);
       return;
     }
     if (newPassword != confirmPassword) {

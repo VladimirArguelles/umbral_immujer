@@ -222,10 +222,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               if (val == null || val.trim().isEmpty) {
                 return 'Ingresa la nueva contraseña';
               }
-              if (val.trim().length < 6) {
-                return 'La contraseña debe tener al menos 6 caracteres';
-              }
-              return null;
+              return AuthRepository.validatePasswordStrength(val);
             },
           ),
           const SizedBox(height: 16),

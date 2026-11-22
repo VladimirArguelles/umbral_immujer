@@ -30,6 +30,20 @@ class AuthRepository {
 
   User? get currentUser => _supabase.auth.currentUser;
 
+  /// Validador centralizado de políticas de seguridad para contraseñas de producción
+  static String? validatePasswordStrength(String password) {
+    final trimmed = password.trim();
+    if (trimmed.length < 8) {
+      return 'La contraseña debe contener al menos 8 caracteres.';
+    }
+    final hasLetter = trimmed.contains(RegExp(r'[a-zA-Z]'));
+    final hasNumber = trimmed.contains(RegExp(r'[0-9]'));
+    if (!hasLetter || !hasNumber) {
+      return 'La contraseña debe combinar letras y al menos un número.';
+    }
+    return null;
+  }
+
   /// Valida si el alumno existe en el padrón institucional y si posee inscripción activa.
   /// Implementa consulta segura vía RPC verificar_pre_registro_alumno sin exponer la tabla alumnos.
   Future<AlumnoValidationResult> validateAlumnoEligibility({
@@ -407,6 +421,11 @@ class AuthRepository {
       rosterId = profesorData['id'];
     }
 
+    final passwordStrengthErr = validatePasswordStrength(password);
+    if (passwordStrengthErr != null) {
+      throw Exception(passwordStrengthErr);
+    }
+
     try {
       // 1. Registro en Supabase Auth
       final response = await _supabase.auth.signUp(
@@ -663,6 +682,7 @@ class AuthRepository {
 
     // Si el usuario ingresó cédula o identificador en vez de un correo
     if (!cleanInput.contains('@')) {
+      final safeCleanInput = cleanInput.replaceAll(RegExp(r'[^0-9a-zA-Z\-_]'), '');
       final cleanCedula = cleanInput.replaceAll(RegExp(r'[^0-9a-zA-Z]'), '');
       final numericCedula = cleanInput.replaceAll(RegExp(r'[^0-9]'), '');
 
@@ -671,7 +691,7 @@ class AuthRepository {
         final perfil = await _supabase
             .from('perfiles')
             .select('email, correo')
-            .or('cedula.eq.$cleanInput,cedula.eq.$cleanCedula,cedula.eq.$numericCedula')
+            .or('cedula.eq.$safeCleanInput,cedula.eq.$cleanCedula,cedula.eq.$numericCedula')
             .limit(1)
             .maybeSingle();
 
@@ -691,7 +711,7 @@ class AuthRepository {
           final alumno = await _supabase
               .from('alumnos')
               .select('email, correo')
-              .or('cedula.eq.$cleanInput,cedula.eq.$cleanCedula,cedula.eq.$numericCedula')
+              .or('cedula.eq.$safeCleanInput,cedula.eq.$cleanCedula,cedula.eq.$numericCedula')
               .limit(1)
               .maybeSingle();
 
@@ -755,8 +775,9 @@ class AuthRepository {
     final cleanToken = token.trim();
     final cleanPassword = newPassword.trim();
 
-    if (cleanPassword.length < 6) {
-      throw Exception('La nueva contraseña debe tener al menos 6 caracteres.');
+    final passwordStrengthErr = validatePasswordStrength(cleanPassword);
+    if (passwordStrengthErr != null) {
+      throw Exception(passwordStrengthErr);
     }
 
     try {
@@ -790,8 +811,9 @@ class AuthRepository {
   /// Actualiza la contraseña del usuario actualmente autenticado (ej. durante flujo de recuperación por Deep Link).
   Future<void> updateUserPassword(String newPassword) async {
     final cleanPassword = newPassword.trim();
-    if (cleanPassword.length < 6) {
-      throw Exception('La nueva contraseña debe tener al menos 6 caracteres.');
+    final passwordStrengthErr = validatePasswordStrength(cleanPassword);
+    if (passwordStrengthErr != null) {
+      throw Exception(passwordStrengthErr);
     }
 
     try {

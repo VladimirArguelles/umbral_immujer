@@ -40,11 +40,13 @@ class SupabaseConfig {
       );
     }
 
-    // ignore: deprecated_member_use
     await Supabase.initialize(
       url: resolvedUrl,
-      // ignore: deprecated_member_use
-      anonKey: resolvedKey,
+      publishableKey: resolvedKey,
+      authOptions: const FlutterAuthClientOptions(
+        authFlowType: AuthFlowType.pkce,
+        autoRefreshToken: true,
+      ),
     );
   }
 }
