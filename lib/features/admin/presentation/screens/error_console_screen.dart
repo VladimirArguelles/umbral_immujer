@@ -420,59 +420,62 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen> {
           ),
           const SizedBox(height: 10),
 
-          // Chips de Severidad + Botón de Auditoría de Seguridad
-          Row(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _buildSeverityChip('all', 'Todas', const Color(0xFF94A3B8)),
-                      const SizedBox(width: 6),
-                      _buildSeverityChip('critical', 'Críticas', const Color(0xFFEF4444)),
-                      const SizedBox(width: 6),
-                      _buildSeverityChip('error', 'Errores', const Color(0xFFF97316)),
-                      const SizedBox(width: 6),
-                      _buildSeverityChip('warning', 'Advertencias', const Color(0xFFF59E0B)),
-                    ],
-                  ),
+          // Chips de Severidad (fila dedicada completa)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildSeverityChip('all', 'Todas', const Color(0xFF94A3B8)),
+                const SizedBox(width: 6),
+                _buildSeverityChip('critical', 'Críticas', const Color(0xFFEF4444)),
+                const SizedBox(width: 6),
+                _buildSeverityChip('error', 'Errores', const Color(0xFFF97316)),
+                const SizedBox(width: 6),
+                _buildSeverityChip('warning', 'Advertencias', const Color(0xFFF59E0B)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Botón de Auditoría de Seguridad en su propia fila dedicada
+          SizedBox(
+            width: double.infinity,
+            height: 36,
+            child: OutlinedButton.icon(
+              onPressed: _isRunningSecurityAudit ? null : _runSecurityAudit,
+              style: OutlinedButton.styleFrom(
+                backgroundColor: const Color(0xFF1F1219),
+                foregroundColor: const Color(0xFFFCA5A5),
+                disabledBackgroundColor: const Color(0xFF1A1015),
+                side: BorderSide(
+                  color: const Color(0xFFEF4444).withValues(alpha: 0.55),
+                  width: 1,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+              ),
+              icon: _isRunningSecurityAudit
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFFFCA5A5),
+                      ),
+                    )
+                  : const Icon(Symbols.shield_lock, size: 16, color: Color(0xFFF87171)),
+              label: Text(
+                _isRunningSecurityAudit
+                    ? 'Ejecutando Auditoría de Seguridad...'
+                    : 'Ejecutar Auditoría de Seguridad Ahora',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(width: 8),
-              ElevatedButton.icon(
-                onPressed: _isRunningSecurityAudit ? null : _runSecurityAudit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFDC2626),
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: const Color(0xFF7F1D1D),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 0,
-                ),
-                icon: _isRunningSecurityAudit
-                    ? const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Symbols.shield_lock, size: 16),
-                label: Text(
-                  _isRunningSecurityAudit
-                      ? 'Auditando...'
-                      : 'Ejecutar Auditoría de Seguridad Ahora',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),
