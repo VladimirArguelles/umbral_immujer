@@ -45,9 +45,18 @@ class SuperAdminNotificationItem {
   }
 
   bool get isOperationalIssue => tipo == 'incidencia_operacion';
+  bool get isSecurityAlert => tipo == 'security_alert';
   String? get dondeEstaElProblema =>
       datos['donde_esta_el_problema']?.toString();
   String? get queDebeRevisar => datos['que_debe_revisar']?.toString();
+  String? get puntoViolado =>
+      datos['punto_violado']?.toString() ??
+      datos['tabla']?.toString() ??
+      datos['bucket']?.toString();
+  String? get infoComprometida =>
+      datos['info_comprometida']?.toString() ??
+      datos['columnas_expuestas']?.toString();
+  String? get usuarioOrigenId => datos['usuario_origen_id']?.toString();
   String? get usuarioNombre => datos['usuario_nombre']?.toString();
   String? get usuarioRol => datos['usuario_rol']?.toString();
   String? get modulo => datos['modulo']?.toString();
@@ -129,7 +138,7 @@ class _SuperAdminNotificationBellButtonState
           .from('notificaciones')
           .select('id')
           .or('rol_destino.eq.super_admin,rol_destino.eq.todos')
-          .eq('tipo', 'incidencia_operacion')
+          .inFilter('tipo', ['incidencia_operacion', 'security_alert'])
           .eq('leido', false)
           .count();
 
@@ -371,7 +380,7 @@ class _SuperAdminNotificationsModalState
           .from('notificaciones')
           .select('*')
           .or('rol_destino.eq.super_admin,rol_destino.eq.todos')
-          .eq('tipo', 'incidencia_operacion')
+          .inFilter('tipo', ['incidencia_operacion', 'security_alert'])
           .eq('leido', false)
           .order('created_at', ascending: false)
           .limit(40);
@@ -1201,8 +1210,11 @@ class _SuperAdminNotificationsModalState
     required Color textMain,
     required Color textMuted,
   }) {
+    final isSecurity = item.isSecurityAlert;
     final isIssue = item.isOperationalIssue;
-    final accentColor = isIssue ? AppColors.warning : AppColors.primary;
+    final accentColor = isSecurity
+        ? AppColors.error
+        : (isIssue ? AppColors.warning : AppColors.primary);
 
     return Material(
       color: Colors.transparent,
@@ -1253,13 +1265,17 @@ class _SuperAdminNotificationsModalState
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         Icon(
-                          isIssue ? Symbols.warning : Symbols.info,
+                          isSecurity
+                              ? Symbols.gpp_maybe
+                              : (isIssue ? Symbols.warning : Symbols.info),
                           size: 13,
                           color: accentColor,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          isIssue ? 'INCIDENCIA UMBY' : 'NOTIFICACIÓN',
+                          isSecurity
+                              ? 'ALERTA DE SEGURIDAD'
+                              : (isIssue ? 'INCIDENCIA UMBY' : 'NOTIFICACIÓN'),
                           softWrap: true,
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 9.5,
@@ -1342,6 +1358,71 @@ class _SuperAdminNotificationsModalState
                   height: 1.4,
                 ),
               ),
+              if (isSecurity) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF28131A)
+                        : const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: AppColors.error.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Symbols.shield_lock,
+                            size: 16,
+                            color: AppColors.error,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'DETALLE FORENSE DE SEGURIDAD',
+                              softWrap: true,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                color: AppColors.error,
+                                letterSpacing: 0.6,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      _buildSecurityDetailLine(
+                        'Punto violado / expuesto:',
+                        item.puntoViolado ?? item.titulo,
+                        textMain,
+                        textMuted,
+                      ),
+                      const SizedBox(height: 6),
+                      _buildSecurityDetailLine(
+                        'Información comprometida / intento bloqueado:',
+                        item.infoComprometida ?? item.mensaje,
+                        textMain,
+                        textMuted,
+                      ),
+                      const SizedBox(height: 6),
+                      _buildSecurityDetailLine(
+                        'Usuario origen:',
+                        '${item.usuarioNombre ?? 'Anónimo / Sistema'}'
+                        '${item.usuarioRol != null ? ' (${item.usuarioRol})' : ''}'
+                        '${item.usuarioOrigenId != null ? ' • ID: ${item.usuarioOrigenId}' : ''}',
+                        textMain,
+                        textMuted,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               if (isIssue &&
                   (item.dondeEstaElProblema != null ||
                       item.queDebeRevisar != null)) ...[
@@ -1441,6 +1522,37 @@ class _SuperAdminNotificationsModalState
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSecurityDetailLine(
+    String title,
+    String value,
+    Color textMain,
+    Color textMuted,
+  ) {
+    return Text.rich(
+      TextSpan(
+        style: GoogleFonts.plusJakartaSans(fontSize: 12),
+        children: [
+          TextSpan(
+            text: '$title\n',
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w800,
+              color: textMain,
+            ),
+          ),
+          TextSpan(
+            text: value,
+            style: GoogleFonts.plusJakartaSans(
+              color: textMuted,
+              fontWeight: FontWeight.w500,
+              height: 1.35,
+            ),
+          ),
+        ],
+      ),
+      softWrap: true,
     );
   }
 

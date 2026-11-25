@@ -22,6 +22,7 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen> {
   final SupabaseClient _supabase = SupabaseConfig.client;
   List<SystemExceptionItem> _exceptions = [];
   bool _isLoading = true;
+  bool _isRunningSecurityAudit = false;
   String? _errorMessage;
   RealtimeChannel? _realtimeChannel;
 
@@ -89,6 +90,47 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen> {
           _errorMessage = e.toString();
           _isLoading = false;
         });
+      }
+    }
+  }
+
+  Future<void> _runSecurityAudit() async {
+    if (_isRunningSecurityAudit) return;
+    setState(() => _isRunningSecurityAudit = true);
+
+    try {
+      final result = await _supabase.rpc('auditar_exposicion_seguridad');
+      await _fetchExceptions(silent: true);
+
+      final findingsCount = result is Map ? (result['findings_count'] ?? 0) : 0;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              findingsCount == 0
+                  ? 'Auditoría completada: Sin brechas de exposición detectadas.'
+                  : 'Auditoría completada: $findingsCount brecha(s) de seguridad detectada(s) y registrada(s).',
+            ),
+            backgroundColor: findingsCount == 0
+                ? const Color(0xFF065F46)
+                : const Color(0xFF991B1B),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al ejecutar auditoría de seguridad: $e'),
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isRunningSecurityAudit = false);
       }
     }
   }
@@ -378,20 +420,59 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen> {
           ),
           const SizedBox(height: 10),
 
-          // Chips de Severidad
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildSeverityChip('all', 'Todas', const Color(0xFF94A3B8)),
-                const SizedBox(width: 6),
-                _buildSeverityChip('critical', 'Críticas', const Color(0xFFEF4444)),
-                const SizedBox(width: 6),
-                _buildSeverityChip('error', 'Errores', const Color(0xFFF97316)),
-                const SizedBox(width: 6),
-                _buildSeverityChip('warning', 'Advertencias', const Color(0xFFF59E0B)),
-              ],
-            ),
+          // Chips de Severidad + Botón de Auditoría de Seguridad
+          Row(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildSeverityChip('all', 'Todas', const Color(0xFF94A3B8)),
+                      const SizedBox(width: 6),
+                      _buildSeverityChip('critical', 'Críticas', const Color(0xFFEF4444)),
+                      const SizedBox(width: 6),
+                      _buildSeverityChip('error', 'Errores', const Color(0xFFF97316)),
+                      const SizedBox(width: 6),
+                      _buildSeverityChip('warning', 'Advertencias', const Color(0xFFF59E0B)),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton.icon(
+                onPressed: _isRunningSecurityAudit ? null : _runSecurityAudit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFDC2626),
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: const Color(0xFF7F1D1D),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 0,
+                ),
+                icon: _isRunningSecurityAudit
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Symbols.shield_lock, size: 16),
+                label: Text(
+                  _isRunningSecurityAudit
+                      ? 'Auditando...'
+                      : 'Ejecutar Auditoría de Seguridad Ahora',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -438,28 +519,46 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen> {
   }
 
   Widget _buildExceptionCard(SystemExceptionItem item) {
+    final bool isSecurityAlert = item.module == 'security_alert';
     Color cardColor;
     IconData icon;
     String badgeText;
 
-    switch (item.severity) {
-      case 'critical':
-        cardColor = const Color(0xFFEF4444);
-        icon = Symbols.emergency;
-        badgeText = 'CRÍTICO';
-        break;
-      case 'warning':
-        cardColor = const Color(0xFFF59E0B);
-        icon = Symbols.warning;
-        badgeText = 'AVISO';
-        break;
-      case 'error':
-      default:
-        cardColor = const Color(0xFFF97316);
-        icon = Symbols.error;
-        badgeText = 'ERROR';
-        break;
+    if (isSecurityAlert) {
+      cardColor = const Color(0xFFEF4444);
+      icon = Symbols.gpp_maybe;
+      badgeText = 'ALERTA DE SEGURIDAD';
+    } else {
+      switch (item.severity) {
+        case 'critical':
+          cardColor = const Color(0xFFEF4444);
+          icon = Symbols.emergency;
+          badgeText = 'CRÍTICO';
+          break;
+        case 'warning':
+          cardColor = const Color(0xFFF59E0B);
+          icon = Symbols.warning;
+          badgeText = 'AVISO';
+          break;
+        case 'error':
+        default:
+          cardColor = const Color(0xFFF97316);
+          icon = Symbols.error;
+          badgeText = 'ERROR';
+          break;
+      }
     }
+
+    final puntoViolado = item.metadata['punto_violado']?.toString() ??
+        item.metadata['tabla']?.toString() ??
+        item.metadata['bucket']?.toString() ??
+        item.module;
+    final infoComprometida = item.metadata['info_comprometida']?.toString() ??
+        item.metadata['columnas_expuestas']?.toString() ??
+        item.errorMessage;
+    final usuarioNombre = item.metadata['usuario_nombre']?.toString() ?? 'Anónimo / Sistema';
+    final usuarioRol = item.metadata['usuario_rol']?.toString();
+    final usuarioOrigenId = item.metadata['usuario_origen_id']?.toString() ?? item.userId;
 
     return Container(
       decoration: BoxDecoration(
@@ -548,6 +647,50 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen> {
           children: [
             const Divider(color: Color(0xFF1E293B)),
             const SizedBox(height: 8),
+
+            if (isSecurityAlert)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1F1219),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: const Color(0xFFEF4444).withValues(alpha: 0.55),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Symbols.shield_lock, size: 16, color: Color(0xFFF87171)),
+                        const SizedBox(width: 6),
+                        Text(
+                          'DETALLE FORENSE DE SEGURIDAD',
+                          style: GoogleFonts.firaCode(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFFF87171),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    _buildForensicRow('Punto violado / expuesto', puntoViolado),
+                    const SizedBox(height: 6),
+                    _buildForensicRow('Información comprometida / bloqueo', infoComprometida),
+                    const SizedBox(height: 6),
+                    _buildForensicRow(
+                      'Usuario origen',
+                      usuarioRol != null
+                          ? '$usuarioNombre ($usuarioRol)${usuarioOrigenId != null ? ' • ID: $usuarioOrigenId' : ''}'
+                          : '$usuarioNombre${usuarioOrigenId != null ? ' • ID: $usuarioOrigenId' : ''}',
+                    ),
+                  ],
+                ),
+              ),
 
             // Ruta Completa y Específica del Error o Falla
             Container(
@@ -732,6 +875,31 @@ class _ErrorConsoleScreenState extends State<ErrorConsoleScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildForensicRow(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: GoogleFonts.firaCode(
+            fontSize: 9,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF94A3B8),
+          ),
+        ),
+        const SizedBox(height: 2),
+        SelectableText(
+          value,
+          style: GoogleFonts.firaCode(
+            fontSize: 11,
+            color: const Color(0xFFFEE2E2),
+            height: 1.35,
+          ),
+        ),
+      ],
     );
   }
 

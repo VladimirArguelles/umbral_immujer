@@ -1,19 +1,16 @@
+import 'dart:convert';
+
 import 'report_models.dart';
 
 /// Generador de documento HTML limpio, seguro (con sanitización contra XSS) y optimizado para @media print.
 /// Permite invocar `window.print()` en navegadores móviles (Chrome Android / Safari iOS)
 /// conectando directamente con el spooler e impresoras del sistema sin descargar archivos.
 class HtmlReportGenerator {
-  /// Escapa caracteres especiales HTML para evitar inyecciones de código o fallos de renderizado.
+  /// Escapa caracteres especiales HTML usando `htmlEscape` (`dart:convert`)
+  /// y barra diagonal (`/`) para prevenir ataques XSS en plantillas HTML.
   static String _escapeHtml(dynamic input) {
     if (input == null) return '';
-    return input
-        .toString()
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
+    return htmlEscape.convert(input.toString()).replaceAll('/', '&#x2F;');
   }
 
   /// Genera el código HTML completo con estilos de impresión A4, orientación dinámica y auto-print.
